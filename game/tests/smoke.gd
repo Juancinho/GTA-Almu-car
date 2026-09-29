@@ -101,7 +101,7 @@ func _run() -> void:
 		return
 	car.global_position = Vector3(-240, 0.1, 8)
 	wanted.police_cars[0].global_position = wanted.last_known + Vector3(3, 0, 0)
-	wanted.search_timer = 9.8
+	wanted.search_timer = WantedSystem.SEARCH_SECONDS - 0.2
 	for i in range(30):
 		await physics_frame
 	if wanted.level != 0:
@@ -125,13 +125,68 @@ func _run() -> void:
 	if not wanted.report_incident(Vector3(58, 0, -78)) or wanted.level != 2 or wanted.police_cars.size() != 2:
 		_fail("wanted level 2 failed")
 		return
-	wanted.unseen_timer = 17.8
+	wanted.unseen_timer = WantedSystem.UNSEEN_SECONDS - 0.2
 	car.global_position = Vector3(-240, 0.1, 8)
 	for i in range(25):
 		await physics_frame
 	if wanted.level != 0:
 		_fail("unseen escape fallback failed")
 		return
+	var network: RoadNetwork = world.road_network
+	var path := network.find_path(Vector3(112, 0, 8), Vector3(58, 0, -158))
+	if path.is_empty() or path[path.size() - 1].distance_to(Vector3(58, 0, -158)) > 0.5 or network.road_name_at(Vector3(58, 0, -100)) != "Calle del Castillo":
+		_fail("road network path/name lookup failed: %s" % str(path))
+		return
+	# Arrest: a stationary player next to a seeing police unit is detained and the
+	# mission returns to its checkpoint with the car back at its spawn.
+	mission.restore_stage(3)
+	player.global_position = car.global_position + Vector3(2, 0, 0)
+	if player.driving_vehicle == null:
+		player._interact()
+	wanted.incident_cooldown = 0.0
+	car.global_position = Vector3(58, 0.1, -78)
+	for i in range(3):
+		await physics_frame
+	if wanted.level == 0 or wanted.police_cars.is_empty():
+		_fail("arrest setup did not raise wanted level")
+		return
+	var busted := [false]
+	wanted.player_busted.connect(func() -> void: busted[0] = true)
+	car.speed = 0.0
+	wanted.police_cars[0].global_position = car.global_position + Vector3(5, 0, 0)
+	for i in range(240):
+		await physics_frame
+		if busted[0]:
+			break
+	await process_frame
+	if not busted[0] or mission.stage != 1 or player.driving_vehicle != null or wanted.level != 0:
+		_fail("arrest did not reset mission: busted=%s stage=%d" % [busted[0], mission.stage])
+		return
+	if car.global_position.distance_to(Vector3(112, 0.5, 8)) > 1.0:
+		_fail("mission car not returned to spawn after arrest: %s" % str(car.global_position))
+		return
+	# Exiting next to a façade must not place the player inside the building.
+	player.global_position = car.global_position + Vector3(2, 0, 0)
+	player._interact()
+	# Car parked parallel to the Casa_-16_-54 façade (z = -46.5) with its +X side facing the wall.
+	car.global_position = Vector3(-16.0, 0.3, -44.8)
+	car.rotation.y = PI * 0.5
+	for i in range(2):
+		await physics_frame
+	player._interact()
+	await physics_frame
+	var exit_query := PhysicsShapeQueryParameters3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.3
+	capsule.height = 1.6
+	exit_query.shape = capsule
+	exit_query.transform = Transform3D(Basis.IDENTITY, player.global_position + Vector3(0, 1.0, 0))
+	exit_query.exclude = [player.get_rid(), car.get_rid()]
+	if not player.get_world_3d().direct_space_state.intersect_shape(exit_query, 1).is_empty() or player.global_position.z < -46.5 or player.global_position.y > 1.0:
+		_fail("vehicle exit placed player inside geometry at %s" % str(player.global_position))
+		return
+	world.reset_vehicle("FirstCar")
+	mission.restore_stage(5)
 	root.save_path = "user://smoke_save_v1.json"
 	root._save_game()
 	player.global_position = Vector3.ZERO
@@ -145,7 +200,7 @@ func _run() -> void:
 		_fail("pause did not stop player")
 		return
 	paused = false
-	print("SMOKE PASS: world=%d objects; walking, car, mission, police, save/load, pause" % world.get_child_count())
+	print("SMOKE PASS: world=%d objects; walking, car, mission, police, arrest, road graph, safe exit, save/load, pause" % world.get_child_count())
 	_stop_audio(root)
 	root.queue_free()
 	for i in range(3):

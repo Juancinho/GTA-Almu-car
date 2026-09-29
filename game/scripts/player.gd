@@ -9,8 +9,13 @@ const RUN_SPEED := 8.5
 const ACCELERATION := 15.0
 const JUMP_SPEED := 5.7
 const GRAVITY := 16.0
+const FOOT_CAMERA_DISTANCE := 5.0
+const DRIVE_CAMERA_DISTANCE := 7.5
+const CAMERA_RECENTER_DELAY := 0.9
+const GAMEPAD_LOOK_SPEED := 2.6
 
 var camera_pivot: Node3D
+var camera_arm: SpringArm3D
 var camera: Camera3D
 var visual: Node3D
 var collider: CollisionShape3D
@@ -19,6 +24,7 @@ var step_timer := 0.0
 var driving_vehicle: DriveableVehicle
 var camera_yaw := -2.0
 var camera_pitch := -0.18
+var look_idle_time := 0.0
 
 
 func _ready() -> void:
@@ -81,12 +87,23 @@ func _body_box(label: String, at: Vector3, size: Vector3, color: Color) -> void:
 
 func _build_camera() -> void:
 	camera_pivot = Node3D.new()
+	camera_pivot.name = "CameraPivot"
 	camera_pivot.position.y = 1.55
 	add_child(camera_pivot)
+	# The spring arm pulls the camera in front of walls in narrow streets.
+	camera_arm = SpringArm3D.new()
+	camera_arm.name = "CameraArm"
+	camera_arm.position = Vector3(0, 0.5, 0)
+	camera_arm.spring_length = FOOT_CAMERA_DISTANCE
+	camera_arm.margin = 0.25
+	var probe := SphereShape3D.new()
+	probe.radius = 0.25
+	camera_arm.shape = probe
+	camera_arm.add_excluded_object(get_rid())
+	camera_pivot.add_child(camera_arm)
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 0.5, 5.0)
 	camera.current = true
-	camera_pivot.add_child(camera)
+	camera_arm.add_child(camera)
 	_update_camera_orientation()
 
 
@@ -94,6 +111,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		camera_yaw -= event.relative.x * 0.003
 		camera_pitch = clampf(camera_pitch - event.relative.y * 0.003, -1.1, 0.55)
+		look_idle_time = 0.0
 		_update_camera_orientation()
 	if event.is_action_pressed("interact"):
 		_interact()
@@ -101,6 +119,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _update_camera_orientation() -> void:
 	camera_pivot.rotation = Vector3(camera_pitch, camera_yaw, 0)
+
+
+func _process(delta: float) -> void:
+	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down") if InputMap.has_action("look_left") else Vector2.ZERO
+	if look.length_squared() > 0.01:
+		camera_yaw -= look.x * GAMEPAD_LOOK_SPEED * delta
+		camera_pitch = clampf(camera_pitch - look.y * GAMEPAD_LOOK_SPEED * 0.6 * delta, -1.1, 0.55)
+		look_idle_time = 0.0
+	else:
+		look_idle_time += delta
+	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else FOOT_CAMERA_DISTANCE
+	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, 6.0 * delta)
+	if driving_vehicle != null and look_idle_time > CAMERA_RECENTER_DELAY:
+		# Drift the camera behind the car when the player is not steering the view.
+		var follow := minf(1.0, 2.2 * delta * clampf(absf(driving_vehicle.speed) / 4.0, 0.0, 1.0))
+		var heading := driving_vehicle.rotation.y + (PI if driving_vehicle.speed < -1.0 else 0.0)
+		camera_yaw = lerp_angle(camera_yaw, heading, follow)
+		camera_pitch = lerpf(camera_pitch, -0.22, follow)
+	_update_camera_orientation()
 
 
 func _physics_process(delta: float) -> void:
@@ -136,7 +173,10 @@ func _interact() -> void:
 		var car := driving_vehicle
 		driving_vehicle = null
 		car.driver = null
-		global_position = car.global_position + car.global_transform.basis.x * 2.4 + Vector3(0, 0.2, 0)
+		camera_arm.clear_excluded_objects()
+		camera_arm.add_excluded_object(get_rid())
+		global_position = _safe_exit_position(car)
+		velocity = Vector3.ZERO
 		visual.visible = true
 		collider.set_deferred("disabled", false)
 		return
@@ -151,16 +191,23 @@ func _interact() -> void:
 			best = vehicle
 			best_distance = distance
 	if best != null:
-		driving_vehicle = best
-		best.driver = self
-		best.auto_drive = false
-		visual.visible = false
-		collider.set_deferred("disabled", true)
+		board_vehicle(best)
 		vehicle_entered.emit(best)
 		return
 	var contact := nearby_contact()
 	if contact != null:
 		contact_interacted.emit(contact)
+
+
+## Put the player in the driver seat (used by interaction and save loading).
+func board_vehicle(car: DriveableVehicle) -> void:
+	driving_vehicle = car
+	car.driver = self
+	car.auto_drive = false
+	car.pursuing = false
+	camera_arm.add_excluded_object(car.get_rid())
+	visual.visible = false
+	collider.set_deferred("disabled", true)
 
 
 func nearby_vehicle() -> DriveableVehicle:
@@ -181,3 +228,22 @@ func nearby_contact() -> Pedestrian:
 		if contact != null and global_position.distance_to(contact.global_position) < 3.4:
 			return contact
 	return null
+
+
+## Pick the first free spot beside the car (driver side, passenger side, behind, front).
+func _safe_exit_position(car: DriveableVehicle) -> Vector3:
+	var car_basis := car.global_transform.basis
+	var candidates: Array[Vector3] = [car_basis.x * 2.4, -car_basis.x * 2.4, car_basis.z * 3.4, -car_basis.z * 3.4]
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.35
+	shape.height = 1.75
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = shape
+	query.exclude = [car.get_rid(), get_rid()]
+	var space := get_world_3d().direct_space_state
+	for offset in candidates:
+		var spot := car.global_position + Vector3(offset.x, 0.2, offset.z)
+		query.transform = Transform3D(Basis.IDENTITY, spot + Vector3(0, 1.0, 0))
+		if space.intersect_shape(query, 1).is_empty():
+			return spot
+	return car.global_position + Vector3(0, 2.2, 0)

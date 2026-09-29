@@ -5,12 +5,17 @@ const PlayerScript = preload("res://scripts/player.gd")
 const HudScript = preload("res://scripts/hud.gd")
 const WantedScript = preload("res://scripts/wanted.gd")
 const MissionScript = preload("res://scripts/mission.gd")
+const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
+const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
+const ARREST_RESPAWN := Vector3(92.0, 0.2, 30.0)
 
 var world: Node3D
 var player: PlayerController
 var hud: GameHud
 var wanted: WantedSystem
 var mission: MissionController
+var perf_monitor: PerfMonitor
+var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
 var ui_audio: AudioStreamPlayer
 var quality_level := 2
@@ -34,16 +39,31 @@ func _ready() -> void:
 	wanted.name = "WantedSystem"
 	wanted.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(wanted)
-	wanted.configure(player)
+	wanted.configure(player, world.road_network)
+	wanted.player_busted.connect(_on_player_busted)
+	wanted.wanted_changed.connect(_on_wanted_changed)
 	mission = MissionScript.new()
 	mission.name = "Mission"
 	mission.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(mission)
 	mission.configure(player, wanted)
 	mission.objective_changed.connect(_play_ui_feedback)
+	mission.objective_changed.connect(_on_objective_changed)
+	mission.mission_completed.connect(_on_mission_completed)
+	mission.mission_failed.connect(_on_mission_failed)
+	player.vehicle_entered.connect(_on_vehicle_entered)
 	hud = HudScript.new()
 	add_child(hud)
 	hud.set_game(player, mission, wanted)
+	hud.road_network = world.road_network
+	perf_monitor = PerfMonitorScript.new()
+	perf_monitor.name = "PerfMonitor"
+	perf_monitor.context_provider = _perf_context
+	add_child(perf_monitor)
+	playtest_log = PlaytestLogScript.new()
+	playtest_log.name = "PlaytestLog"
+	playtest_log.perf = perf_monitor
+	add_child(playtest_log)
 	_apply_settings()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -77,6 +97,57 @@ func _play_ui_feedback(_objective: String, _marker: Vector3) -> void:
 		ui_audio.play()
 
 
+func _perf_context() -> String:
+	if wanted.level > 0:
+		return "pursuit"
+	if player.driving_vehicle != null:
+		return "driving"
+	return "on_foot"
+
+
+func _auto_report(reason: String) -> void:
+	# Only real interactive sessions write automatically; tests write explicitly.
+	if playtest_log.mode == "human" and DisplayServer.get_name() != "headless" and playtest_log.elapsed_seconds() > 20.0:
+		playtest_log.write_report(reason)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and playtest_log != null:
+		playtest_log.record("quit")
+		_auto_report("window_closed")
+
+
+func _on_objective_changed(text: String, _marker: Vector3) -> void:
+	playtest_log.record("objective", {"stage": mission.stage, "text": text})
+
+
+func _on_mission_completed() -> void:
+	playtest_log.record("mission_completed", {"stage": mission.stage})
+	_auto_report("mission_completed")
+
+
+func _on_mission_failed(reason: String) -> void:
+	playtest_log.record("mission_failed", {"reason": reason, "stage": mission.stage})
+
+
+func _on_wanted_changed(level: int, phase: String) -> void:
+	playtest_log.record("wanted", {"level": level, "phase": phase})
+
+
+func _on_vehicle_entered(vehicle: DriveableVehicle) -> void:
+	playtest_log.record("vehicle_entered", {"vehicle": str(vehicle.name)})
+
+
+func _on_player_busted() -> void:
+	playtest_log.record("busted", {"position": [player.global_position.x, player.global_position.z], "stage": mission.stage})
+	if player.driving_vehicle != null:
+		player._interact()
+	player.global_position = ARREST_RESPAWN
+	player.velocity = Vector3.ZERO
+	world.reset_vehicle("FirstCar")
+	mission.fail_to_checkpoint("Te han detenido.")
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):
 		if get_tree().paused:
@@ -85,20 +156,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			get_tree().paused = true
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		playtest_log.record("pause", {"paused": get_tree().paused})
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("restart"):
+		playtest_log.record("restart", {"stage": mission.stage})
+		_auto_report("restart")
 		get_tree().paused = false
 		get_tree().reload_current_scene()
 	elif event.is_action_pressed("save_game"):
 		_save_game()
+		playtest_log.record("save", {"stage": mission.stage})
 	elif event.is_action_pressed("load_game"):
 		_load_game()
+		playtest_log.record("load", {"stage": mission.stage})
 	elif event.is_action_pressed("quality_cycle"):
 		quality_level = (quality_level + 1) % 3
 		_apply_settings()
+		playtest_log.record("quality", {"level": quality_level})
 	elif event.is_action_pressed("volume_cycle"):
 		volume_level = (volume_level + 1) % 3
 		_apply_settings()
+	elif event.is_action_pressed("perf_overlay"):
+		perf_monitor.toggle_overlay()
+	elif event.is_action_pressed("perf_report"):
+		var path := playtest_log.write_report("manual_f6")
+		mission._show_dialogue("Informe guardado: " + path.get_file() if path != "" else "No se pudo guardar el informe.")
 	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and not get_tree().paused:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -118,6 +200,16 @@ func _configure_input() -> void:
 	_add_key("load_game", KEY_F9)
 	_add_key("quality_cycle", KEY_F3)
 	_add_key("volume_cycle", KEY_F4)
+	_add_key("perf_overlay", KEY_F2)
+	_add_key("perf_report", KEY_F6)
+	for action in ["look_left", "look_right", "look_up", "look_down"]:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action, 0.2)
+	_add_joy_axis("look_left", JOY_AXIS_RIGHT_X, -1.0)
+	_add_joy_axis("look_right", JOY_AXIS_RIGHT_X, 1.0)
+	_add_joy_axis("look_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_add_joy_axis("look_down", JOY_AXIS_RIGHT_Y, 1.0)
+	_add_joy_button("brake", JOY_BUTTON_B)
 	_add_joy_axis("move_left", JOY_AXIS_LEFT_X, -1.0)
 	_add_joy_axis("move_right", JOY_AXIS_LEFT_X, 1.0)
 	_add_joy_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
@@ -151,6 +243,8 @@ func _add_joy_button(action: StringName, button: JoyButton) -> void:
 
 func _apply_settings() -> void:
 	world.apply_quality(quality_level)
+	if perf_monitor != null:
+		perf_monitor.extra_info["quality_level"] = quality_level
 	AudioServer.set_bus_volume_db(0, [-16.0, -6.0, 0.0][volume_level])
 	hud.update_settings(quality_level, volume_level)
 
@@ -208,9 +302,5 @@ func _load_game() -> void:
 		if car != null and car_point.size() == 3:
 			car.global_position = Vector3(float(car_point[0]), float(car_point[1]), float(car_point[2]))
 			car.rotation.y = float(data.get("vehicle_yaw", 0.0))
-			car.auto_drive = false
-			car.driver = player
-			player.driving_vehicle = car
-			player.visual.visible = false
-			player.collider.set_deferred("disabled", true)
+			player.board_vehicle(car)
 	mission._show_dialogue("Partida cargada.")

@@ -3,6 +3,8 @@ extends Control
 
 var player: PlayerController
 var mission: MissionController
+var wanted: WantedSystem
+var road_network: RoadNetwork
 
 
 func _ready() -> void:
@@ -23,20 +25,25 @@ func _draw() -> void:
 	var map_center := size * 0.5
 	var scale := 0.74
 	var road_color := Color("d9ccaa")
-	for x in [-168.0, -55.0, 58.0, 170.0]:
-		var a := _to_map(Vector2(x, -212), center, map_center, scale)
-		var b := _to_map(Vector2(x, 48), center, map_center, scale)
-		draw_line(a, b, road_color, 5.0)
-	for z in [8.0, -78.0, -158.0]:
-		var a := _to_map(Vector2(-285, z), center, map_center, scale)
-		var b := _to_map(Vector2(285, z), center, map_center, scale)
-		draw_line(a, b, road_color, 5.0)
+	if road_network != null:
+		for road in road_network.roads:
+			var fixed := float(road["fixed"])
+			var from := Vector2(float(road["from"]), fixed) if str(road["axis"]) == "x" else Vector2(fixed, float(road["from"]))
+			var to := Vector2(float(road["to"]), fixed) if str(road["axis"]) == "x" else Vector2(fixed, float(road["to"]))
+			draw_line(_to_map(from, center, map_center, scale), _to_map(to, center, map_center, scale), road_color, 5.0)
 	if mission != null and not mission.completed and not mission.objectives.is_empty():
 		var objective := mission.objectives[mission.stage]
 		var marker := objective.get("marker", [0, 0]) as Array
 		var marker_pos := _to_map(Vector2(float(marker[0]), float(marker[1])), center, map_center, scale)
 		if Rect2(Vector2.ZERO, size).has_point(marker_pos):
 			draw_circle(marker_pos, 6.0, Color("efb65f"))
+	if wanted != null:
+		var blink := int(Time.get_ticks_msec() / 250) % 2 == 0
+		for car in wanted.police_cars:
+			if is_instance_valid(car):
+				var police_pos := _to_map(Vector2(car.global_position.x, car.global_position.z), center, map_center, scale)
+				if Rect2(Vector2.ZERO, size).has_point(police_pos):
+					draw_circle(police_pos, 5.0, Color("e0504a") if blink else Color("4a7be0"))
 	draw_circle(map_center, 6.0, Color("61d0d7"))
 	draw_rect(Rect2(Vector2.ZERO, size), Color("99c5be"), false, 2.0)
 

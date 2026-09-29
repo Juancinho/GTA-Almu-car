@@ -7,10 +7,13 @@ const PalmScene = preload("res://assets/procedural/palm.glb")
 var materials: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var sun_light: DirectionalLight3D
+var road_network: RoadNetwork
+var vehicle_spawns: Dictionary = {}
 
 
 func _ready() -> void:
 	rng.seed = 7401
+	road_network = RoadNetwork.load_default()
 	_create_light()
 	_create_land()
 	_create_roads()
@@ -108,16 +111,31 @@ func _create_roads() -> void:
 	var asphalt := _material("asphalt", Color("4a5051"))
 	var curb := _material("curb", Color("ddd1b6"))
 	var line := _material("line", Color("e6d9ab"))
-	for z in [8.0, -78.0, -158.0]:
-		_box("EastWestRoad", Vector3(0, 0.015, z), Vector3(570, 0.05, 14), asphalt)
-		_box("RoadLine", Vector3(0, 0.046, z), Vector3(570, 0.008, 0.13), line)
-		for side in [-1.0, 1.0]:
-			_box("Walkway", Vector3(0, 0.08, z + side * 9.0), Vector3(570, 0.16, 4.0), curb)
-	for x in [-168.0, -55.0, 58.0, 170.0]:
-		_box("NorthSouthRoad", Vector3(x, 0.025, -82), Vector3(13, 0.05, 260), asphalt)
-		_box("RoadLine", Vector3(x, 0.052, -82), Vector3(0.13, 0.008, 260), line)
-		for side in [-1.0, 1.0]:
-			_box("Walkway", Vector3(x + side * 8.5, 0.08, -82), Vector3(4.0, 0.16, 260), curb)
+	for road in road_network.roads:
+		var start := float(road["from"])
+		var finish := float(road["to"])
+		var fixed := float(road["fixed"])
+		var width := float(road["width"])
+		var length := finish - start
+		var middle := (start + finish) * 0.5
+		var walk_offset := width * 0.5 + 2.0
+		if str(road["axis"]) == "x":
+			_box("EastWestRoad", Vector3(middle, 0.015, fixed), Vector3(length, 0.05, width), asphalt)
+			_box("RoadLine", Vector3(middle, 0.046, fixed), Vector3(length, 0.008, 0.13), line)
+			for side in [-1.0, 1.0]:
+				_box("Walkway", Vector3(middle, 0.08, fixed + side * walk_offset), Vector3(length, 0.16, 4.0), curb)
+		else:
+			_box("NorthSouthRoad", Vector3(fixed, 0.025, middle), Vector3(width, 0.05, length), asphalt)
+			_box("RoadLine", Vector3(fixed, 0.052, middle), Vector3(0.13, 0.008, length), line)
+			for side in [-1.0, 1.0]:
+				_box("Walkway", Vector3(fixed + side * walk_offset, 0.08, middle), Vector3(4.0, 0.16, length), curb)
+
+
+func _is_near_north_south_road(x: float, margin: float) -> bool:
+	for road in road_network.roads:
+		if str(road["axis"]) == "z" and absf(x - float(road["fixed"])) < margin:
+			return true
+	return false
 
 
 func _create_buildings() -> void:
@@ -128,7 +146,7 @@ func _create_buildings() -> void:
 	var window_transforms: Array[Transform3D] = []
 	var shutter_transforms: Array[Transform3D] = []
 	for x in range(-256, 270, 24):
-		if abs(x + 168) < 17 or abs(x + 55) < 17 or abs(x - 58) < 17 or abs(x - 170) < 17:
+		if _is_near_north_south_road(float(x), 17.0):
 			continue
 		for z in [-33.0, -54.0, -110.0, -132.0, -190.0]:
 			if x > 0 and z == -190.0:
@@ -294,6 +312,18 @@ func _create_vehicle() -> void:
 	car.position = Vector3(112, 0.5, 8)
 	car.rotation.y = PI * 0.5
 	add_child(car)
+	vehicle_spawns[car.name] = car.transform
+
+
+## Returns a mission vehicle to its authored spawn (used after an arrest).
+func reset_vehicle(vehicle_name: String) -> void:
+	var car := get_node_or_null(vehicle_name) as DriveableVehicle
+	if car == null or not vehicle_spawns.has(vehicle_name):
+		return
+	car.driver = null
+	car.speed = 0.0
+	car.velocity = Vector3.ZERO
+	car.transform = vehicle_spawns[vehicle_name]
 
 
 func _create_people_and_traffic() -> void:

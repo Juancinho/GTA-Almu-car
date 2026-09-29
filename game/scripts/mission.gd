@@ -4,6 +4,7 @@ extends Node
 signal objective_changed(text: String, marker: Vector3)
 signal dialogue_changed(text: String)
 signal mission_completed
+signal mission_failed(reason: String)
 
 var player: PlayerController
 var wanted: WantedSystem
@@ -12,6 +13,8 @@ var stage := 0
 var completed := false
 var dialogue := ""
 var dialogue_timer := 0.0
+var fail_checkpoint := 0
+var fail_dialogue := ""
 
 
 func _ready() -> void:
@@ -25,6 +28,8 @@ func _ready() -> void:
 		return
 	for objective in parsed["objectives"]:
 		objectives.append(objective)
+	fail_checkpoint = int(parsed.get("fail_checkpoint", 0))
+	fail_dialogue = str(parsed.get("fail_dialogue", ""))
 
 
 func configure(target: PlayerController, wanted_system: WantedSystem) -> void:
@@ -110,3 +115,17 @@ func restore_stage(value: int) -> void:
 		objective_changed.emit("El Recado completado", Vector3.ZERO)
 	else:
 		_emit_objective()
+
+
+## Arrest or other failure: return an in-progress mission to its data-defined checkpoint.
+func fail_to_checkpoint(reason: String) -> void:
+	if completed or objectives.is_empty():
+		_show_dialogue(reason)
+		return
+	if stage > fail_checkpoint:
+		stage = fail_checkpoint
+		_emit_objective()
+		mission_failed.emit(reason)
+		_show_dialogue(reason + " " + fail_dialogue)
+	else:
+		_show_dialogue(reason)

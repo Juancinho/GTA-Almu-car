@@ -4,6 +4,11 @@ extends CanvasLayer
 var player: PlayerController
 var mission: MissionController
 var wanted: WantedSystem
+var road_network: RoadNetwork:
+	set(value):
+		road_network = value
+		if minimap != null:
+			minimap.road_network = value
 var info_label: Label
 var mission_label: Label
 var wanted_label: Label
@@ -76,8 +81,8 @@ func _ready() -> void:
 	root.add_child(pause_overlay)
 	pause_label = Label.new()
 	pause_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	pause_label.position = Vector2(-260, -125)
-	pause_label.custom_minimum_size = Vector2(520, 250)
+	pause_label.position = Vector2(-300, -150)
+	pause_label.custom_minimum_size = Vector2(600, 300)
 	pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_label.add_theme_font_size_override("font_size", 28)
 	pause_label.text = "PAUSA"
@@ -90,12 +95,13 @@ func set_game(value: PlayerController, mission_value: MissionController, wanted_
 	wanted = wanted_value
 	minimap.player = player
 	minimap.mission = mission
+	minimap.wanted = wanted
 
 
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\n\nMap data © OpenStreetMap contributors\nODbL · openstreetmap.org/copyright" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 guardar informe de sesión\n\nMap data © OpenStreetMap contributors\nODbL · openstreetmap.org/copyright" % [quality_text, volume_text]
 
 
 func _process(_delta: float) -> void:
@@ -105,6 +111,10 @@ func _process(_delta: float) -> void:
 	mission_label.text = "MISIÓN · " + mission.objectives[mission.stage].get("text", "") if not mission.completed else "MISIÓN · El Recado completado"
 	var phase_text: String = {"clear": "sin búsqueda", "responding": "en camino", "pursuit": "persecución", "search": "buscando"}.get(wanted.phase, wanted.phase)
 	wanted_label.text = "ATENCIÓN POLICIAL · %d/5  %s" % [wanted.level, phase_text]
+	if wanted.arrest_progress() > 0.0:
+		wanted_label.text += "  ·  ¡DETENCIÓN %d %%!" % int(wanted.arrest_progress() * 100.0)
+	var street := road_network.road_name_at(player.global_position) if road_network != null else ""
+	info_label.text = "BRISA DE PONIENTE\n%s · %s" % [street if street != "" else "Paseo del Altillo", "En coche" if player.driving_vehicle != null else "A pie"]
 	dialogue_label.text = mission.dialogue
 	if player.driving_vehicle != null:
 		prompt_label.text = "WASD conducir · Espacio frenar · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
