@@ -39,4 +39,4 @@ The immediate objective is one dense playable district and one complete mission 
 
 ## Data and licensing
 
-All bespoke game content is original or uses a recorded compatible license. The cached OSM reference extract requires attribution and ODbL handling described in [world design](docs/WORLD_DESIGN.md). The currently playable road layout is authored separately from that data. No OSM request occurs during gameplay.
+All bespoke game content is original or uses a recorded compatible license. People, cars and surface textures are CC0 assets by Quaternius and ambientCG, imported reproducibly by `tools/third_party/import_assets.py` (see [asset pipeline](docs/ASSET_PIPELINE.md) and `game/assets/third_party/CREDITS.md`). The cached OSM reference extract requires attribution and ODbL handling described in [world design](docs/WORLD_DESIGN.md). The currently playable road layout is authored separately from that data. No OSM request occurs during gameplay.

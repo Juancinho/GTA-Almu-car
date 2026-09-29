@@ -101,7 +101,7 @@ func set_game(value: PlayerController, mission_value: MissionController, wanted_
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors\nODbL · openstreetmap.org/copyright" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG (CC0)" % [quality_text, volume_text]
 
 
 func _process(_delta: float) -> void:

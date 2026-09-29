@@ -15,3 +15,7 @@ Current generation fails on zero-size meshes, missing materials or UVs, polygon 
 ## Audio
 
 Use distinct SFX, music, ambience and UI buses. Initial sounds may be original synthesized placeholders with provenance. Do not fetch commercial recordings. Replace placeholders only with original or license-recorded assets.
+
+## Third-party CC0 assets
+
+Only CC0 sources, pinned by Git commit, enter the game. `assets/third_party/manifest.json` lists each source (repository, commit, author, license file) and every model/texture taken from it; `tools/third_party/import_assets.py --ktx <ktx>` sparse-fetches exactly those files, copies models to `game/assets/third_party/quaternius/`, decodes ambientCG KTX2 maps to PNG (Khronos KTX-Software 4.4.2 `ktx extract`) in `game/assets/third_party/ambientcg/`, and writes `assets/third_party/import_report.json` (SHA-256 per output) and `game/assets/third_party/CREDITS.md`. `--check` (run by `validate.ps1`) fails if an output or the manifest changed without re-import. Never edit outputs by hand; change the manifest and re-run. Current sources: Quaternius “Animated Men/Women Characters” and “Realistic Car Pack” (CC0, via beep2bleep/FreeAssetsByKenneyNLandQuaternius) and ambientCG (CC0, via Papyszoo/CC0-Public-Domain-Textures). The `Cop_SUV` model is excluded because its preview is marked Patreon-exclusive.
