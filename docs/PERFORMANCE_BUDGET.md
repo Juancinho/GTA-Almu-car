@@ -35,3 +35,16 @@ Initial offscreen sample on 2026-09-29, after the compact car GLB runtime integr
 Hardware: NVIDIA GeForce GTX 1650 (OpenGL 3.3, driver 592.27), AMD Ryzen 5 5600H, Windows 10.0.26200, 120 Hz display, Godot 4.7.2 Compatibility renderer, quality level 2 (shadows on). Frame pacing held the 120 Hz vsync cap throughout driving and pursuit, which exceeds the 60 FPS target with no dropped frames at the 1 % low.
 
 Caveat: both reports stored the logical 1280×720 stretch size, not the real window, so these runs do not prove native 1920×1080. The monitor now records `window_size`, `render_size` and seconds spent per window size; `validate.ps1 -Perf` runs the route fullscreen twice (vsync and uncapped) to confirm 1080p and measure headroom.
+
+### Native 1080p confirmation (2026-09-29, 21:03)
+
+After adding animated CC0 people, CC0 cars and triplanar PBR textures, `validate.ps1 -Perf` ran the El Recado route fullscreen at 1920×1080 (window and screen size recorded):
+
+| Pass | Context | Avg FPS | 1 % low | Max frame | Avg / max draw calls |
+|------|---------|---------|---------|-----------|----------------------|
+| vsync (120 Hz) | on_foot / driving / pursuit | 120.0 | 120.0 | 8.43 ms | 331–423 / 617 |
+| uncapped | on_foot | 389.7 | 360.0 | 2.88 ms | 350 / 362 |
+| uncapped | driving | 445.8 | 360.0 | 2.98 ms | 424 / 607 |
+| uncapped | pursuit | 466.8 | 364.0 | 5.23 ms | 339 / 617 |
+
+The 60 FPS target has roughly 6× headroom on the GTX 1650; spend it on traffic density, effects and lighting, re-measuring each step.
