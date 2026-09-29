@@ -17,6 +17,7 @@ var elapsed := 0.0
 var overlay: Label
 var overlay_timer := 0.0
 var recent_ms := PackedFloat32Array()
+var window_seconds: Dictionary = {}
 
 
 func _ready() -> void:
@@ -42,6 +43,11 @@ func _process(delta: float) -> void:
 	if get_tree().paused or elapsed < WARMUP_SECONDS:
 		return
 	var context := "gameplay"
+	if DisplayServer.get_name() != "headless":
+		# Seconds spent at each real window size (the player may toggle F11).
+		var window := DisplayServer.window_get_size()
+		var key := "%dx%d" % [window.x, window.y]
+		window_seconds[key] = float(window_seconds.get(key, 0.0)) + delta
 	if context_provider.is_valid():
 		context = str(context_provider.call())
 	var ms := delta * 1000.0
@@ -109,11 +115,17 @@ func summary() -> Dictionary:
 			stats["max_primitives"] = primitives[context][1]
 		contexts[context] = stats
 		all.append_array(bucket)
-	return {"overall": _stats(all), "contexts": contexts, "environment": environment_info()}
+	var windows := {}
+	for key in window_seconds:
+		windows[key] = snappedf(window_seconds[key], 0.1)
+	return {"overall": _stats(all), "contexts": contexts, "window_seconds": windows, "environment": environment_info()}
 
 
 func environment_info() -> Dictionary:
-	var window := get_viewport().get_visible_rect().size
+	var logical := get_viewport().get_visible_rect().size
+	var headless := DisplayServer.get_name() == "headless"
+	var window: Vector2i = DisplayServer.window_get_size() if not headless else Vector2i.ZERO
+	var render: Vector2 = get_viewport().get_texture().get_size() if not headless else Vector2.ZERO
 	var info := {
 		"godot": Engine.get_version_info().get("string", ""),
 		"os": OS.get_name() + " " + OS.get_version(),
@@ -123,10 +135,13 @@ func environment_info() -> Dictionary:
 		"graphics_api": RenderingServer.get_video_adapter_api_version(),
 		"renderer": str(ProjectSettings.get_setting("rendering/renderer/rendering_method")),
 		"display_server": DisplayServer.get_name(),
-		"viewport": [int(window.x), int(window.y)],
-		"window_mode": DisplayServer.window_get_mode() if DisplayServer.get_name() != "headless" else -1,
-		"vsync_mode": DisplayServer.window_get_vsync_mode() if DisplayServer.get_name() != "headless" else -1,
-		"refresh_rate": DisplayServer.screen_get_refresh_rate() if DisplayServer.get_name() != "headless" else -1.0,
+		"logical_viewport": [int(logical.x), int(logical.y)],
+		"window_size": [window.x, window.y],
+		"render_size": [int(render.x), int(render.y)],
+		"screen_size": [DisplayServer.screen_get_size().x, DisplayServer.screen_get_size().y] if not headless else [0, 0],
+		"window_mode": DisplayServer.window_get_mode() if not headless else -1,
+		"vsync_mode": DisplayServer.window_get_vsync_mode() if not headless else -1,
+		"refresh_rate": DisplayServer.screen_get_refresh_rate() if not headless else -1.0,
 	}
 	info.merge(extra_info, true)
 	return info

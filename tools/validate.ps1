@@ -37,9 +37,11 @@ if ($Capture) {
     Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
 }
 if ($Perf) {
-    # Visible 1920x1080 window on the real GPU: the full El Recado route with police
+    # Fullscreen (native resolution) on the real GPU: the full El Recado route with police
     # pursuit, recording frame times per gameplay context into generated/playtests/.
-    Invoke-Godot 'perf_route' @('--path', ('"' + $gamePath + '"'), '--resolution', '1920x1080', '--script', 'res://tests/route_trial.gd', '--', '--perf')
+    # The second pass disables vsync to measure headroom above the refresh rate.
+    Invoke-Godot 'perf_route' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd', '--', '--perf')
+    Invoke-Godot 'perf_route_uncapped' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd', '--', '--perf', '--uncapped')
 }
 Write-Host 'VALIDATION PASS'
 Stop-Transcript | Out-Null

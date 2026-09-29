@@ -3,7 +3,9 @@ extends SceneTree
 ## Fresh-start El Recado run driven only by simulated movement/interaction input.
 ## The player follows the road graph, triggers the witnessed incident, is chased by
 ## road-navigating police, evades them around the west blocks and delivers the package.
-## `-- --perf` also writes a PerfMonitor/PlaytestLog report (use a visible window).
+## `-- --perf` also writes a PerfMonitor/PlaytestLog report: it switches the visible
+## window to fullscreen (native resolution) and `--uncapped` additionally disables
+## vsync to expose frame-time headroom above the display refresh rate.
 
 const RESTRICTED_ZONE := Rect2(38.0, -96.0, 40.0, 36.0)
 const EVASION_LOOP: Array[Vector3] = [
@@ -24,10 +26,15 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var perf_mode := OS.get_cmdline_user_args().has("--perf")
+	var uncapped := OS.get_cmdline_user_args().has("--uncapped")
+	if perf_mode and DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		if uncapped:
+			DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var root := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	get_root().add_child(root)
 	if perf_mode:
-		root.playtest_log.mode = "automated_route"
+		root.playtest_log.mode = "automated_route_uncapped" if uncapped else "automated_route_vsync"
 	var world := root.get_node("District_Altillo")
 	var network: RoadNetwork = world.road_network
 	var player := root.get_node("Player") as PlayerController

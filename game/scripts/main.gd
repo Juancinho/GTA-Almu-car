@@ -176,6 +176,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("volume_cycle"):
 		volume_level = (volume_level + 1) % 3
 		_apply_settings()
+	elif event.is_action_pressed("fullscreen_toggle"):
+		var fullscreen := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		playtest_log.record("fullscreen", {"enabled": not fullscreen})
 	elif event.is_action_pressed("perf_overlay"):
 		perf_monitor.toggle_overlay()
 	elif event.is_action_pressed("perf_report"):
@@ -201,6 +205,7 @@ func _configure_input() -> void:
 	_add_key("quality_cycle", KEY_F3)
 	_add_key("volume_cycle", KEY_F4)
 	_add_key("perf_overlay", KEY_F2)
+	_add_key("fullscreen_toggle", KEY_F11)
 	_add_key("perf_report", KEY_F6)
 	for action in ["look_left", "look_right", "look_up", "look_down"]:
 		if not InputMap.has_action(action):

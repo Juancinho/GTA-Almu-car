@@ -101,7 +101,7 @@ func set_game(value: PlayerController, mission_value: MissionController, wanted_
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 guardar informe de sesión\n\nMap data © OpenStreetMap contributors\nODbL · openstreetmap.org/copyright" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors\nODbL · openstreetmap.org/copyright" % [quality_text, volume_text]
 
 
 func _process(_delta: float) -> void:
@@ -117,7 +117,7 @@ func _process(_delta: float) -> void:
 	info_label.text = "BRISA DE PONIENTE\n%s · %s" % [street if street != "" else "Paseo del Altillo", "En coche" if player.driving_vehicle != null else "A pie"]
 	dialogue_label.text = mission.dialogue
 	if player.driving_vehicle != null:
-		prompt_label.text = "WASD conducir · Espacio frenar · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
+		prompt_label.text = "WASD conducir · Espacio freno de mano · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
 	elif player.nearby_contact() != null:
 		prompt_label.text = "E · Hablar con " + player.nearby_contact().display_name
 	elif player.nearby_vehicle() != null:
