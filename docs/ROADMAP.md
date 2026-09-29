@@ -23,3 +23,7 @@ Do not start a later feature merely to populate a checklist when its preceding p
 ## Current evidence (2026-09-29)
 
 M0 is complete. M1–M10 have initial implementations in one small district; headless import, three Python tests, asset/hash checks and two gameplay tests pass. `game/tests/route_trial.gd` starts at the seafront, sends movement and interaction input, drives the street network, triggers a witnessed incident, escapes police and completes the castle delivery without teleporting. This establishes technical reachability, **not human handling quality**. Screenshot review covered seafront, town, car and castle views. The next work is a human playthrough, route/police tuning, integration of generated car/building models and measured performance before M11/M12 can be accepted.
+
+## Update (2026-09-29, evening)
+
+A human fresh-launch playthrough on the GTX 1650 PC completed El Recado in 92.8 s, escaping a road-following police pursuit; in-game frame times held the 120 Hz cap on foot, driving and in pursuit. M2, M3, M7 and M9 now have human evidence (`docs/evidence/`). Open for the slice: human pause/save/load/restart (QA-002), confirmed native 1080p and a Windows export (PERF-001, BUILD-001), street-facing façades (ART-003) and road-graph traffic (GAME-006).

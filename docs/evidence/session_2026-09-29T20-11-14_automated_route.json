@@ -1,0 +1,243 @@
+{
+  "duration_s": 72.8,
+  "events": [
+    {
+      "build": "Brisa de Poniente",
+      "event": "session_started",
+      "t": 0.0
+    },
+    {
+      "event": "objective",
+      "stage": 1,
+      "t": 2.18,
+      "text": "Entra en el coche rojo"
+    },
+    {
+      "event": "objective",
+      "stage": 2,
+      "t": 6.38,
+      "text": "Conduce hacia el casco antiguo"
+    },
+    {
+      "event": "vehicle_entered",
+      "t": 6.38,
+      "vehicle": "FirstCar"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 12.79
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 12.79
+    },
+    {
+      "event": "objective",
+      "stage": 3,
+      "t": 12.79,
+      "text": "Pierde a la policía"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 12.81
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 19.11
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 19.39
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 22.21
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "search",
+      "t": 25.87
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 28.86
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 29.37
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 31.57
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 32.31
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "search",
+      "t": 37.31
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 37.96
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 38.06
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 39.71
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 40.06
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "search",
+      "t": 45.06
+    },
+    {
+      "event": "wanted",
+      "level": 0,
+      "phase": "clear",
+      "t": 57.04
+    },
+    {
+      "event": "objective",
+      "stage": 4,
+      "t": 57.04,
+      "text": "Entrega el paquete bajo el castillo"
+    },
+    {
+      "event": "mission_completed",
+      "stage": 5,
+      "t": 71.79
+    },
+    {
+      "event": "objective",
+      "stage": 5,
+      "t": 71.79,
+      "text": "El Recado completado"
+    },
+    {
+      "event": "report_written",
+      "reason": "automated_route",
+      "t": 72.78
+    }
+  ],
+  "input_counts": {
+    "joypad_button": 0,
+    "joypad_motion": 0,
+    "key": 0,
+    "mouse_button": 0,
+    "mouse_motion": 1
+  },
+  "mode": "automated_route",
+  "performance": {
+    "contexts": {
+      "driving": {
+        "average_draw_calls": 397.4,
+        "average_fps": 120.0,
+        "average_ms": 8.33,
+        "average_primitives": 97353.0,
+        "frames": 2657,
+        "max_draw_calls": 576.0,
+        "max_ms": 8.33,
+        "max_primitives": 122219.0,
+        "one_percent_low_fps": 120.0,
+        "p99_ms": 8.33,
+        "seconds": 22.14
+      },
+      "on_foot": {
+        "average_draw_calls": 289.6,
+        "average_fps": 120.0,
+        "average_ms": 8.33,
+        "average_primitives": 89104.0,
+        "frames": 543,
+        "max_draw_calls": 300.0,
+        "max_ms": 8.33,
+        "max_primitives": 89477.0,
+        "one_percent_low_fps": 120.0,
+        "p99_ms": 8.33,
+        "seconds": 4.52
+      },
+      "pursuit": {
+        "average_draw_calls": 312.6,
+        "average_fps": 120.0,
+        "average_ms": 8.33,
+        "average_primitives": 91814.0,
+        "frames": 5310,
+        "max_draw_calls": 576.0,
+        "max_ms": 8.39,
+        "max_primitives": 115024.0,
+        "one_percent_low_fps": 120.0,
+        "p99_ms": 8.33,
+        "seconds": 44.25
+      }
+    },
+    "environment": {
+      "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "display_server": "Windows",
+      "godot": "4.7.2-stable (official)",
+      "gpu": "NVIDIA GeForce GTX 1650",
+      "gpu_vendor": "NVIDIA",
+      "graphics_api": "3.3.0 NVIDIA 592.27",
+      "os": "Windows 10.0.26200",
+      "quality_level": 2,
+      "refresh_rate": 120.0,
+      "renderer": "gl_compatibility",
+      "viewport": [
+        1280,
+        720
+      ],
+      "vsync_mode": 1,
+      "window_mode": 0
+    },
+    "overall": {
+      "average_fps": 120.0,
+      "average_ms": 8.33,
+      "frames": 8510,
+      "max_ms": 8.39,
+      "one_percent_low_fps": 120.0,
+      "p99_ms": 8.33,
+      "seconds": 70.92
+    }
+  },
+  "started": "2026-09-29T20:11:14",
+  "version": 1
+}

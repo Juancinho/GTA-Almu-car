@@ -18,3 +18,20 @@ Offer resolution scale, shadow quality, draw distance and vegetation density set
 First measurable structural change: batching windows/shutters into two `MultiMeshInstance3D` nodes reduced direct district children from 1,560 to 278 in the smoke scene while retaining the town view. F3 cycles detail/shadow quality.
 
 Initial offscreen sample on 2026-09-29, after the compact car GLB runtime integration: Godot 4.7.2 Compatibility renderer, NVIDIA GeForce GTX 1650, 1920×1080 `SubViewport`, 90 warmup frames and 240 timed frames. `game/tests/performance.gd` reported 120.0 average FPS (8.34 ms) and 114.3 FPS 1% low (8.75 ms). The exact 120 FPS average suggests a display or engine cap; this is an indicative stationary-scene sample, not proof of stable 60 FPS during play, driving, police pursuit or a visible full-screen window. Repeat with Godot's profiler and a fixed worst-case gameplay route before closing PERF-001.
+
+## In-game measurement (2026-09-29)
+
+`game/scripts/perf_monitor.gd` records every rendered frame during play, grouped by context (`on_foot`, `driving`, `pursuit`), with draw calls and primitives. F2 shows it live; `game/scripts/playtest_log.gd` writes it with the session events to `generated/playtests/` (copied evidence in `docs/evidence/`).
+
+| Run | Context | Frames | Avg FPS | 1 % low | Max frame | Avg / max draw calls |
+|-----|---------|--------|---------|---------|-----------|----------------------|
+| Automated El Recado route, visible window, vsync | on_foot | 543 | 120.0 | 120.0 | 8.33 ms | 290 / 300 |
+| 〃 | driving | 2,657 | 120.0 | 120.0 | 8.33 ms | 397 / 576 |
+| 〃 | pursuit | 5,310 | 120.0 | 120.0 | 8.39 ms | 313 / 576 |
+| Human playthrough (111 s), vsync | on_foot | 5,382 | 120.0 | 120.0 | 12.13 ms | 394 |
+| 〃 | driving | 3,391 | 120.0 | 120.0 | 8.33 ms | 410 |
+| 〃 | pursuit | 4,334 | 120.0 | 120.0 | 8.33 ms | 349 |
+
+Hardware: NVIDIA GeForce GTX 1650 (OpenGL 3.3, driver 592.27), AMD Ryzen 5 5600H, Windows 10.0.26200, 120 Hz display, Godot 4.7.2 Compatibility renderer, quality level 2 (shadows on). Frame pacing held the 120 Hz vsync cap throughout driving and pursuit, which exceeds the 60 FPS target with no dropped frames at the 1 % low.
+
+Caveat: both reports stored the logical 1280×720 stretch size, not the real window, so these runs do not prove native 1920×1080. The monitor now records `window_size`, `render_size` and seconds spent per window size; `validate.ps1 -Perf` runs the route fullscreen twice (vsync and uncapped) to confirm 1080p and measure headroom.
