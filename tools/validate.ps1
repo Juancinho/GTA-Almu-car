@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([switch]$Capture)
+param([switch]$Capture, [switch]$Perf)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -7,6 +7,8 @@ $gamePath = Join-Path $root 'game'
 $godot = Join-Path $root '.tools/godot/godot.exe'
 $logs = Join-Path $root 'generated/validation'
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
+Start-Transcript -Path (Join-Path $logs 'validate.transcript.log') -Force | Out-Null
+trap { Stop-Transcript | Out-Null; break }
 
 & (Join-Path $PSScriptRoot 'bootstrap.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'Bootstrap check failed.' }
@@ -34,4 +36,10 @@ Invoke-Godot 'route' @('--headless', '--path', ('"' + $gamePath + '"'), '--scrip
 if ($Capture) {
     Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
 }
+if ($Perf) {
+    # Visible 1920x1080 window on the real GPU: the full El Recado route with police
+    # pursuit, recording frame times per gameplay context into generated/playtests/.
+    Invoke-Godot 'perf_route' @('--path', ('"' + $gamePath + '"'), '--resolution', '1920x1080', '--script', 'res://tests/route_trial.gd', '--', '--perf')
+}
 Write-Host 'VALIDATION PASS'
+Stop-Transcript | Out-Null
