@@ -12,6 +12,8 @@ var destination := Vector3.ZERO
 var think_timer := 0.0
 var rng := RandomNumberGenerator.new()
 var player: PlayerController
+var human: HumanModel
+var model_name := ""
 
 
 func _ready() -> void:
@@ -32,23 +34,11 @@ func _build_visual() -> void:
 	collider.shape = shape
 	collider.position.y = 0.85
 	add_child(collider)
-	_part("Torso", Vector3(0, 1.1, 0), Vector3(0.58, 0.65, 0.31), shirt_color)
-	_part("Trousers", Vector3(0, 0.52, 0), Vector3(0.5, 0.69, 0.3), Color("4f5e65"))
-	_part("Head", Vector3(0, 1.66, 0), Vector3(0.38, 0.4, 0.36), Color("b88a67"))
-	_part("Hair", Vector3(0, 1.88, 0), Vector3(0.42, 0.12, 0.38), Color("3c3938"))
-
-
-func _part(label: String, at: Vector3, size: Vector3, color: Color) -> void:
-	var visual := MeshInstance3D.new()
-	visual.name = label
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	visual.mesh = mesh
-	visual.position = at
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	visual.material_override = material
-	add_child(visual)
+	if model_name == "":
+		model_name = HumanModel.model_for_seed(rng.seed)
+	human = HumanModel.new(model_name)
+	human.name = "Human"
+	add_child(human)
 
 
 func _physics_process(delta: float) -> void:
@@ -56,10 +46,13 @@ func _physics_process(delta: float) -> void:
 		var people := get_tree().get_nodes_in_group("player")
 		if not people.is_empty():
 			player = people[0] as PlayerController
+	var far := player != null and global_position.distance_squared_to(player.global_position) > HumanModel.ANIMATION_RANGE * HumanModel.ANIMATION_RANGE
+	human.set_animation_active(not far)
 	if player != null and global_position.distance_squared_to(player.global_position) > 90.0 * 90.0:
 		return
 	if mission_contact:
 		velocity = Vector3.ZERO
+		human.update_motion(0.0)
 		return
 	think_timer -= delta
 	if think_timer <= 0.0:
@@ -80,6 +73,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = 0
 	velocity.y = -3.0
 	move_and_slide()
+	human.update_motion(Vector2(velocity.x, velocity.z).length())
 
 
 func flee_from(location: Vector3) -> void:

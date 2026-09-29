@@ -169,6 +169,7 @@ func _spawn_police_car(index: int) -> void:
 	var car := VehicleScript.new() as DriveableVehicle
 	car.name = "Policia_%d" % index
 	car.body_color = Color("344d67")
+	car.variant = "police_local"
 	var spawn := _spawn_point(last_known, index)
 	car.position = spawn + Vector3(0, 0.2, 0)
 	var facing := last_known - spawn

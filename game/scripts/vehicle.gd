@@ -2,6 +2,8 @@ class_name DriveableVehicle
 extends CharacterBody3D
 
 const CarScene = preload("res://assets/procedural/compact_car.glb")
+const MODELS_PATH := "res://data/vehicles/models.json"
+static var model_catalog: Dictionary = {}
 
 const MAX_FORWARD_SPEED := 22.0
 const MAX_REVERSE_SPEED := 8.0
@@ -19,6 +21,7 @@ var driver: PlayerController
 var speed := 0.0
 var steer_input := 0.0
 var body_color := Color("c3614c")
+var variant := "compact_generated"
 var auto_drive := false
 var route: Array[Vector3] = []
 var route_index := 0
@@ -57,16 +60,53 @@ func _ready() -> void:
 func _build_visuals() -> void:
 	var collider := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(1.9, 1.1, 4.0)
+	shape.size = Vector3(1.9, 1.2, 4.1)
 	collider.shape = shape
-	collider.position.y = 0.6
+	collider.position.y = 0.65
 	add_child(collider)
-	var model := CarScene.instantiate() as Node3D
-	model.name = "CompactCarVisual"
+	var spec := variant_spec(variant)
+	var scene: PackedScene = CarScene
+	if spec.has("scene"):
+		scene = load(str(spec["scene"])) as PackedScene
+	if scene == null:
+		push_error("Vehicle %s: model for variant '%s' failed to load" % [name, variant])
+		scene = CarScene
+	var model := scene.instantiate() as Node3D
+	model.name = "CarVisual"
+	model.rotation.y = deg_to_rad(float(spec.get("yaw_degrees", 0.0)))
 	add_child(model)
+	var paint: Dictionary = spec.get("paint", {})
 	for node in model.find_children("*", "MeshInstance3D", true, false):
-		if node.name.begins_with("Body") or node.name.begins_with("Roof"):
-			(node as MeshInstance3D).material_override = _material(body_color)
+		var mesh_instance := node as MeshInstance3D
+		mesh_instance.visibility_range_end = 220.0
+		if scene == CarScene:
+			if node.name.begins_with("Body") or node.name.begins_with("Roof"):
+				mesh_instance.material_override = _material(body_color)
+			continue
+		for surface in range(mesh_instance.mesh.get_surface_count()):
+			var source := mesh_instance.mesh.surface_get_material(surface)
+			if source != null and paint.has(source.resource_name):
+				mesh_instance.set_surface_override_material(surface, _material(Color(str(paint[source.resource_name]))))
+
+
+## Variant data from res://data/vehicles/models.json (cached for all vehicles).
+static func variant_spec(key: String) -> Dictionary:
+	if model_catalog.is_empty():
+		var file := FileAccess.open(MODELS_PATH, FileAccess.READ)
+		if file == null:
+			push_error("Vehicle models missing: " + MODELS_PATH)
+			return {}
+		var parsed: Variant = JSON.parse_string(file.get_as_text())
+		if not parsed is Dictionary:
+			push_error("Invalid vehicle model data: " + MODELS_PATH)
+			return {}
+		model_catalog = parsed
+	return (model_catalog.get("variants", {}) as Dictionary).get(key, {})
+
+
+static func traffic_variants() -> Array:
+	variant_spec("")
+	return model_catalog.get("traffic", [])
 
 
 func _material(color: Color) -> StandardMaterial3D:

@@ -18,6 +18,7 @@ var camera_pivot: Node3D
 var camera_arm: SpringArm3D
 var camera: Camera3D
 var visual: Node3D
+var human: HumanModel
 var collider: CollisionShape3D
 var step_audio: AudioStreamPlayer3D
 var step_timer := 0.0
@@ -43,21 +44,9 @@ func _build_body() -> void:
 	visual = Node3D.new()
 	visual.name = "CharacterVisual"
 	add_child(visual)
-	_body_box("Torso", Vector3(0, 1.22, 0), Vector3(0.67, 0.75, 0.33), Color("396f80"))
-	_body_box("Shorts", Vector3(0, 0.72, 0), Vector3(0.59, 0.29, 0.34), Color("ba8468"))
-	for side in [-1.0, 1.0]:
-		_body_box("Arm", Vector3(side * 0.44, 1.16, 0), Vector3(0.18, 0.68, 0.22), Color("b88a68"))
-		_body_box("Leg", Vector3(side * 0.17, 0.36, 0), Vector3(0.23, 0.62, 0.25), Color("b88a68"))
-		_body_box("Shoe", Vector3(side * 0.17, 0.09, -0.07), Vector3(0.26, 0.18, 0.39), Color("343e41"))
-	var head := MeshInstance3D.new()
-	var head_mesh := SphereMesh.new()
-	head_mesh.radius = 0.27
-	head_mesh.height = 0.53
-	head.mesh = head_mesh
-	head.position = Vector3(0, 1.83, 0)
-	head.material_override = _body_material(Color("b88a68"))
-	visual.add_child(head)
-	_body_box("Hair", Vector3(0, 2.08, 0.01), Vector3(0.48, 0.13, 0.47), Color("403c38"))
+	human = HumanModel.new("male_casual")
+	human.name = "Human"
+	visual.add_child(human)
 	collider = CollisionShape3D.new()
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.35
@@ -65,24 +54,6 @@ func _build_body() -> void:
 	collider.shape = shape
 	collider.position.y = 0.875
 	add_child(collider)
-
-
-func _body_material(color: Color) -> StandardMaterial3D:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.9
-	return mat
-
-
-func _body_box(label: String, at: Vector3, size: Vector3, color: Color) -> void:
-	var part := MeshInstance3D.new()
-	part.name = label
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	part.mesh = mesh
-	part.position = at
-	part.material_override = _body_material(color)
-	visual.add_child(part)
 
 
 func _build_camera() -> void:
@@ -165,6 +136,7 @@ func _physics_process(delta: float) -> void:
 	if direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 12.0 * delta))
 	move_and_slide()
+	human.update_motion(Vector2(velocity.x, velocity.z).length(), is_on_floor())
 	step_timer -= delta
 	if is_on_floor() and direction.length_squared() > 0.01 and step_timer <= 0.0:
 		if DisplayServer.get_name() != "headless":

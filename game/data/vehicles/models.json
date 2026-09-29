@@ -1,0 +1,13 @@
+{
+  "description": "Vehicle visual variants. Models are CC0 Quaternius (assets/third_party). 'paint' recolours the named surfaces; 'yaw_degrees' aligns the model with gameplay forward (-Z).",
+  "variants": {
+    "mission_red": {"scene": "res://assets/third_party/quaternius/cars/normal_car_1.fbx", "paint": {"Blue": "#b8352a"}, "yaw_degrees": 180},
+    "police_local": {"scene": "res://assets/third_party/quaternius/cars/cop.fbx", "paint": {"Black": "#1f3c7a"}, "yaw_degrees": 180},
+    "sedan_teal": {"scene": "res://assets/third_party/quaternius/cars/normal_car_2.fbx", "paint": {}, "yaw_degrees": 180},
+    "suv_sand": {"scene": "res://assets/third_party/quaternius/cars/suv.fbx", "paint": {}, "yaw_degrees": 180},
+    "taxi": {"scene": "res://assets/third_party/quaternius/cars/taxi.fbx", "paint": {}, "yaw_degrees": 180},
+    "sports_orange": {"scene": "res://assets/third_party/quaternius/cars/sports_car.fbx", "paint": {}, "yaw_degrees": 180},
+    "compact_generated": {"scene": "res://assets/procedural/compact_car.glb", "paint": {}, "yaw_degrees": 0}
+  },
+  "traffic": ["sedan_teal", "suv_sand", "taxi", "sports_orange"]
+}

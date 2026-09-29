@@ -29,7 +29,12 @@ func _capture() -> void:
 			player._interact()
 			player.camera_yaw = PI * 0.5
 			player._update_camera_orientation()
+	# Let physics and animation settle without drawing (software GL is slow), then render.
+	RenderingServer.render_loop_enabled = false
 	for i in range(25):
+		await process_frame
+	RenderingServer.render_loop_enabled = true
+	for i in range(2):
 		await process_frame
 	print("VIEW=", view, " player=", player.global_position, " camera=", player.camera.global_position, " forward=", -player.camera.global_transform.basis.z)
 	await RenderingServer.frame_post_draw

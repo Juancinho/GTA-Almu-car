@@ -24,12 +24,26 @@ func _ready() -> void:
 	_create_people_and_traffic()
 
 
-func _material(key: String, color: Color, roughness: float = 0.9) -> StandardMaterial3D:
+const TEXTURE_DIR := "res://assets/third_party/ambientcg/"
+
+
+## Shared material cache. With texture_id, a CC0 ambientCG albedo/normal pair is
+## applied in world-space triplanar mapping (tile_m metres per repeat), tinted by color.
+func _material(key: String, color: Color, roughness: float = 0.9, texture_id: String = "", tile_m: float = 4.0) -> StandardMaterial3D:
 	if materials.has(key):
 		return materials[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = roughness
+	if texture_id != "":
+		mat.albedo_texture = load(TEXTURE_DIR + texture_id + "_color.png") as Texture2D
+		mat.normal_enabled = true
+		mat.normal_texture = load(TEXTURE_DIR + texture_id + "_normal.png") as Texture2D
+		mat.normal_scale = 0.8
+		mat.uv1_triplanar = true
+		mat.uv1_world_triplanar = true
+		mat.uv1_scale = Vector3.ONE / tile_m
+		mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	materials[key] = mat
 	return mat
 
@@ -89,9 +103,9 @@ func apply_quality(level: int) -> void:
 
 
 func _create_land() -> void:
-	_box("TownGround", Vector3(0, -0.5, -87), Vector3(600, 1, 355), _material("ground", Color("9aa079")), true)
+	_box("TownGround", Vector3(0, -0.5, -87), Vector3(600, 1, 355), _material("ground", Color("c9c7a4"), 0.95, "ground037", 6.0), true)
 	_box("Sea", Vector3(0, -0.28, 208), Vector3(900, 0.35, 214), _material("sea", Color("277f96"), 0.3))
-	_box("Beach", Vector3(0, -0.04, 72), Vector3(600, 0.12, 58), _material("sand", Color("c3a66f")))
+	_box("Beach", Vector3(0, -0.04, 72), Vector3(600, 0.12, 58), _material("sand", Color("f2e2c0"), 0.95, "ground080", 4.0))
 	for i in range(5):
 		if i == 3:
 			continue
@@ -103,13 +117,13 @@ func _create_land() -> void:
 		mound.mesh = hill
 		mound.position = Vector3(x, 22, -330)
 		mound.scale = Vector3(85, 33, 70)
-		mound.material_override = _material("hill", Color("707e63"))
+		mound.material_override = _material("hill", Color("a6ad8c"), 0.95, "ground037", 10.0)
 		add_child(mound)
 
 
 func _create_roads() -> void:
-	var asphalt := _material("asphalt", Color("4a5051"))
-	var curb := _material("curb", Color("ddd1b6"))
+	var asphalt := _material("asphalt", Color("b8b8b4"), 0.92, "asphalt010", 5.0)
+	var curb := _material("curb", Color("f0e8d6"), 0.9, "pavingstones046", 2.0)
 	var line := _material("line", Color("e6d9ab"))
 	for road in road_network.roads:
 		var start := float(road["from"])
@@ -149,7 +163,7 @@ var awning_colors: PackedColorArray = PackedColorArray()
 
 func _create_buildings() -> void:
 	var walls := [Color("eee4ca"), Color("eadac1"), Color("ddc3a4"), Color("e0b3a0"), Color("f1e9d7")]
-	var roof := _material("roof", Color("a66d53"))
+	var roof := _material("roof", Color("e0b8a0"), 0.85, "roofingtiles006", 2.5)
 	# Façade details use their own seed so the building layout (rng) stays stable.
 	facade_rng.seed = 7402
 	for part in ["window", "shutter", "door", "shop_window", "awning", "balcony_slab", "balcony_rail", "sill"]:
@@ -165,7 +179,7 @@ func _create_buildings() -> void:
 			var width := rng.randf_range(16, 21)
 			var color: Color = walls[rng.randi_range(0, walls.size() - 1)]
 			var center := Vector3(x, 0, z)
-			_box("Casa_%d_%d" % [x, int(z)], Vector3(x, height * 0.5, z), Vector3(width, height, BUILDING_DEPTH), _material("wall_%s" % color.to_html(), color), true)
+			_box("Casa_%d_%d" % [x, int(z)], Vector3(x, height * 0.5, z), Vector3(width, height, BUILDING_DEPTH), _material("wall_%s" % color.to_html(), color, 0.92, "plaster003", 3.0), true)
 			_box("Roof", Vector3(x, height + 0.17, z), Vector3(width + 0.6, 0.34, BUILDING_DEPTH + 0.6), roof)
 			var street_normal := Vector3(0, 0, signf(_nearest_east_west_road(z) - z))
 			_facade(center + street_normal * BUILDING_DEPTH * 0.5, street_normal, width, floors, true)
@@ -277,7 +291,7 @@ func _add_instances(label: String, size: Vector3, mat: Material, transforms: Arr
 
 
 func _create_prom_and_beach() -> void:
-	_box("Promenade", Vector3(0, 0.06, 28), Vector3(590, 0.18, 26), _material("prom", Color("a99d87")), true)
+	_box("Promenade", Vector3(0, 0.06, 28), Vector3(590, 0.18, 26), _material("prom", Color("e6d6bb"), 0.85, "tiles040", 3.0), true)
 	for i in range(-11, 12):
 		var x := i * 24.0
 		_box("PromenadeStripe", Vector3(x, 0.159, 28), Vector3(0.45, 0.01, 25), _material("tile", Color("9d9a85")))
@@ -296,7 +310,7 @@ func _palm(at: Vector3) -> void:
 
 
 func _create_landmarks() -> void:
-	var stone := _material("stone", Color("ae9679"))
+	var stone := _material("stone", Color("d9b98f"), 0.95, "plaster003", 4.0)
 	_create_penon(Vector3(230, 0, 135))
 	_create_castle_mound(Vector3(125, 0, -228))
 	_box("CastleBase", Vector3(125, 16, -228), Vector3(70, 33, 45), stone)
@@ -309,7 +323,7 @@ func _create_landmarks() -> void:
 func _create_castle_mound(at: Vector3) -> void:
 	var rings := [Vector3(75, -1, 55), Vector3(63, 8, 45), Vector3(54, 20, 34)]
 	var sides := 12
-	var material := _material("castle_hill", Color("7c875f"))
+	var material := _material("castle_hill", Color("a9b08a"), 0.95, "ground037", 8.0)
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_material(material)
@@ -356,7 +370,7 @@ func _hill_vertex(ring: Vector3, side: int, sides: int) -> Vector3:
 
 
 func _create_penon(at: Vector3) -> void:
-	var rock := _material("rock", Color("747e77"))
+	var rock := _material("rock", Color("c9cbc2"), 0.95, "rock020", 8.0)
 	var rings := [Vector3(25, -2.5, 23), Vector3(22, 6, 20), Vector3(15, 17, 15), Vector3(7, 27, 7)]
 	var sides := 11
 	var surface := SurfaceTool.new()
@@ -386,7 +400,7 @@ func _create_penon(at: Vector3) -> void:
 	penon.position = at
 	add_child(penon)
 	var white := _material("cross", Color("e5dfd0"))
-	_box("Mirador", at + Vector3(0, 30.5, -2), Vector3(7, 1.0, 7), _material("stone", Color("ae9679")))
+	_box("Mirador", at + Vector3(0, 30.5, -2), Vector3(7, 1.0, 7), _material("stone", Color("d9b98f"), 0.95, "plaster003", 4.0))
 	_box("CrossPost", at + Vector3(0, 34.5, -2), Vector3(0.6, 7.0, 0.6), white)
 	_box("CrossBeam", at + Vector3(0, 35.6, -2), Vector3(4.2, 0.55, 0.6), white)
 
@@ -400,6 +414,7 @@ func _rock_vertex(ring: Vector3, side: int, sides: int) -> Vector3:
 func _create_vehicle() -> void:
 	var car := VehicleScript.new()
 	car.name = "FirstCar"
+	car.variant = "mission_red"
 	car.position = Vector3(112, 0.5, 8)
 	car.rotation.y = PI * 0.5
 	add_child(car)
@@ -423,6 +438,7 @@ func _create_people_and_traffic() -> void:
 	alba.display_name = "Alba"
 	alba.mission_contact = true
 	alba.shirt_color = Color("b26e58")
+	alba.model_name = "female_casual"
 	alba.position = Vector3(103, 0.15, 27)
 	add_child(alba)
 	for i in range(12):
@@ -442,6 +458,9 @@ func _create_people_and_traffic() -> void:
 		var traffic_car := VehicleScript.new()
 		traffic_car.name = "Traffic_%02d" % i
 		traffic_car.body_color = [Color("7195a0"), Color("d0b47d"), Color("9d8189")][i]
+		var variants := DriveableVehicle.traffic_variants()
+		if not variants.is_empty():
+			traffic_car.variant = str(variants[i % variants.size()])
 		traffic_car.auto_drive = true
 		traffic_car.route = loop.duplicate()
 		traffic_car.route_index = 1
