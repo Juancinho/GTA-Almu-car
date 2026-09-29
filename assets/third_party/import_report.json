@@ -1,0 +1,201 @@
+{
+  "manifest_sha256": "0105a44a1c546012571fc81a6553132254d232103ba76c3d6a6529f3c1c5d780",
+  "sources": {
+    "quaternius_free": {
+      "repo": "https://github.com/beep2bleep/FreeAssetsByKenneyNLandQuaternius.git",
+      "commit": "dea756baf3b3a4889d8c245e456a4791f961578a",
+      "author": "Quaternius (https://quaternius.com)",
+      "license": "CC0-1.0",
+      "license_file": "FreeModels by Quaternius[Patreon]/License.txt"
+    },
+    "ambientcg_ktx2": {
+      "repo": "https://github.com/Papyszoo/CC0-Public-Domain-Textures.git",
+      "commit": "fcc4ff97a5a843dc2e242ec9e195389bc46ed7d2",
+      "author": "ambientCG / Lennart Demes (https://ambientcg.com), KTX2 mirror by Papyszoo",
+      "license": "CC0-1.0",
+      "license_file": "LICENSE"
+    }
+  },
+  "outputs": [
+    {
+      "file": "game/assets/third_party/quaternius/people/male_casual.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Casual.fbx",
+      "sha256": "e744bfbd0cc9df86e5b69848017c8554690aeb256cecd63e88f77d28cda9ec43"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/male_longsleeve.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_LongSleeve.fbx",
+      "sha256": "4c7f17fcd8780fe927aefe10d4dd828597cd0fdd32971dd0d4f76ee499199392"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/male_shirt.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Shirt.fbx",
+      "sha256": "6155ab6e63127b49daf6e808b9ca666628d951e18afbc3c45ec3ff5660fa3150"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/male_suit.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Suit.fbx",
+      "sha256": "cb3a29f5e3c8a35ba16439b56054305d7890a4efb629e3668ea20912937f4508"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/female_alternative.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Alternative.fbx",
+      "sha256": "d41f0c8682cdb9f6253bad4df5f19c7b3177762d229206cfcd85f27d7b75dc96"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/female_casual.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Casual.fbx",
+      "sha256": "a47c3ef6bf71d1e1d61ae91864c0dd0fd7bc52667f948e64d08c38f3b255e4a6"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/female_dress.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Dress.fbx",
+      "sha256": "eeee801d4ff014968c50ef0046c413a954d71cab8f15bc90e477b21323fc7f63"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/people/female_tanktop.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_TankTop.fbx",
+      "sha256": "3d1ce3d18012d200f93220a3f72147a005a5c594f5e9f4d18565cae4059cfee8"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/cop.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Cop.fbx",
+      "sha256": "711f27060ce6dcc7a22075d9acc840df890cf37dd0fa8eb587d21df14d040e9c"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/normal_car_1.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar1.fbx",
+      "sha256": "61ae9bd52c3217738ae633444eec3435f244690d95ae0807d4dd7ca8d3be14fb"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/normal_car_2.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar2.fbx",
+      "sha256": "323865fe92ab7ef0a83394aa08ab2c00019a5134998466809210e3754768a09f"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/suv.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SUV.fbx",
+      "sha256": "7c3769a955ab0cb628d4225a6a1695593d5e011649e8e0455c79014aa7691749"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/sports_car.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SportsCar.fbx",
+      "sha256": "bd09dc9e7e1ab36a7b7868ae47c7202038fce83006bf00d2816c4273aaae6899"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/taxi.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Taxi.fbx",
+      "sha256": "45196b14ec0f17181a63227dcf666b7065911b3e5d98c5aa9f74293fc1fdf21f"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/asphalt010_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Asphalt010/Asphalt010_1K-PNG_Color.ktx2",
+      "sha256": "3b710503729435f8b575ac23406d76a9734213431158859c248cd37d6b0fd92a"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/asphalt010_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Asphalt010/Asphalt010_1K-PNG_NormalGL.ktx2",
+      "sha256": "f6fe3a604c8c2a2b3bcf9c4a7983a1dba2128f5a72c9fa5809edf50f2f249b52"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/plaster003_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Plaster003/Plaster003_1K-PNG_Color.ktx2",
+      "sha256": "106ef4f71a263e3f46f64508a0ec622aa293710c89f3312e829124dd27fe56c8"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/plaster003_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Plaster003/Plaster003_1K-PNG_NormalGL.ktx2",
+      "sha256": "0aedc21c8230a7573e007ebbfc3cc35884181d9f5c646de0ca64d9f4af31231d"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/roofingtiles006_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/RoofingTiles006/RoofingTiles006_1K-PNG_Color.ktx2",
+      "sha256": "165706e732e763119b76e6ff57ef98981e790e16c114d694bb30e7dec8b62670"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/roofingtiles006_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/RoofingTiles006/RoofingTiles006_1K-PNG_NormalGL.ktx2",
+      "sha256": "6aa19cc9b106eeb00e5b8910044515a36060df391e6fcae5db470c83e05eab39"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/pavingstones046_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/PavingStones046/PavingStones046_1K-PNG_Color.ktx2",
+      "sha256": "3a283778a000183e59d938dd9f3de4d00bc35396b50c1b460f201221280eb93b"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/pavingstones046_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/PavingStones046/PavingStones046_1K-PNG_NormalGL.ktx2",
+      "sha256": "9be89d71bb13419e6edea272b51b51f8397841b526e8513789b2ea31be15a073"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/tiles040_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Tiles040/Tiles040_1K-PNG_Color.ktx2",
+      "sha256": "ec4b07bef2cce6e53bf0c1d0fa5f701617978cd6c5d33911fc1acccf3389bea1"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/tiles040_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Tiles040/Tiles040_1K-PNG_NormalGL.ktx2",
+      "sha256": "130d8614866aed40a03f47f87e3ca36e463f7ed9928d149dd893d99cb05656b0"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/ground080_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Ground080/Ground080_1K-PNG_Color.ktx2",
+      "sha256": "6116cded7b17d560968bce786fe211d61eb28bdc0c8eb9904d2e500b15f9d9a4"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/ground080_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Ground080/Ground080_1K-PNG_NormalGL.ktx2",
+      "sha256": "7006d4f93ae0ae75e86789991dca44a26d6a01c42e16677cc045e1a64e147086"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/ground037_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Ground037/Ground037_1K-PNG_Color.ktx2",
+      "sha256": "ec7569fd5e86d4b9e1b688bc89bc13f74454aac107dd3df796a51670d9233520"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/ground037_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Ground037/Ground037_1K-PNG_NormalGL.ktx2",
+      "sha256": "7c08547076aa35e6694ebe2ab31a9eb09841b5d7d610753ee48d4651c59295b2"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/rock020_color.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Rock020/Rock020_1K-PNG_Color.ktx2",
+      "sha256": "79b0e14394e7973b394cbb0f96cca8ad15ee2cb5032c318f8855c23c5f470524"
+    },
+    {
+      "file": "game/assets/third_party/ambientcg/rock020_normal.png",
+      "source": "ambientcg_ktx2",
+      "from": "packs/ambientcg-textures/textures/Rock020/Rock020_1K-PNG_NormalGL.ktx2",
+      "sha256": "1cd99b27b9a488e61c06847d577a188ee8a1a1b732f1608e2b761cc506a0846b"
+    }
+  ]
+}

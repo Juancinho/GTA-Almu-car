@@ -16,6 +16,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Bootstrap check failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Python tests failed.' }
 & py -3.13 (Join-Path $PSScriptRoot 'verify_assets.py')
 if ($LASTEXITCODE -ne 0) { throw 'Asset verification failed.' }
+& py -3.13 (Join-Path $PSScriptRoot 'third_party/import_assets.py') --check
+if ($LASTEXITCODE -ne 0) { throw 'Third-party asset verification failed.' }
 
 function Invoke-Godot([string]$Name, [string[]]$Arguments) {
     $stdout = Join-Path $logs "$Name.out.log"
