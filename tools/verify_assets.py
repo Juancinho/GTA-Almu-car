@@ -26,7 +26,8 @@ def check_audio() -> None:
     base = ROOT / "game/assets/audio"
     report = json.loads((base / "generation_report.json").read_text(encoding="utf-8"))
     for item in report["files"]:
-        path = base / Path(item["file"]).name
+        # Reports written on Windows use backslashes; normalise so checks run on any OS.
+        path = base / Path(str(item["file"]).replace("\\", "/")).name
         assert hashlib.sha256(path.read_bytes()).hexdigest() == item["sha256"], f"{path}: hash differs"
         with wave.open(str(path), "rb") as sound:
             assert sound.getnframes() > 100 and sound.getframerate() == report["sample_rate"], f"{path}: invalid WAV"
