@@ -1,20 +1,20 @@
 # Brisa de Poniente
 
-An original third-person coastal action game prototype set in a compressed, fictionalized interpretation of Almuñécar, Granada. Working title: **Brisa de Poniente**. It evokes the Costa Tropical without using a proprietary franchise name. The name is provisional; see [decisions](docs/DECISIONS.md).
+An original third-person open-world crime game in a 1:1 recreation of Almuñécar, Granada. Working title: **Brisa de Poniente**. The long-term product goal is a full game with detailed streets and interiors, a broad vehicle fleet, combat, systemic police response, varied characters and a substantial story. The playable build is still an early prototype; see [design](docs/GAME_DESIGN.md), [roadmap](docs/ROADMAP.md) and [tasks](TASKS.md).
 
 ## Current state
 
-An early playable prototype runs in Godot 4.7.2. Automated tests cover walk/sprint/jump, driving, a witnessed police incident, road-following pursuit, arrest, escape, pause and save/load; a route test completes **El Recado from the seafront spawn with simulated input, without teleports, evading a real pursuit**. A human playthrough on the target PC completed El Recado and in-game frame times held the 120 Hz cap while walking, driving and being chased (see [performance](docs/PERFORMANCE_BUDGET.md) and `docs/evidence/`). Native-1080p confirmation, a Windows export and a few UI checks remain. See [tasks](TASKS.md).
+An early playable prototype runs in Godot 4.7.2. The previously committed district passed automated and human El Recado playthroughs, with performance evidence in [performance](docs/PERFORMANCE_BUDGET.md) and `docs/evidence/`. An in-progress replacement now generates a larger 1:1 central sector. It imports, launches and passes smoke and damage tests, but its full mission route currently stalls near the old town. This migration is unfinished; see [tasks](TASKS.md).
 
 ## Run and verify
 
 From the repository root on Windows:
 
 ```powershell
-pwsh -File .\tools\validate.ps1
-pwsh -File .\tools\validate.ps1 -Perf   # adds fullscreen route benchmarks on the real GPU
-& .\.tools\godot\godot.exe --path .\game
+pwsh -File .\tools\run.ps1
 ```
+
+The launcher refreshes Godot's script-class registry before opening the game. This is useful after the current sector migration added `SectorWorld` and moved `world.gd`. For validation, run `pwsh -File .\tools\validate.ps1`; `-Perf` adds fullscreen route benchmarks. The full route test is currently under review with the new sector, so a validation failure there does not imply the game cannot launch.
 
 Start near the seafront. Move with WASD, aim the camera with the mouse, sprint with Shift, jump with Space and interact with E. Find Alba on the promenade to begin **El Recado**. In a car, WASD drives, Space is the handbrake and E exits; the camera settles behind the car when you stop moving the mouse. Driving through the old-town pedestrian zone in view of pedestrians calls the police: break line of sight to lose them, and do not stop next to a patrol or you will be arrested and sent back to the car. Escape pauses; R restarts; F5/F9 save/load; F3/F4 cycle quality and volume; F2 shows FPS; F6 writes a session report; F11 toggles fullscreen. Gamepad: left stick move, right stick camera, A jump, X interact, B brake, LB sprint, Start pause.
 
@@ -35,8 +35,8 @@ Every interactive session writes `generated/playtests/session_<time>_human.json`
 | `tests/` | Focused tooling and gameplay validation. |
 | `docs/` | Working design, budgets, pipeline and decisions. |
 
-The immediate objective is one dense playable district and one complete mission loop. See [roadmap](docs/ROADMAP.md) and [tasks](TASKS.md). Contributions must follow [AGENTS.md](AGENTS.md).
+The current development step is to make the new 1:1 central sector reliable, then raise its street-level art quality and build the first detailed interior, combat loop and story chapter. The complete-game target remains in the roadmap. Contributions must follow [AGENTS.md](AGENTS.md).
 
 ## Data and licensing
 
-All bespoke game content is original or uses a recorded compatible license. People, cars and surface textures are CC0 assets by Quaternius and ambientCG, imported reproducibly by `tools/third_party/import_assets.py` (see [asset pipeline](docs/ASSET_PIPELINE.md) and `game/assets/third_party/CREDITS.md`). The cached OSM reference extract requires attribution and ODbL handling described in [world design](docs/WORLD_DESIGN.md). The currently playable road layout is authored separately from that data. No OSM request occurs during gameplay.
+All bespoke game content is original or uses a recorded compatible license. People, cars and surface textures currently include CC0 assets by Quaternius and ambientCG, imported reproducibly by `tools/third_party/import_assets.py` (see [asset pipeline](docs/ASSET_PIPELINE.md) and `game/assets/third_party/CREDITS.md`). Additional PBR texture candidates and their licences are recorded there before import. The cached OSM reference extract requires attribution and ODbL handling described in [world design](docs/WORLD_DESIGN.md). The new central sector is generated from cached world data; no network request occurs during gameplay.

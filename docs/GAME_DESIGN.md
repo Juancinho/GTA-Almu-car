@@ -2,6 +2,12 @@
 
 Third-person open-world crime game in a faithful Almuñécar. Tone: grounded crime drama of the Costa Tropical — sea smuggling, summer-season rackets, property speculation, family loyalty — with the freedom, humour and chaos players expect from the genre. All characters, gangs, businesses and brands are fictional; places and streets are real.
 
+## Complete-game target
+
+The product target is a substantial standalone open-world game, not a single-mission demo. The 12 missions below are **the first story chapter**, not the full campaign. Plan three connected chapters with roughly 30–40 authored main missions, recurring characters, at least 15 replayable side activities, a varied vehicle fleet and a selection of fully playable interiors. These are planning targets, not implemented content. Grow the town and campaign only through finished, tested slices so each new system remains playable.
+
+Every new district needs purposeful things to do: missions, shops or interiors, traffic, pedestrian behaviour, secrets and traversal routes. Each main mission must have a distinct premise, at least one memorable character beat, a gameplay variation, a checkpoint/failure path, and dialogue that changes with the situation. Do not inflate the count with repeated delivery objectives.
+
 ## Pillars
 
 1. **The real town as the playground**: every mission uses recognisable places (Peñón del Santo, castle, Calle Real, Majuelo, the beaches) and real street names.
@@ -54,7 +60,7 @@ Entered through real façades; each is its own scene with navmesh, lighting and 
 
 Shop and petrol-station holdups (aim at the clerk, bag the cash, escape the response), armoured-van hits on the coast road, car-theft export orders, jewellery and bank heists (planning + crew + execution), smuggling runs by sea at night, taxi, bus and delivery jobs, street races, beach-bar racket collection, vigilante police calls, collectibles (Phoenician coins hidden around town). Interactions with people: talk, ask directions, buy, intimidate (raise weapon), pickpocket, hire crew, recruit a driver.
 
-## Mission arc (draft, fictional characters)
+## First story chapter (draft, fictional characters)
 
 | # | Mission | Setting | Verbs |
 |---|---------|---------|-------|
@@ -71,7 +77,11 @@ Shop and petrol-station holdups (aim at the clerk, bag the cash, escape the resp
 | 11 | El castillo | Castle museum | ambush, siege, helicopter |
 | 12 | Poniente | Bank finale + escape to Marina del Este | heist, 5-star escape by sea |
 
-Each mission is JSON/resource data (objectives, triggers, dialogue, checkpoints, fail conditions), testable by a scripted route like El Recado.
+Each mission is JSON/resource data (objectives, triggers, dialogue, checkpoints, fail conditions), testable by a scripted route like El Recado. Later chapters should broaden the cast and stakes across the whole municipality, with quieter character missions between chases, robberies and combat.
+
+## Characters and dialogue
+
+Create a cast bible before writing the second chapter: protagonist, Alba, allies, rivals, police contacts, shopkeepers and civilians each need a goal, relationships, a consistent speaking style and a change over the campaign. A mission script records who speaks, why the line matters, its delivery condition, subtitle timing and any alternate line for failure, arrest or replay. Conversations should respond to player actions; important choices can change allies, money or access to missions without requiring a fully branching plot. Write and review dialogue in natural Spanish suited to the Costa Tropical, with restrained regional detail and no copied lines from other games. Voice work, if added, must be original or licensed; subtitles remain complete without it.
 
 ## Input
 

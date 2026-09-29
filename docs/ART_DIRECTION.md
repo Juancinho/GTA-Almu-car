@@ -2,6 +2,8 @@
 
 **Target: contemporary stylised realism that a local recognises at street level.** Not a generic Mediterranean town and not PS2-era primitives: every sector must read as the real Almuñécar (Costa Tropical, Granada) from the player's eye height, at day and at night. Readability and frame rate still win over micro-detail, but no shipped surface may be a flat untextured box.
 
+The complete-game visual target requires believable close-range detail in interiors, vehicles, weapons and faces as well as streets. Judge quality from normal gameplay distance, not asset thumbnails: material scale, UVs, surface wear, silhouettes, animation, lighting and readable interaction props all have to work together. A high-resolution texture alone does not make a scene finished.
+
 ## Recognition targets (must be identifiable in a blind screenshot test)
 
 | Place | What must read | Key visual traits |
@@ -36,6 +38,8 @@ Lime white `#EEE9DF`, warm plaster `#D9C3A0`, ochre plinth `#C99A52`, Almuñéca
 | Props | 50–2 k | Atlases | Benches, lamp posts, bins, bollards, planters, kiosks, beach loungers, boats. |
 
 LOD1 at ~40 m (≈50 %), LOD2 at ~120 m (≈15 %), impostors beyond 300 m for hills. Texel density ≈ 256 px/m at street level. Use decals for grime, damp at plinths, graffiti (original), road markings. Collision: boxes/convex per module; stairs as ramps with step visuals.
+
+For close interiors and hero props, author 2 K PBR sets by default and use 4 K only where a camera comparison shows a real benefit. Ship albedo, OpenGL normal and roughness/metallic/AO as needed, with correct colour space, mipmaps and texture compression. Reuse trim sheets and atlases; record GPU memory and frame time on the GTX 1650 before increasing texture resolution. Interior acceptance includes a lit day/night view, furniture and clutter appropriate to the place, navigable doors and stairs, character interaction, collision and an audio profile. Each vehicle family needs readable cabin, wheels, lamps, damage and distinct handling, with LODs and a consistent material budget.
 
 ## Materials
 

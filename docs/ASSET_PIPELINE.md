@@ -19,3 +19,17 @@ Use distinct SFX, music, ambience and UI buses. Initial sounds may be original s
 ## Third-party CC0 assets
 
 Only CC0 sources, pinned by Git commit, enter the game. `assets/third_party/manifest.json` lists each source (repository, commit, author, license file) and every model/texture taken from it; `tools/third_party/import_assets.py --ktx <ktx>` sparse-fetches exactly those files, copies models to `game/assets/third_party/quaternius/`, decodes ambientCG KTX2 maps to PNG (Khronos KTX-Software 4.4.2 `ktx extract`) in `game/assets/third_party/ambientcg/`, and writes `assets/third_party/import_report.json` (SHA-256 per output) and `game/assets/third_party/CREDITS.md`. `--check` (run by `validate.ps1`) fails if an output or the manifest changed without re-import. Never edit outputs by hand; change the manifest and re-run. Current sources: Quaternius “Animated Men/Women Characters” and “Realistic Car Pack” (CC0, via beep2bleep/FreeAssetsByKenneyNLandQuaternius) and ambientCG (CC0, via Papyszoo/CC0-Public-Domain-Textures). The `Cop_SUV` model is excluded because its preview is marked Patreon-exclusive.
+
+## Researched PBR candidates (not yet imported)
+
+[Poly Haven's asset licence](https://polyhaven.com/license) identifies its textures and models as CC0. The following are candidates for authored materials, not a claim that they are in the build:
+
+| Surface | Candidate | Intended use |
+|---------|-----------|--------------|
+| Whitewashed exterior | [White Plaster 02](https://polyhaven.com/a/white_plaster_02) | Façade base with local tint, grime decals and correct real-world scale. |
+| Aged fortress | [Old Stone Wall](https://polyhaven.com/a/old_stone_wall) | Castle modules; compare its masonry character with the landmark reference board. |
+| Road wear | [Worn Asphalt](https://polyhaven.com/a/worn_asphalt) | Patches and secondary roads; avoid repeating leaves/twigs on every street. |
+| Apartment floor | [Wood Floor](https://polyhaven.com/a/wood_floor) | Safehouse living area. |
+| Shop/bar floor | [Interior Tiles](https://polyhaven.com/a/interior_tiles) | First commercial interior. |
+
+For each accepted asset, record source page and direct file URL, author, licence snapshot/date, map type and resolution, SHA-256, intended material and any edits in the manifest. Download only the needed maps at a measured resolution, create a Godot material, inspect near/mid/far screenshots, then compare VRAM and frame time. Godot expects OpenGL-style normal maps and provides 3D texture compression and mipmap controls ([Godot image import documentation](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/importing_images.html)). Existing ambientCG materials remain valid; replace them only when a candidate visibly improves a specific scene.

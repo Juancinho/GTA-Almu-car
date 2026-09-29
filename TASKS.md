@@ -107,3 +107,19 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 | UI-003 | Round minimap, full map with real street names, waypoints | WORLD-005 | PLANNED | Map drawn from OSM layer with ODbL attribution; waypoint GPS. |
 | UI-004 | Main menu, settings, pause with restart; key remap | UI-001 | PLANNED | R moves to pause menu, remapping saved. |
 | QA-003 | Scripted regression suite per sector | WORLD-005 | PLANNED | Walk/drive/traffic/police soak per sector in validate.ps1. |
+
+## Complete-game production targets
+
+These tasks describe the requested end product. They are **PLANNED** until the acceptance evidence exists; the playable build currently covers only a fraction of them.
+
+| ID | Description | Dependencies | Status | Acceptance criteria / evidence |
+|----|-------------|--------------|--------|--------------------------------|
+| PROD-001 | Stable 1:1 central sector | WORLD-005, QA-003 | PLANNED | Fresh project import and visible launch pass; smoke, damage, traffic and full mission route pass against the same sector; no blocked objective or disappearing geometry. The in-progress sector migration currently passes import/smoke but the route test stalls near the old town. |
+| TEX-001 | Curated high-quality PBR material library | ART-005 | PLANNED | Source URL, author, CC0 licence, hashes and map types pinned for façade, stone, road, pavement, roof, sand/gravel and interior materials; correct Godot normal orientation/scale; near/mid/far review and VRAM/frame-time record. Candidate list in ASSET_PIPELINE. |
+| INT-006 | Finished interior quality pass | INT-001, TEX-001 | PLANNED | Safehouse, shop, bar and garage each have distinct furnishings, decals, lighting, ambient audio, NPC navigation, working interactions and day/night screenshots. Expand the same review standard to mission interiors. |
+| VEH-001 | Broad original vehicle roster | ART-012, GAME-013, GAME-014 | PLANNED | 20+ distinct vehicle archetypes across cars, vans, bikes, public service and boats; detailed exteriors/cabins, handling, lights, damage, sound and LODs; player and AI routes tested. |
+| COMBAT-001 | Complete weapon and enemy loop | GAME-009, GAME-012 | PLANNED | Weapon categories, aiming/reload/ammo, hit reactions, cover, hostile AI, police escalation and balance; keyboard/gamepad tests and human combat playtest. |
+| NARR-001 | Cast bible and dialogue pipeline | MIS-001 | PLANNED | Character goals, relationships and voice style; data-driven Spanish subtitles with conditional/replay lines, timing and editorial review; original/licensed voice only. |
+| NARR-002 | Three-chapter main campaign | MIS-004, NARR-001 | PLANNED | Roughly 30–40 authored missions with varied verbs, checkpoints, rewards, route tests, character beats and human playthrough evidence; the existing 12-mission outline is chapter one. |
+| SIDE-001 | Dense side content across the town | GAME-015, WORLD-008 | PLANNED | At least 15 replayable activities with distinct mechanics and rewards, plus secrets and meaningful free-roam interactions; QA per district. |
+| QA-004 | Complete-game visual and release review | PROD-001, INT-006, NARR-002 | PLANNED | Day/night and interior reference comparisons, accessibility/subtitle review, full-campaign regression, licence audit, Windows export and measured performance on target hardware. |

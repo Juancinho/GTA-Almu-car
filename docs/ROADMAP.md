@@ -36,6 +36,11 @@ A human fresh-launch playthrough on the GTX 1650 PC completed El Recado in 92.8 
 | M14 | Combat and crime | Weapons, aiming, armour, holdups, wanted 3–5 (GAME-009…012). |
 | M15 | Old town, castle and interiors | S2/S3 with castle and church, interior framework, safehouse and shops (WORLD-006, ART-006/008, INT-001…003). |
 | M16 | Transport | Motorbikes, bicycles, boats, bus/taxi jobs (GAME-013…015, WORLD-009). |
-| M17 | Story act 1 | Missions 2–6 with route tests and human logs (MIS-001…003). |
-| M18 | Whole town + act 2 | S4/S5, streaming, missions 7–12, day/night, radio (WORLD-007/008, VIS-002, AUD-001, MIS-004). |
-| M19 | Release candidate | Windows export, credits/licences, QA regression per sector, performance on GTX 1650 (BUILD-001, QA-003). |
+| M17 | First story chapter | Missions 2–6 with authored dialogue, route tests and human logs (MIS-001…003). |
+| M18 | Whole central town + chapter finale | S4/S5, streaming, missions 7–12, day/night, radio (WORLD-007/008, VIS-002, AUD-001, MIS-004). |
+| M19 | Complete-game production | Expand to the remaining districts and roughly 30–40 main missions in three chapters; varied interiors, vehicles, combat, side activities and a recurring cast. Track each finished feature in TASKS. |
+| M20 | Release candidate | Windows export, credits/licences, accessibility, full campaign regression, performance across every sector and a reviewed final art/audio pass. |
+
+## Migration review (2026-09-30)
+
+The in-progress 1:1 central-sector replacement contains 1,375 generated buildings and 54,625 façade details. Godot import, main-scene launch, smoke and damage tests pass after refreshing the script-class registry. The automated El Recado route currently stalls near the old town; PROD-001 remains open. A seafront capture shows useful density but overbright ground, repetitive façades and placeholder palms/sea, so the requested high-quality visual target is still open. The material candidates in ASSET_PIPELINE are researched, not integrated.
