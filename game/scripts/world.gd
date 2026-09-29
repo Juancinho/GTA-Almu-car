@@ -138,13 +138,22 @@ func _is_near_north_south_road(x: float, margin: float) -> bool:
 	return false
 
 
+const FLOOR_HEIGHT := 3.2
+const BUILDING_DEPTH := 15.0
+const AWNING_COLORS := [Color("bd755e"), Color("e9e1cc"), Color("2d7784"), Color("a66845")]
+
+var facade_rng := RandomNumberGenerator.new()
+var facade_parts: Dictionary = {}  # part name -> Array[Transform3D]
+var awning_colors: PackedColorArray = PackedColorArray()
+
+
 func _create_buildings() -> void:
 	var walls := [Color("eee4ca"), Color("eadac1"), Color("ddc3a4"), Color("e0b3a0"), Color("f1e9d7")]
 	var roof := _material("roof", Color("a66d53"))
-	var glass := _material("glass", Color("577b84"), 0.25)
-	var shutters := _material("shutters", Color("5c766e"))
-	var window_transforms: Array[Transform3D] = []
-	var shutter_transforms: Array[Transform3D] = []
+	# Façade details use their own seed so the building layout (rng) stays stable.
+	facade_rng.seed = 7402
+	for part in ["window", "shutter", "door", "shop_window", "awning", "balcony_slab", "balcony_rail", "sill"]:
+		facade_parts[part] = [] as Array[Transform3D]
 	for x in range(-256, 270, 24):
 		if _is_near_north_south_road(float(x), 17.0):
 			continue
@@ -152,30 +161,112 @@ func _create_buildings() -> void:
 			if x > 0 and z == -190.0:
 				continue
 			var floors := rng.randi_range(2, 4)
-			var height := floors * 3.2
+			var height := floors * FLOOR_HEIGHT
 			var width := rng.randf_range(16, 21)
 			var color: Color = walls[rng.randi_range(0, walls.size() - 1)]
-			_box("Casa_%d_%d" % [x, int(z)], Vector3(x, height * 0.5, z), Vector3(width, height, 15), _material("wall_%s" % color.to_html(), color), true)
-			_box("Roof", Vector3(x, height + 0.17, z), Vector3(width + 0.6, 0.34, 15.6), roof)
-			for floor_index in range(1, floors + 1):
-				for offset in [-width * 0.27, width * 0.27]:
-					var wy := floor_index * 3.2 - 1.35
-					window_transforms.append(Transform3D(Basis.IDENTITY, Vector3(x + offset, wy, z + 7.55)))
-					shutter_transforms.append(Transform3D(Basis.IDENTITY, Vector3(x + offset - 1.0, wy, z + 7.61)))
-					shutter_transforms.append(Transform3D(Basis.IDENTITY, Vector3(x + offset + 1.0, wy, z + 7.61)))
-	_add_instances("Windows", Vector3(1.6, 1.7, 0.10), glass, window_transforms)
-	_add_instances("Shutters", Vector3(0.35, 1.8, 0.13), shutters, shutter_transforms, true)
+			var center := Vector3(x, 0, z)
+			_box("Casa_%d_%d" % [x, int(z)], Vector3(x, height * 0.5, z), Vector3(width, height, BUILDING_DEPTH), _material("wall_%s" % color.to_html(), color), true)
+			_box("Roof", Vector3(x, height + 0.17, z), Vector3(width + 0.6, 0.34, BUILDING_DEPTH + 0.6), roof)
+			var street_normal := Vector3(0, 0, signf(_nearest_east_west_road(z) - z))
+			_facade(center + street_normal * BUILDING_DEPTH * 0.5, street_normal, width, floors, true)
+			_facade(center - street_normal * BUILDING_DEPTH * 0.5, -street_normal, width, floors, false)
+			for side in [-1.0, 1.0]:
+				var side_x: float = float(x) + side * width * 0.5
+				if _faces_north_south_road(side_x, side):
+					_facade(Vector3(side_x, 0, z), Vector3(side, 0, 0), BUILDING_DEPTH, floors, false)
+	_add_instances("Windows", Vector3(1.4, 1.6, 0.10), _material("glass", Color("577b84"), 0.25), facade_parts["window"])
+	_add_instances("Shutters", Vector3(0.35, 1.7, 0.12), _material("shutters", Color("5c766e")), facade_parts["shutter"], true)
+	_add_instances("Sills", Vector3(1.7, 0.12, 0.28), _material("sill", Color("e9e1cc")), facade_parts["sill"], true)
+	_add_instances("Doors", Vector3(1.3, 2.4, 0.14), _material("door", Color("5a3b2a")), facade_parts["door"])
+	_add_instances("ShopWindows", Vector3(2.6, 2.1, 0.10), _material("shop_glass", Color("3d5a60"), 0.2), facade_parts["shop_window"])
+	_add_instances("Awnings", Vector3(3.0, 0.12, 1.3), _vertex_color_material("awning"), facade_parts["awning"], true, awning_colors)
+	_add_instances("BalconySlabs", Vector3(2.4, 0.16, 0.95), _material("balcony", Color("e9e1cc")), facade_parts["balcony_slab"], true)
+	_add_instances("BalconyRails", Vector3(2.4, 0.95, 0.05), _material("iron", Color("394c5d"), 0.6), facade_parts["balcony_rail"], true)
 
 
-func _add_instances(label: String, size: Vector3, mat: Material, transforms: Array[Transform3D], detail: bool = false) -> void:
+func _faces_north_south_road(side_x: float, side: float) -> bool:
+	for road in road_network.roads:
+		var gap := float(road["fixed"]) - side_x
+		if str(road["axis"]) == "z" and absf(gap) < 25.0 and signf(gap) == side:
+			return true
+	return false
+
+
+func _nearest_east_west_road(z: float) -> float:
+	var best := z
+	var best_distance := INF
+	for road in road_network.roads:
+		if str(road["axis"]) == "x" and absf(float(road["fixed"]) - z) < best_distance:
+			best_distance = absf(float(road["fixed"]) - z)
+			best = float(road["fixed"])
+	return best
+
+
+## Lays out bays on one façade plane. Street façades get a door, shopfronts with
+## awnings and occasional balconies; back and side façades get windows only.
+func _facade(plane_center: Vector3, normal: Vector3, face_width: float, floors: int, street: bool) -> void:
+	var face_basis := Basis(Vector3.UP, atan2(normal.x, normal.z))
+	var tangent := face_basis.x
+	var bays := maxi(2, int(face_width / 4.2))
+	var spacing := face_width / bays
+	var door_bay := facade_rng.randi_range(0, bays - 1)
+	var has_shops := street and facade_rng.randf() < 0.6
+	for bay in range(bays):
+		var along := -face_width * 0.5 + spacing * (bay + 0.5)
+		var base := plane_center + tangent * along
+		for floor_index in range(floors):
+			var y := floor_index * FLOOR_HEIGHT
+			if floor_index == 0 and street:
+				if bay == door_bay:
+					_part("door", base + Vector3(0, 1.2, 0) + normal * 0.06, face_basis)
+				elif has_shops:
+					_part("shop_window", base + Vector3(0, 1.35, 0) + normal * 0.05, face_basis)
+					_part("awning", base + Vector3(0, 2.75, 0) + normal * 0.65, face_basis)
+					awning_colors.append(AWNING_COLORS[facade_rng.randi_range(0, AWNING_COLORS.size() - 1)])
+				else:
+					_window(base, y, normal, face_basis)
+				continue
+			_window(base, y, normal, face_basis)
+			if street and floor_index >= 1 and facade_rng.randf() < 0.3:
+				_part("balcony_slab", base + Vector3(0, y + 0.3, 0) + normal * 0.48, face_basis)
+				_part("balcony_rail", base + Vector3(0, y + 0.85, 0) + normal * 0.93, face_basis)
+
+
+func _window(base: Vector3, y: float, normal: Vector3, face_basis: Basis) -> void:
+	var center := base + Vector3(0, y + 1.85, 0)
+	_part("window", center + normal * 0.05, face_basis)
+	_part("sill", center + Vector3(0, -0.86, 0) + normal * 0.12, face_basis)
+	var tangent := face_basis.x
+	for side in [-1.0, 1.0]:
+		_part("shutter", center + tangent * side * 0.9 + normal * 0.08, face_basis)
+
+
+func _part(kind: String, at: Vector3, face_basis: Basis) -> void:
+	(facade_parts[kind] as Array).append(Transform3D(face_basis, at))
+
+
+func _vertex_color_material(key: String) -> StandardMaterial3D:
+	if materials.has(key):
+		return materials[key]
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.85
+	materials[key] = mat
+	return mat
+
+
+func _add_instances(label: String, size: Vector3, mat: Material, transforms: Array, detail: bool = false, colors: PackedColorArray = PackedColorArray()) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = not colors.is_empty()
 	multi.mesh = mesh
 	multi.instance_count = transforms.size()
 	for i in range(transforms.size()):
 		multi.set_instance_transform(i, transforms[i])
+		if multi.use_colors:
+			multi.set_instance_color(i, colors[i])
 	var instance := MultiMeshInstance3D.new()
 	instance.name = label
 	instance.multimesh = multi

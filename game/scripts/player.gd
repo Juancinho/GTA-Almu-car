@@ -131,6 +131,10 @@ func _process(delta: float) -> void:
 		look_idle_time += delta
 	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else FOOT_CAMERA_DISTANCE
 	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, 6.0 * delta)
+	if driving_vehicle == null:
+		# With a wall right behind the player the arm collapses; hide the body
+		# instead of filling the screen with the back of the head.
+		visual.visible = camera_arm.get_hit_length() > 1.1
 	if driving_vehicle != null and look_idle_time > CAMERA_RECENTER_DELAY:
 		# Drift the camera behind the car when the player is not steering the view.
 		var follow := minf(1.0, 2.2 * delta * clampf(absf(driving_vehicle.speed) / 4.0, 0.0, 1.0))

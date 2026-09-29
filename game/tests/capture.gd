@@ -16,7 +16,7 @@ func _capture() -> void:
 	var player := root.get_node("Player") as PlayerController
 	match view:
 		"town":
-			player.global_position = Vector3(39, 0.3, -62)
+			player.global_position = Vector3(39, 0.3, -72)
 			player.camera_yaw = -0.5
 			player._update_camera_orientation()
 		"castle":
