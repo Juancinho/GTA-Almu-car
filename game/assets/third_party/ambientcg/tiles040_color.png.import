@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cj3o45bihggvk"
-path="res://.godot/imported/tiles040_color.png-777ad8cd301413b62d8d24f771b4c476.ctex"
+path.s3tc="res://.godot/imported/tiles040_color.png-777ad8cd301413b62d8d24f771b4c476.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/tiles040_color.png"
-dest_files=["res://.godot/imported/tiles040_color.png-777ad8cd301413b62d8d24f771b4c476.ctex"]
+dest_files=["res://.godot/imported/tiles040_color.png-777ad8cd301413b62d8d24f771b4c476.s3tc.ctex"]
 
 [params]
 

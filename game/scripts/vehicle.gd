@@ -29,6 +29,13 @@ var auto_drive := false
 var route: Array[Vector3] = []
 var route_index := 0
 var pursuing := false
+var traffic := false
+var traffic_speed := 10.0
+var lane_from := -1
+var lane_to := -1
+var traffic_rng := RandomNumberGenerator.new()
+var occupant: HumanModel
+var occupant_name := ""
 var pursuit_target := Vector3.ZERO
 var pursuit_speed := 14.0
 var road_network: RoadNetwork
@@ -112,6 +119,80 @@ static func traffic_variants() -> Array:
 	return model_catalog.get("traffic", [])
 
 
+## Seated driver model (NPC or player) visible through the windows; "" hides it.
+func set_occupant(model_name: String) -> void:
+	occupant_name = model_name
+	if model_name == "":
+		if occupant != null:
+			occupant.visible = false
+		return
+	if occupant == null or occupant.model_name != model_name:
+		if occupant != null:
+			occupant.queue_free()
+		occupant = HumanModel.new(model_name)
+		occupant.name = "Occupant"
+		occupant.position = Vector3(-0.38, 0.05, 0.15)
+		add_child(occupant)
+	occupant.visible = true
+	occupant.play_state("sitting")
+
+
+## Carjacking: the NPC driver gets out on the far side and runs away.
+func eject_occupant() -> Pedestrian:
+	traffic = false
+	if occupant_name == "" or get_parent() == null:
+		set_occupant("")
+		return null
+	var person := Pedestrian.new()
+	person.name = "Conductor_%s" % name
+	person.model_name = occupant_name
+	get_parent().add_child(person)
+	person.global_position = global_position - global_transform.basis.x * 2.4 + Vector3(0, 0.1, 0)
+	person.flee_from(global_position)
+	set_occupant("")
+	return person
+
+
+## Right-hand lane driving on the road graph with random turns at intersections.
+func start_traffic(network: RoadNetwork, from_node: int, to_node: int, seed_value: int) -> void:
+	road_network = network
+	traffic = true
+	lane_from = from_node
+	lane_to = to_node
+	traffic_rng.seed = seed_value
+	traffic_speed = traffic_rng.randf_range(8.5, 11.5)
+
+
+func _drive_traffic(delta: float) -> void:
+	var a := road_network.nodes[lane_from]
+	var b := road_network.nodes[lane_to]
+	var segment := b - a
+	var length := segment.length()
+	if length < 0.5:
+		_pick_next_lane()
+		return
+	var direction := segment / length
+	var right := Vector3(-direction.z, 0.0, direction.x)
+	var along := (global_position - a).dot(direction)
+	if along > length - 8.0:
+		_pick_next_lane()
+		return
+	var aim := a + direction * minf(along + 11.0, length) + right * road_network.lane_offset
+	var cruise := traffic_speed
+	if length - along < 22.0:
+		cruise = minf(cruise, 6.0)
+	_follow_target(delta, aim, cruise)
+
+
+func _pick_next_lane() -> void:
+	var options: Array = (road_network.edges[lane_to] as Array).duplicate()
+	if options.size() > 1:
+		options.erase(lane_from)
+	var next: int = options[traffic_rng.randi_range(0, options.size() - 1)]
+	lane_from = lane_to
+	lane_to = next
+
+
 func _material(color: Color) -> StandardMaterial3D:
 	var key := color.to_html()
 	if paint_materials.has(key):
@@ -130,6 +211,8 @@ func _physics_process(delta: float) -> void:
 		_reverse_out(delta)
 	elif pursuing:
 		_pursue(delta)
+	elif traffic and road_network != null and lane_to >= 0:
+		_drive_traffic(delta)
 	elif auto_drive and route.size() > 1:
 		_follow_route(delta)
 	else:
@@ -242,11 +325,12 @@ func _update_stuck(delta: float, blocked: bool, cruise_speed: float) -> void:
 		ai_stuck_timer += delta
 	else:
 		ai_stuck_timer = 0.0
-	if dynamic_block and pursuing and not player_block:
+	if dynamic_block and (pursuing or traffic) and not (player_block and pursuing):
 		ai_wait_timer += delta
 	else:
 		ai_wait_timer = 0.0
-	if ai_stuck_timer > AI_STUCK_SECONDS or ai_wait_timer > 3.0:
+	var patience := 3.0 if pursuing else (6.0 if player_block else 4.5)
+	if ai_stuck_timer > AI_STUCK_SECONDS or ai_wait_timer > patience:
 		ai_stuck_timer = 0.0
 		ai_wait_timer = 0.0
 		ai_reverse_timer = AI_REVERSE_SECONDS

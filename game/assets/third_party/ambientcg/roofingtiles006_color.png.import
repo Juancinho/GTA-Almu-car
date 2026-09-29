@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dyyxge6so8k3g"
-path="res://.godot/imported/roofingtiles006_color.png-f0fb977acdc121911375ea7505417056.ctex"
+path.s3tc="res://.godot/imported/roofingtiles006_color.png-f0fb977acdc121911375ea7505417056.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/roofingtiles006_color.png"
-dest_files=["res://.godot/imported/roofingtiles006_color.png-f0fb977acdc121911375ea7505417056.ctex"]
+dest_files=["res://.godot/imported/roofingtiles006_color.png-f0fb977acdc121911375ea7505417056.s3tc.ctex"]
 
 [params]
 

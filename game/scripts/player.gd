@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal contact_interacted(contact: Pedestrian)
 signal vehicle_entered(vehicle: DriveableVehicle)
+signal vehicle_jacked(vehicle: DriveableVehicle, driver: Pedestrian)
 
 const WALK_SPEED := 5.0
 const RUN_SPEED := 8.5
@@ -149,6 +150,7 @@ func _interact() -> void:
 		var car := driving_vehicle
 		driving_vehicle = null
 		car.driver = null
+		car.set_occupant("")
 		camera_arm.clear_excluded_objects()
 		camera_arm.add_excluded_object(get_rid())
 		global_position = _safe_exit_position(car)
@@ -177,10 +179,15 @@ func _interact() -> void:
 
 ## Put the player in the driver seat (used by interaction and save loading).
 func board_vehicle(car: DriveableVehicle) -> void:
+	if car.traffic or car.occupant_name != "":
+		var ejected := car.eject_occupant()
+		vehicle_jacked.emit(car, ejected)
 	driving_vehicle = car
 	car.driver = self
 	car.auto_drive = false
 	car.pursuing = false
+	car.traffic = false
+	car.set_occupant(human.model_name)
 	camera_arm.add_excluded_object(car.get_rid())
 	visual.visible = false
 	collider.set_deferred("disabled", true)

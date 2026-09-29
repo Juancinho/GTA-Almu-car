@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bojpifg1fhera"
-path="res://.godot/imported/rock020_color.png-bb522dae54013fb6a66728bef191bf31.ctex"
+path.s3tc="res://.godot/imported/rock020_color.png-bb522dae54013fb6a66728bef191bf31.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/rock020_color.png"
-dest_files=["res://.godot/imported/rock020_color.png-bb522dae54013fb6a66728bef191bf31.ctex"]
+dest_files=["res://.godot/imported/rock020_color.png-bb522dae54013fb6a66728bef191bf31.s3tc.ctex"]
 
 [params]
 

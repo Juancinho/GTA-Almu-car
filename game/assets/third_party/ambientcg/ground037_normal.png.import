@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bagvxa5qac5ba"
-path="res://.godot/imported/ground037_normal.png-27df0a5b29a788c142ba0c25e29c98aa.ctex"
+path.s3tc="res://.godot/imported/ground037_normal.png-27df0a5b29a788c142ba0c25e29c98aa.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/ground037_normal.png"
-dest_files=["res://.godot/imported/ground037_normal.png-27df0a5b29a788c142ba0c25e29c98aa.ctex"]
+dest_files=["res://.godot/imported/ground037_normal.png-27df0a5b29a788c142ba0c25e29c98aa.s3tc.ctex"]
 
 [params]
 

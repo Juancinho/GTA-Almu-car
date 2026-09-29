@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjg3vs2f2vx5n"
-path="res://.godot/imported/plaster003_normal.png-e1845228e463abed19ad3403689fabd1.ctex"
+path.s3tc="res://.godot/imported/plaster003_normal.png-e1845228e463abed19ad3403689fabd1.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/plaster003_normal.png"
-dest_files=["res://.godot/imported/plaster003_normal.png-e1845228e463abed19ad3403689fabd1.ctex"]
+dest_files=["res://.godot/imported/plaster003_normal.png-e1845228e463abed19ad3403689fabd1.s3tc.ctex"]
 
 [params]
 

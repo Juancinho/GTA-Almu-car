@@ -453,16 +453,42 @@ func _create_people_and_traffic() -> void:
 		witness.position = Vector3(51 + i * 20, 0.1, -69)
 		witness.shirt_color = Color("a0a486")
 		add_child(witness)
-	var loop: Array[Vector3] = [Vector3(-220, 0, 11), Vector3(170, 0, 11), Vector3(170, 0, -154), Vector3(-168, 0, -154), Vector3(-168, 0, 11)]
-	for i in range(3):
-		var traffic_car := VehicleScript.new()
-		traffic_car.name = "Traffic_%02d" % i
-		traffic_car.body_color = [Color("7195a0"), Color("d0b47d"), Color("9d8189")][i]
-		var variants := DriveableVehicle.traffic_variants()
+	_create_traffic(12)
+
+
+## Traffic cars start on random road-graph edges in the right-hand lane.
+func _create_traffic(count: int) -> void:
+	var traffic_rng := RandomNumberGenerator.new()
+	traffic_rng.seed = 7403
+	var variants := DriveableVehicle.traffic_variants()
+	var used: Array[Vector3] = []
+	var created := 0
+	var attempts := 0
+	while created < count and attempts < 400:
+		attempts += 1
+		var from_node := traffic_rng.randi_range(0, road_network.nodes.size() - 1)
+		var neighbours: Array = road_network.edges[from_node]
+		var to_node: int = neighbours[traffic_rng.randi_range(0, neighbours.size() - 1)]
+		var a := road_network.nodes[from_node]
+		var b := road_network.nodes[to_node]
+		if a.distance_to(b) < 40.0:
+			continue
+		var direction := (b - a).normalized()
+		var spot := a + direction * traffic_rng.randf_range(15.0, a.distance_to(b) - 25.0) + Vector3(-direction.z, 0, direction.x) * road_network.lane_offset
+		var clear := spot.distance_to(Vector3(112, 0, 8)) > 25.0 and spot.distance_to(Vector3(92, 0, 30)) > 25.0
+		for other in used:
+			if other.distance_to(spot) < 18.0:
+				clear = false
+		if not clear:
+			continue
+		used.append(spot)
+		var car := VehicleScript.new()
+		car.name = "Traffic_%02d" % created
 		if not variants.is_empty():
-			traffic_car.variant = str(variants[i % variants.size()])
-		traffic_car.auto_drive = true
-		traffic_car.route = loop.duplicate()
-		traffic_car.route_index = 1
-		traffic_car.position = Vector3(-185 + i * 115, 0.2, 11)
-		add_child(traffic_car)
+			car.variant = str(variants[created % variants.size()])
+		car.position = spot + Vector3(0, 0.2, 0)
+		car.rotation.y = atan2(-direction.x, -direction.z)
+		add_child(car)
+		car.start_traffic(road_network, from_node, to_node, 7403 + created)
+		car.set_occupant(HumanModel.model_for_seed(7403 + created * 13))
+		created += 1

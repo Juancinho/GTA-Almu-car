@@ -111,11 +111,20 @@ func _drive_path(car: DriveableVehicle, path: PackedVector3Array, limit: int) ->
 
 ## Steer with simulated keys toward target; brake for sharp turns at the next waypoint.
 func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_clear: bool = false, next: Vector3 = Vector3.INF) -> Dictionary:
+	var stalled := 0
 	for i in range(limit):
+		if stalled > 50:
+			# Like a human driver: wedged against traffic, back up with opposite lock.
+			stalled = 0
+			await _reverse_out(car)
 		var offset := target - car.global_position
 		offset.y = 0
 		if offset.length() < 8.0 or busted or (stop_when_clear and wanted.level == 0):
 			return {"reached": offset.length() < 8.0 or (stop_when_clear and wanted.level == 0), "frames": i}
+		var avoid := _traffic_ahead(car)
+		if avoid["distance"] < 18.0:
+			# Swerve toward the free side, as a driver overtaking or dodging would.
+			offset += car.global_transform.basis.x * 4.5 * float(avoid["side"])
 		var desired := atan2(-offset.x, -offset.z)
 		var error := wrapf(desired - car.rotation.y, -PI, PI)
 		Input.action_press("move_forward")
@@ -130,11 +139,12 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 			var outgoing := next - target
 			outgoing.y = 0
 			corner = outgoing.length() > 1.0 and offset.normalized().dot(outgoing.normalized()) < 0.6
-		if (absf(error) > 0.28 and absf(car.speed) > 8.0) or (corner and absf(car.speed) > 11.0):
+		if (absf(error) > 0.28 and absf(car.speed) > 8.0) or (corner and absf(car.speed) > 11.0) or (avoid["distance"] < 9.0 and absf(car.speed) > 6.0) or (offset.length() < 25.0 and absf(car.speed) > 12.0):
 			Input.action_press("brake")
 		else:
 			Input.action_release("brake")
 		await physics_frame
+		stalled = stalled + 1 if absf(car.speed) < 1.0 else 0
 		_track_police(1.0 / Engine.physics_ticks_per_second)
 		if i % 120 == 0:
 			var units := []
@@ -143,6 +153,32 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 					units.append("%s(%.0f,%.0f d=%.0f v=%.1f)" % [police.name, police.global_position.x, police.global_position.z, police.global_position.distance_to(car.global_position), police.speed])
 			print("ROUTE step=", i, " pos=", car.global_position.snapped(Vector3(0.1, 0.1, 0.1)), " speed=", snappedf(car.speed, 0.1), " wanted=", wanted.level, "/", wanted.phase, " police=", units)
 	return {"reached": false, "frames": limit}
+
+
+## Nearest vehicle in a 3-ray fan ahead and which side (+1 right, -1 left) is freer.
+func _traffic_ahead(car: DriveableVehicle) -> Dictionary:
+	var space := car.get_world_3d().direct_space_state
+	var forward := -car.global_transform.basis.z
+	var right := car.global_transform.basis.x
+	var origin := car.global_position + Vector3.UP * 0.7
+	var hits := {}
+	for side in [-1.0, 0.0, 1.0]:
+		var query := PhysicsRayQueryParameters3D.create(origin + right * side * 1.0, origin + right * side * 1.0 + forward * 18.0)
+		query.exclude = [car.get_rid()]
+		var hit := space.intersect_ray(query)
+		hits[side] = origin.distance_to(hit["position"]) if not hit.is_empty() and hit["collider"] is DriveableVehicle else INF
+	var nearest := minf(hits[-1.0], minf(hits[0.0], hits[1.0]))
+	return {"distance": nearest, "side": -1.0 if hits[-1.0] > hits[1.0] else 1.0}
+
+
+func _reverse_out(car: DriveableVehicle) -> void:
+	_release_controls()
+	Input.action_press("move_back")
+	Input.action_press("move_left" if randf() < 0.5 else "move_right")
+	for j in range(60):
+		await physics_frame
+		_track_police(1.0 / Engine.physics_ticks_per_second)
+	_release_controls()
 
 
 func _walk_to(player: PlayerController, target: Vector3, limit: int) -> bool:

@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba36u5yx6u15"
-path="res://.godot/imported/pavingstones046_normal.png-79381b7e9a5bce2da6fd4f25c46d21a9.ctex"
+path.s3tc="res://.godot/imported/pavingstones046_normal.png-79381b7e9a5bce2da6fd4f25c46d21a9.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/third_party/ambientcg/pavingstones046_normal.png"
-dest_files=["res://.godot/imported/pavingstones046_normal.png-79381b7e9a5bce2da6fd4f25c46d21a9.ctex"]
+dest_files=["res://.godot/imported/pavingstones046_normal.png-79381b7e9a5bce2da6fd4f25c46d21a9.s3tc.ctex"]
 
 [params]
 

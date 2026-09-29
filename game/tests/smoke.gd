@@ -20,8 +20,8 @@ func _run() -> void:
 	if world == null or player == null:
 		_fail("world or player missing")
 		return
-	if cars.size() != 4:
-		_fail("expected four vehicles, found %d" % cars.size())
+	if cars.size() != 13:
+		_fail("expected mission car + 12 traffic cars, found %d" % cars.size())
 		return
 	if get_nodes_in_group("pedestrians").size() != 15:
 		_fail("pedestrian population missing")
@@ -80,6 +80,11 @@ func _run() -> void:
 	if mission.stage != 2:
 		_fail("enter vehicle objective did not advance")
 		return
+	var traffic_starts := {}
+	for node in cars:
+		var vehicle := node as DriveableVehicle
+		if vehicle.traffic:
+			traffic_starts[vehicle] = vehicle.global_position
 	var start_pos := car.global_position
 	var traffic_car := world.get_node("Traffic_00") as DriveableVehicle
 	var traffic_start := traffic_car.global_position
@@ -93,6 +98,26 @@ func _run() -> void:
 	if traffic_car.global_position.distance_to(traffic_start) < 1.0:
 		_fail("traffic car did not move")
 		return
+	var moving := 0
+	for vehicle in traffic_starts:
+		if (vehicle as DriveableVehicle).global_position.distance_to(traffic_starts[vehicle]) > 3.0:
+			moving += 1
+	if moving < 9:
+		_fail("traffic mostly stuck: only %d of %d moved" % [moving, traffic_starts.size()])
+		return
+	# Carjacking: boarding an occupied traffic car ejects its driver, who flees.
+	player._interact()
+	var victim := world.get_node("Traffic_03") as DriveableVehicle
+	player.global_position = victim.global_position + victim.global_transform.basis.x * 2.0
+	player._interact()
+	await physics_frame
+	var ejected := world.get_node_or_null("Conductor_Traffic_03") as Pedestrian
+	if player.driving_vehicle != victim or victim.traffic or ejected == null or ejected.state != Pedestrian.State.FLEE:
+		_fail("carjacking failed: driving=%s ejected=%s" % [player.driving_vehicle, ejected])
+		return
+	player._interact()
+	player.global_position = car.global_position + Vector3(2, 0, 0)
+	player._interact()
 	car.global_position = Vector3(58, 0.1, -78)
 	for i in range(3):
 		await process_frame

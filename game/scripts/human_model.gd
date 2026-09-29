@@ -37,10 +37,10 @@ func _ready() -> void:
 		return
 	player = players[0] as AnimationPlayer
 	for animation_name in player.get_animation_list():
-		for key in ["Idle", "Walk", "Run", "Jump"]:
+		for key in ["Idle", "Walk", "Run", "Jump", "Sitting", "Death", "Punch"]:
 			if str(animation_name).ends_with("_" + key):
 				clips[key.to_lower()] = animation_name
-				if key != "Jump":
+				if key in ["Idle", "Walk", "Run", "Sitting"]:
 					player.get_animation(animation_name).loop_mode = Animation.LOOP_LINEAR
 	play_state("idle")
 

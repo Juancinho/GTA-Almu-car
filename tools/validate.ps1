@@ -34,6 +34,7 @@ function Invoke-Godot([string]$Name, [string[]]$Arguments) {
 
 Invoke-Godot 'import' @('--headless', '--editor', '--path', ('"' + $gamePath + '"'), '--quit')
 Invoke-Godot 'smoke' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/smoke.gd')
+Invoke-Godot 'traffic' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_soak.gd')
 Invoke-Godot 'route' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')
 if ($Capture) {
     Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
