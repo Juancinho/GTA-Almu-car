@@ -17,6 +17,14 @@ var prompt_label: Label
 var minimap: DistrictMinimap
 var pause_overlay: ColorRect
 var pause_label: Label
+var stars_label: Label
+var money_label: Label
+var money_delta_label: Label
+var health_back: ColorRect
+var health_fill: ColorRect
+var banner_label: Label
+var banner_timer := 0.0
+var money_delta_timer := 0.0
 
 
 func _ready() -> void:
@@ -54,6 +62,53 @@ func _ready() -> void:
 	minimap.position = Vector2(-204, 16)
 	minimap.size = Vector2(186, 186)
 	root.add_child(minimap)
+	# GTA-style status column under the minimap: stars, health bar, money.
+	stars_label = Label.new()
+	stars_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	stars_label.position = Vector2(-204, 206)
+	stars_label.custom_minimum_size = Vector2(186, 30)
+	stars_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stars_label.add_theme_font_size_override("font_size", 26)
+	_outline(stars_label)
+	root.add_child(stars_label)
+	health_back = ColorRect.new()
+	health_back.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	health_back.position = Vector2(-204, 242)
+	health_back.size = Vector2(186, 12)
+	health_back.color = Color(0.05, 0.1, 0.1, 0.8)
+	root.add_child(health_back)
+	health_fill = ColorRect.new()
+	health_fill.position = Vector2(2, 2)
+	health_fill.size = Vector2(182, 8)
+	health_fill.color = Color("6fbf73")
+	health_back.add_child(health_fill)
+	money_label = Label.new()
+	money_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	money_label.position = Vector2(-204, 258)
+	money_label.custom_minimum_size = Vector2(186, 30)
+	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money_label.add_theme_font_size_override("font_size", 24)
+	money_label.add_theme_color_override("font_color", Color("9fe39a"))
+	_outline(money_label)
+	root.add_child(money_label)
+	money_delta_label = Label.new()
+	money_delta_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	money_delta_label.position = Vector2(-204, 288)
+	money_delta_label.custom_minimum_size = Vector2(186, 26)
+	money_delta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money_delta_label.add_theme_font_size_override("font_size", 20)
+	_outline(money_delta_label)
+	root.add_child(money_delta_label)
+	banner_label = Label.new()
+	banner_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	banner_label.position = Vector2(-400, -60)
+	banner_label.custom_minimum_size = Vector2(800, 120)
+	banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	banner_label.add_theme_font_size_override("font_size", 72)
+	_outline(banner_label, 10)
+	banner_label.visible = false
+	root.add_child(banner_label)
 	var prompt_back := ColorRect.new()
 	prompt_back.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_back.position = Vector2(-290, -87)
@@ -89,6 +144,24 @@ func _ready() -> void:
 	pause_overlay.add_child(pause_label)
 
 
+func _outline(label: Label, size: int = 5) -> void:
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("outline_size", size)
+
+
+func show_banner(text: String, color: Color) -> void:
+	banner_label.text = text
+	banner_label.add_theme_color_override("font_color", color)
+	banner_label.visible = true
+	banner_timer = 3.0
+
+
+func show_money_change(amount: int) -> void:
+	money_delta_label.text = ("+%d €" if amount >= 0 else "%d €") % amount
+	money_delta_label.add_theme_color_override("font_color", Color("9fe39a") if amount >= 0 else Color("e0645a"))
+	money_delta_timer = 3.0
+
+
 func set_game(value: PlayerController, mission_value: MissionController, wanted_value: WantedSystem) -> void:
 	player = value
 	mission = mission_value
@@ -104,13 +177,26 @@ func update_settings(quality: int, volume: int) -> void:
 	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG (CC0)" % [quality_text, volume_text]
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	pause_overlay.visible = get_tree().paused
 	if player == null:
 		return
 	mission_label.text = "MISIÓN · " + mission.objectives[mission.stage].get("text", "") if not mission.completed else "MISIÓN · El Recado completado"
 	var phase_text: String = {"clear": "sin búsqueda", "responding": "en camino", "pursuit": "persecución", "search": "buscando"}.get(wanted.phase, wanted.phase)
-	wanted_label.text = "ATENCIÓN POLICIAL · %d/5  %s" % [wanted.level, phase_text]
+	wanted_label.text = "POLICÍA · %s" % phase_text
+	var blink := wanted.phase == "search" and int(Time.get_ticks_msec() / 400) % 2 == 0
+	stars_label.text = "★".repeat(wanted.level) + "☆".repeat(5 - wanted.level)
+	stars_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.35) if blink else Color("f2d36b"))
+	var ratio := clampf(player.health / PlayerController.MAX_HEALTH, 0.0, 1.0)
+	health_fill.size.x = 182.0 * ratio
+	health_fill.color = Color("6fbf73") if ratio > 0.35 else Color("d9534a")
+	var main := get_parent()
+	if main != null and "money" in main:
+		money_label.text = "%d €" % int(main.money)
+	banner_timer -= delta
+	banner_label.visible = banner_timer > 0.0
+	money_delta_timer -= delta
+	money_delta_label.visible = money_delta_timer > 0.0
 	if wanted.arrest_progress() > 0.0:
 		wanted_label.text += "  ·  ¡DETENCIÓN %d %%!" % int(wanted.arrest_progress() * 100.0)
 	var street := road_network.road_name_at(player.global_position) if road_network != null else ""

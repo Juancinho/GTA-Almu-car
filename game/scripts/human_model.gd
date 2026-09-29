@@ -13,6 +13,7 @@ var model_name := "male_casual"
 var player: AnimationPlayer
 var clips: Dictionary = {}  # idle/walk/run/jump -> animation name
 var current := ""
+var action_timer := 0.0  # while > 0, a one-shot action (punch, knocked down) owns the pose
 
 
 func _init(chosen: String = "male_casual") -> void:
@@ -45,6 +46,20 @@ func _ready() -> void:
 	play_state("idle")
 
 
+func _process(delta: float) -> void:
+	action_timer = maxf(0.0, action_timer - delta)
+
+
+## One-shot clip that movement updates will not interrupt for `seconds`.
+func play_action(state: String, seconds: float) -> void:
+	if player == null or not clips.has(state):
+		return
+	action_timer = seconds
+	current = state
+	player.speed_scale = 1.0
+	player.play(clips[state], 0.1)
+
+
 static func model_for_seed(seed_value: int) -> String:
 	return MODELS[absi(seed_value) % MODELS.size()]
 
@@ -61,6 +76,8 @@ func play_state(state: String, speed_scale: float = 1.0) -> void:
 
 ## speed in m/s on the ground plane.
 func update_motion(speed: float, grounded: bool = true) -> void:
+	if action_timer > 0.0:
+		return
 	if not grounded:
 		play_state("jump")
 	elif speed > 6.0:

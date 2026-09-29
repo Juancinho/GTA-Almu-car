@@ -1,6 +1,9 @@
 class_name DriveableVehicle
 extends CharacterBody3D
 
+signal ran_over(victim: Pedestrian)
+signal destroyed_vehicle
+
 const CarScene = preload("res://assets/procedural/compact_car.glb")
 const MODELS_PATH := "res://data/vehicles/models.json"
 static var model_catalog: Dictionary = {}
@@ -19,6 +22,9 @@ const STEER_RESPONSE := 6.0
 const AI_REPATH_SECONDS := 1.0
 const AI_STUCK_SECONDS := 1.3
 const AI_REVERSE_SECONDS := 1.1
+const MAX_HEALTH := 1000.0
+const IMPACT_THRESHOLD := 7.0
+const EXPLOSION_RADIUS := 7.0
 
 var driver: PlayerController
 var speed := 0.0
@@ -35,6 +41,11 @@ var lane_from := -1
 var lane_to := -1
 var traffic_rng := RandomNumberGenerator.new()
 var occupant: HumanModel
+var health := MAX_HEALTH
+var destroyed := false
+var burn_timer := -1.0
+var damage_fx: VehicleDamageFx
+var recent_speed := 0.0  # decaying peak speed: contacts are often reported a frame after the impact
 var occupant_name := ""
 var pursuit_target := Vector3.ZERO
 var pursuit_speed := 14.0
@@ -60,6 +71,9 @@ func _ready() -> void:
 	if engine_audio.stream is AudioStreamWAV:
 		(engine_audio.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	engine_audio.bus = "SFX"
+	damage_fx = VehicleDamageFx.new()
+	damage_fx.name = "DamageFx"
+	add_child(damage_fx)
 	engine_audio.max_distance = 65.0
 	engine_audio.volume_db = -22.0
 	add_child(engine_audio)
@@ -74,6 +88,10 @@ func _build_visuals() -> void:
 	collider.shape = shape
 	collider.position.y = 0.65
 	add_child(collider)
+	_build_model()
+
+
+func _build_model() -> void:
 	var spec := variant_spec(variant)
 	var scene: PackedScene = CarScene
 	if spec.has("scene"):
@@ -205,7 +223,16 @@ func _material(color: Color) -> StandardMaterial3D:
 
 
 func _physics_process(delta: float) -> void:
-	if driver != null:
+	if burn_timer > 0.0:
+		var before := burn_timer
+		burn_timer -= delta
+		if int(before) != int(burn_timer):
+			_scare_bystanders(15.0)  # once per second while burning
+		if burn_timer <= 0.0:
+			_explode()
+	if destroyed:
+		speed = move_toward(speed, 0.0, 20.0 * delta)
+	elif driver != null:
 		_drive_from_input(delta)
 	elif ai_reverse_timer > 0.0:
 		_reverse_out(delta)
@@ -220,14 +247,107 @@ func _physics_process(delta: float) -> void:
 	var forward := -global_transform.basis.z
 	velocity = forward * speed
 	velocity.y = -8.0 if not is_on_floor() else -0.2
+	var speed_before := absf(speed)
+	recent_speed = maxf(speed_before, recent_speed - 25.0 * delta)
 	move_and_slide()
+	_resolve_contacts(recent_speed)
 	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
 	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
 	engine_audio.volume_db = -22.0 + engine_load * 9.0
 	if is_on_wall():
 		# Head-on impacts stop the car; glancing contacts keep most speed and slide.
 		var impact := absf(forward.dot(get_wall_normal()))
+		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+## Pedestrians and an on-foot player hit at speed are knocked down / hurt.
+func _resolve_contacts(speed_before: float) -> void:
+	if speed_before < 3.5:
+		return
+	for i in range(get_slide_collision_count()):
+		var other := get_slide_collision(i).get_collider()
+		if other is Pedestrian and (other as Pedestrian).state != Pedestrian.State.DOWN:
+			(other as Pedestrian).knock_down(global_position, speed_before)
+			ran_over.emit(other)
+			if driver != null:
+				get_tree().call_group("wanted_system", "report_crime", "atropello", global_position)
+		elif other is PlayerController and (other as PlayerController).driving_vehicle == null:
+			(other as PlayerController).take_damage(speed_before * 2.5, "vehicle")
+
+
+func apply_damage(amount: float) -> void:
+	if destroyed or amount <= 0.0:
+		return
+	health = maxf(0.0, health - amount)
+	if health <= 0.0:
+		if burn_timer < 0.0:
+			burn_timer = 4.0  # burning countdown: get out!
+		damage_fx.set_stage(2)
+	elif health < 150.0:
+		damage_fx.set_stage(2)
+		if burn_timer < 0.0:
+			burn_timer = 6.0
+	elif health < 400.0:
+		damage_fx.set_stage(1)
+
+
+func _scare_bystanders(radius: float) -> void:
+	for node in get_tree().get_nodes_in_group("pedestrians"):
+		var person := node as Pedestrian
+		if person != null and not person.mission_contact and person.global_position.distance_to(global_position) < radius:
+			person.flee_from(global_position)
+
+
+func _explode() -> void:
+	destroyed = true
+	burn_timer = -1.0
+	traffic = false
+	pursuing = false
+	engine_audio.stop()
+	damage_fx.set_stage(3)
+	damage_fx.explode()
+	var burnt := StandardMaterial3D.new()
+	burnt.albedo_color = Color("1d1b1a")
+	burnt.roughness = 1.0
+	var model := get_node_or_null("CarVisual")
+	if model != null:
+		for node in model.find_children("*", "MeshInstance3D", true, false):
+			(node as MeshInstance3D).material_override = burnt
+	if occupant != null and occupant_name != "" and driver == null:
+		set_occupant("")
+	for node in get_tree().get_nodes_in_group("pedestrians"):
+		var person := node as Pedestrian
+		if person != null and person.global_position.distance_to(global_position) < EXPLOSION_RADIUS:
+			person.knock_down(global_position, 8.0)
+	for node in get_tree().get_nodes_in_group("player"):
+		var target := node as PlayerController
+		if target == null:
+			continue
+		if target.driving_vehicle == self:
+			target.take_damage(target.health + 1.0, "explosion")
+		elif target.global_position.distance_to(global_position) < EXPLOSION_RADIUS:
+			target.take_damage(70.0 * (1.0 - target.global_position.distance_to(global_position) / EXPLOSION_RADIUS) + 10.0, "explosion")
+	for node in get_tree().get_nodes_in_group("vehicles"):
+		var car := node as DriveableVehicle
+		if car != null and car != self and car.global_position.distance_to(global_position) < EXPLOSION_RADIUS:
+			car.apply_damage(350.0)
+	destroyed_vehicle.emit()
+
+
+## Back to factory condition (used when the mission car is reset after death/arrest).
+func repair() -> void:
+	health = MAX_HEALTH
+	destroyed = false
+	burn_timer = -1.0
+	damage_fx.set_stage(0)
+	var model := get_node_or_null("CarVisual")
+	if model != null:
+		remove_child(model)
+		model.queue_free()
+	_build_model()
+	if DisplayServer.get_name() != "headless" and not engine_audio.playing:
+		engine_audio.play()
 
 
 func _drive_from_input(delta: float) -> void:

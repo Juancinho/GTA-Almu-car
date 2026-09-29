@@ -8,6 +8,10 @@ const MissionScript = preload("res://scripts/mission.gd")
 const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
 const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
 const ARREST_RESPAWN := Vector3(92.0, 0.2, 30.0)
+const HOSPITAL_RESPAWN := Vector3(-110.0, 0.2, 26.0)
+const MISSION_REWARD := 500
+const ARREST_FEE := 100
+const HOSPITAL_FEE := 100
 
 var world: Node3D
 var player: PlayerController
@@ -20,6 +24,7 @@ var save_path := "user://save_v1.json"
 var ui_audio: AudioStreamPlayer
 var quality_level := 2
 var volume_level := 2
+var money := 0
 
 
 func _ready() -> void:
@@ -52,6 +57,10 @@ func _ready() -> void:
 	mission.mission_completed.connect(_on_mission_completed)
 	mission.mission_failed.connect(_on_mission_failed)
 	player.vehicle_entered.connect(_on_vehicle_entered)
+	player.vehicle_jacked.connect(_on_vehicle_jacked)
+	player.died.connect(_on_player_died)
+	player.assaulted.connect(func(victim: Pedestrian) -> void: wanted.report_crime("agresión", victim.global_position))
+	wanted.crime_reported.connect(func(kind: String, witnessed: bool) -> void: playtest_log.record("crime", {"kind": kind, "witnessed": witnessed}))
 	hud = HudScript.new()
 	add_child(hud)
 	hud.set_game(player, mission, wanted)
@@ -121,8 +130,36 @@ func _on_objective_changed(text: String, _marker: Vector3) -> void:
 	playtest_log.record("objective", {"stage": mission.stage, "text": text})
 
 
+func add_money(amount: int) -> void:
+	money = maxi(0, money + amount)
+	hud.show_money_change(amount)
+
+
+func _on_vehicle_jacked(vehicle: DriveableVehicle, _driver: Pedestrian) -> void:
+	playtest_log.record("carjack", {"vehicle": str(vehicle.name)})
+
+
+func _on_player_died() -> void:
+	playtest_log.record("wasted", {"position": [player.global_position.x, player.global_position.z], "stage": mission.stage})
+	hud.show_banner("HAS MUERTO", Color("d9534a"))
+	get_tree().create_timer(3.0, false).timeout.connect(_respawn_at_hospital)
+
+
+func _respawn_at_hospital() -> void:
+	if player.driving_vehicle != null:
+		player._interact()
+	wanted.clear_wanted()
+	player.global_position = HOSPITAL_RESPAWN
+	player.velocity = Vector3.ZERO
+	player.heal_full()
+	world.reset_vehicle("FirstCar")
+	add_money(-HOSPITAL_FEE)
+	mission.fail_to_checkpoint("Centro de salud: -%d €." % HOSPITAL_FEE)
+
+
 func _on_mission_completed() -> void:
 	playtest_log.record("mission_completed", {"stage": mission.stage})
+	add_money(MISSION_REWARD)
 	_auto_report("mission_completed")
 
 
@@ -145,7 +182,9 @@ func _on_player_busted() -> void:
 	player.global_position = ARREST_RESPAWN
 	player.velocity = Vector3.ZERO
 	world.reset_vehicle("FirstCar")
-	mission.fail_to_checkpoint("Te han detenido.")
+	hud.show_banner("DETENIDO", Color("5b8bd9"))
+	add_money(-ARREST_FEE)
+	mission.fail_to_checkpoint("Te han detenido (-%d €)." % ARREST_FEE)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -204,6 +243,11 @@ func _configure_input() -> void:
 	_add_key("load_game", KEY_F9)
 	_add_key("quality_cycle", KEY_F3)
 	_add_key("volume_cycle", KEY_F4)
+	_add_key("attack", KEY_F)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	InputMap.action_add_event("attack", click)
+	_add_joy_button("attack", JOY_BUTTON_RIGHT_SHOULDER)
 	_add_key("perf_overlay", KEY_F2)
 	_add_key("fullscreen_toggle", KEY_F11)
 	_add_key("perf_report", KEY_F6)
@@ -263,6 +307,8 @@ func _save_game() -> void:
 		"mission_stage": mission.stage,
 		"quality_level": quality_level,
 		"volume_level": volume_level,
+		"money": money,
+		"health": player.health,
 		"vehicle_name": vehicle.name if vehicle != null else "",
 		"vehicle_position": [vehicle.global_position.x, vehicle.global_position.y, vehicle.global_position.z] if vehicle != null else [],
 		"vehicle_yaw": vehicle.rotation.y if vehicle != null else 0.0
@@ -297,6 +343,10 @@ func _load_game() -> void:
 	player.camera_yaw = float(data.get("camera_yaw", -2.0))
 	player._update_camera_orientation()
 	mission.restore_stage(int(data.get("mission_stage", 0)))
+	money = maxi(0, int(data.get("money", money)))
+	player.heal_full()
+	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)
+	player.health_changed.emit(player.health)
 	quality_level = clampi(int(data.get("quality_level", 2)), 0, 2)
 	volume_level = clampi(int(data.get("volume_level", 2)), 0, 2)
 	_apply_settings()

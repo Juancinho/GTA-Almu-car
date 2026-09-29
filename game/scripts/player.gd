@@ -4,6 +4,9 @@ extends CharacterBody3D
 signal contact_interacted(contact: Pedestrian)
 signal vehicle_entered(vehicle: DriveableVehicle)
 signal vehicle_jacked(vehicle: DriveableVehicle, driver: Pedestrian)
+signal health_changed(value: float)
+signal died
+signal assaulted(victim: Pedestrian)
 
 const WALK_SPEED := 5.0
 const RUN_SPEED := 8.5
@@ -14,6 +17,8 @@ const FOOT_CAMERA_DISTANCE := 5.0
 const DRIVE_CAMERA_DISTANCE := 7.5
 const CAMERA_RECENTER_DELAY := 0.9
 const GAMEPAD_LOOK_SPEED := 2.6
+const MAX_HEALTH := 100.0
+const PUNCH_RANGE := 1.9
 
 var camera_pivot: Node3D
 var camera_arm: SpringArm3D
@@ -27,6 +32,9 @@ var driving_vehicle: DriveableVehicle
 var camera_yaw := -2.0
 var camera_pitch := -0.18
 var look_idle_time := 0.0
+var health := MAX_HEALTH
+var dead := false
+var attack_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -85,8 +93,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera_pitch = clampf(camera_pitch - event.relative.y * 0.003, -1.1, 0.55)
 		look_idle_time = 0.0
 		_update_camera_orientation()
-	if event.is_action_pressed("interact"):
+	if event.is_action_pressed("interact") and not dead:
 		_interact()
+	elif event.is_action_pressed("attack") and InputMap.has_action("attack"):
+		punch()
 
 
 func _update_camera_orientation() -> void:
@@ -117,6 +127,10 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	attack_cooldown = maxf(0.0, attack_cooldown - delta)
+	if dead:
+		velocity = Vector3.ZERO
+		return
 	if driving_vehicle != null:
 		global_position = driving_vehicle.global_position + Vector3(0, 0.3, 0)
 		return
@@ -191,6 +205,52 @@ func board_vehicle(car: DriveableVehicle) -> void:
 	camera_arm.add_excluded_object(car.get_rid())
 	visual.visible = false
 	collider.set_deferred("disabled", true)
+
+
+func take_damage(amount: float, source: String = "") -> void:
+	if dead or amount <= 0.0:
+		return
+	health = maxf(0.0, health - amount)
+	health_changed.emit(health)
+	if health <= 0.0:
+		dead = true
+		if driving_vehicle == null:
+			human.play_action("death", 999.0)
+		died.emit()
+
+
+func heal_full() -> void:
+	health = MAX_HEALTH
+	dead = false
+	human.action_timer = 0.0
+	health_changed.emit(health)
+
+
+## On-foot punch: the hit lands 0.25 s into the clip on the nearest person in front.
+func punch() -> void:
+	if dead or driving_vehicle != null or attack_cooldown > 0.0:
+		return
+	attack_cooldown = 0.65
+	human.play_action("punch", 0.55)
+	get_tree().create_timer(0.25, false).timeout.connect(_land_punch)
+
+
+func _land_punch() -> void:
+	if dead or driving_vehicle != null:
+		return
+	var forward := -visual.global_transform.basis.z
+	forward.y = 0.0
+	forward = forward.normalized()
+	for node in get_tree().get_nodes_in_group("pedestrians"):
+		var person := node as Pedestrian
+		if person == null or person.mission_contact or person.state == Pedestrian.State.DOWN:
+			continue
+		var offset := person.global_position - global_position
+		offset.y = 0.0
+		if offset.length() < PUNCH_RANGE and offset.normalized().dot(forward) > 0.35:
+			person.knock_down(global_position, 4.0)
+			assaulted.emit(person)
+			return
 
 
 func nearby_vehicle() -> DriveableVehicle:

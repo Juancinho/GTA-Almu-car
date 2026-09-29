@@ -3,6 +3,7 @@ extends Node3D
 
 signal wanted_changed(level: int, phase: String)
 signal player_busted
+signal crime_reported(kind: String, witnessed: bool)
 
 const VehicleScript = preload("res://scripts/vehicle.gd")
 const SIGHT_RANGE := 95.0
@@ -33,6 +34,14 @@ var police_cars: Array[DriveableVehicle] = []
 func configure(target: PlayerController, network: RoadNetwork = null) -> void:
 	player = target
 	road_network = network
+	add_to_group("wanted_system")
+
+
+## Any player crime (assault, running someone over, carjacking seen by police...).
+## Witnessed crimes raise the wanted level, subject to the incident cooldown.
+func report_crime(kind: String, location: Vector3) -> void:
+	var witnessed := report_incident(location)
+	crime_reported.emit(kind, witnessed)
 
 
 func _physics_process(delta: float) -> void:

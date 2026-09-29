@@ -430,6 +430,8 @@ func reset_vehicle(vehicle_name: String) -> void:
 	car.speed = 0.0
 	car.velocity = Vector3.ZERO
 	car.transform = vehicle_spawns[vehicle_name]
+	if car.destroyed or car.health < DriveableVehicle.MAX_HEALTH:
+		car.repair()
 
 
 func _create_people_and_traffic() -> void:
