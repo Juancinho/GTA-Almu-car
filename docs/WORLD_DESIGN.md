@@ -1,27 +1,51 @@
-# World design and geographic data
+# World design — Almuñécar at 1:1
 
-## First district
+## Fidelity goal
 
-Target a roughly 600 × 600 m playable area spanning a compressed Puerta del Mar/Altillo promenade, Peñón del Santo silhouette and rising old-town streets toward a simplified Castillo de San Miguel. Sea and beach border the south, hills frame the north and west. Add Majuelo garden language at one edge. Geographic fidelity is deliberately edited to preserve short driving routes, clear sightlines and a compact mission loop.
+The playable world is **central Almuñécar at real scale and real layout**, generated from licensed geographic data and then hand-dressed. Streets, plazas, stairs, landmarks and coastline sit where they are in reality; the player should be able to navigate by real street names. Deliberate deviations (widened lanes for driving, a hidden interior, a gameplay shortcut) are recorded as design-layer edits with a reason, never by editing the raw data. This supersedes the earlier "compressed fictional" greybox (see D-013); the greybox stays only until WORLD-005 replaces it.
+
+## Data sources and licences
+
+| Layer | Source | Licence / attribution | Status |
+|-------|--------|-----------------------|--------|
+| Roads, paths, steps, building footprints, parks, coastline, names | OpenStreetMap extract cached in `source_assets/osm/altillo_2026-09-29.json` (1,400 buildings, 218 roads, 313 paths incl. steps, 41 parks) | ODbL — “Map data © OpenStreetMap contributors”, share-alike for the derived database | Cached, normalised (`game/data/world/osm_reference.json`) |
+| Terrain elevation | CNIG/IGN **MDT05** (5 m DTM from LiDAR), Centro de Descargas CNIG | CC BY 4.0 — “© Instituto Geográfico Nacional” | To fetch once, cache with hash (WORLD-004) |
+| Building heights | Not in the OSM extract (`building:levels` absent) | — | Design rule table per zone + manual overrides from reference photos (WORLD-005) |
+| Visual reference | Own photos or licence-recorded images per landmark | Per file | `source_assets/reference/` (ART-010) |
+
+No network request ever happens at runtime; every fetch is a tool step with URL, date, hash and licence in a metadata file.
 
 ## Coordinate contract
 
-The cached OSM reference extract uses WGS84 origin **(36.7314508, -3.6902315)**, published for [Paseo del Altillo by the Junta de Andalucía](https://www.juntadeandalucia.es/cultura/agendaculturaldeandalucia/espacios/paseo-del-altillo-almunecar). Extraction box (south, west, north, east): `(36.7285, -3.6970, 36.7355, -3.6840)`. For source point latitude `φ` and longitude `λ` in radians, use a local tangent approximation:
+WGS84 origin **(36.7314508, −3.6902315)** on Paseo del Altillo. `east_m = R·cos φ0·(λ−λ0)`, `north_m = R·(φ−φ0)`, `R = 6378137 m`; Godot `(x, y, z) = (east_m, elevation_m, −north_m)`. The design transform is now identity for position (scale 1:1); design-layer edits are local offsets per feature ID in `source_assets/world/design_layer.json`. Unit tests cover axis signs, round trip and known distances.
 
-`east_m = R * cos(φ0) * (λ - λ0)` and `north_m = R * (φ - φ0)`, with `R = 6378137 m`.
+## Sectors (streamable, generated in this order)
 
-Godot uses `(x, y, z) = (east_m, elevation_m, -north_m)`. A separately versioned, deterministic **design transform** compresses road spacing/rotates selected blocks after raw conversion; it must not overwrite raw coordinates. Unit tests should cover axis sign, roundtrip error and expected distances.
+Positions are OSM centroids in metres (x east, z south of the origin) from `osm_reference.json`.
 
-## Pipeline
+| Sector | Real area | Anchors (x, z) | Character |
+|--------|-----------|----------------|-----------|
+| S1 Puerta del Mar | Paseo del Altillo, Paseo Puerta del Mar, Playa Puerta del Mar | Paseo del Altillo (−13, 16); Calle Playa Puerta del Mar (−53, 44); Paseo Puerta del Mar (189, 41) | Seafront promenade, apartment blocks, beach bars, Phoenician monument, taxi rank. Player start. |
+| S2 Old town | Plaza de la Constitución, Calle Real, Iglesia de la Encarnación, Plaza Nueva, Cueva de Siete Palacios | Plaza de la Constitución (−94, −240); Calle Real (−52, −195); Iglesia (−40, −345); Cueva Siete Palacios street (−73, −71); Plaza Nueva (−57, −315) | Pedestrian lanes, stairs, shops, town hall, church; car access restricted (wanted trigger zone). |
+| S3 Castle and San Miguel | Castillo de San Miguel, Barrio de San Miguel, Parque El Majuelo | Castle (−221, 72); Majuelo (−300, 4); Cuesta del Castillo steps (−108, −186); Calle Alfareros steps (−171, −48) | Steep whitewashed barrio, castle museum, Roman salting ruins, concerts. |
+| S4 San Cristóbal | Peñón del Santo, Playa and Paseo de San Cristóbal, Palacete de La Najarra | Paseo de San Cristóbal (−603, 77); Plaza San Cristóbal (−361, 229); Paseo de Prieto Moreno (−348, 241) | Beach promenade, restaurants, rock outcrop with cross, neo-Arab palace. |
+| S5 Modern centre | Avenida de Europa, Avenida de Andalucía, Plaza de Madrid, bus station, aqueduct arches | Av. de Europa (−347, −111); Av. de Andalucía (63, −451); Plaza de Madrid (159, −85) | Through traffic, supermarket, bus station, schools, Roman aqueduct sections. |
+| S6+ Expansion | Velilla, Calabajío, Cotobro, N-340 coast road, Marina del Este / La Herradura | outside current extract | Highway driving, marina, boats, coves — after S1–S5 ship. |
 
-1. Query a modest bounded OSM extract using a documented provider and timestamp; save raw `.osm` or `.pbf` under `source_assets/osm/` with URL, query, acquisition date, license and checksum. Respect provider usage policy and retry limits.
-2. Parse road centerlines, building footprints, coastline, parks, paths and selected POIs into normalized JSON. Keep source IDs and tags in provenance data.
-3. Reproject, simplify polylines/polygons, repair intersections, manually classify walkable/driveable edges and record edits in a versioned design layer.
-4. Generate road meshes, sidewalks, terrain masks, building parcels, lane graph and minimap geometry from the same normalized data and seed.
-5. Review scale, visibility and collision in Godot; edit the design layer rather than raw OSM.
+Each sector is its own scene with a manifest (feature IDs, bounds, LOD sets, navigation) and can load independently; streaming by distance comes with S2 (WORLD-007).
 
-One bounded Overpass request was cached at `source_assets/osm/altillo_2026-09-29.json`, with query, timestamp and SHA-256 in its metadata file. `tools/world/osm_pipeline.py` converts it to `game/data/world/osm_reference.json`: 218 roads, 313 paths, 1,400 building footprints, 41 parks and one coastline feature. The **playable geometry remains hand-authored**; this normalized reference is not yet the runtime road/building source. No network request belongs in gameplay. The source is a small request consistent with the [Overpass public instance guidance](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html).
+## Generation rules
+
+- **Roads**: OSM `highway=*` → driveable (primary…residential, living_street) with lane counts, one-way tags and widths per class; `pedestrian`, `footway`, `steps` → walkable only, steps as ramps with visual treads. Lane graph for traffic/police and the minimap are generated from the same data (replaces `road_network.json` hand data).
+- **Terrain**: MDT05 heightmap resampled to 1 m under S1–S5, roads flattened across their width, stairs following the slope; coastline from OSM with a beach profile.
+- **Buildings**: every OSM footprint extruded; storeys from a zone table (old town 2–3, San Miguel 1–3, seafront 6–10, modern centre 4–7), overridden per building from references; façade kit chosen by zone; landmarks replaced by hero models aligned to their footprints.
+- **Dressing**: palms and lamp posts along promenades at measured spacing, benches, bins, bollards, planters, beach loungers and boats by season, vegetation in parks.
+- **Interiors**: entrances placed on real façades (see `GAME_DESIGN.md`), interiors as separate scenes loaded behind doors.
 
 ## Attribution
 
-OSM data is licensed under ODbL. Include **“Map data © OpenStreetMap contributors”** and a link to [openstreetmap.org/copyright](https://www.openstreetmap.org/copyright) in credits and the in-game map/attribution UI. Record the scope of source data and make any derivative database available as required before distribution; review this obligation at release. This attribution guidance follows the [OSM legal FAQ](https://wiki.openstreetmap.org/wiki/Legal_FAQ). Do not copy OSM raster map tiles into the game.
+In-game credits and the pause/map screen show “Map data © OpenStreetMap contributors (ODbL)” and “Elevation: © Instituto Geográfico Nacional (CC BY 4.0)”. The derived road/building database is published on request as ODbL requires; review before any distribution. Real public place and street names are used; real businesses and people are not (OSM business names are replaced with fictional ones).
+
+## References
+
+[Granada Direct – Qué ver en Almuñécar](https://www.granadadirect.com/costa/almunecar/que-ver/) · [Granada Direct – playas](https://www.granadadirect.com/costa/almunecar/playas/) · [Almuñécar Info – historical & cultural](https://almunecarinfo.com/things-to-do-almunecar-spain/historical-cultural/) · [Andalucía – Palacete de La Najarra](https://en.andalucia.org/listing/palacete-de-la-najarra/16277101/) · [Andalucía – Iglesia de la Encarnación](https://en.andalucia.org/listing/church-of-encarnaci%c3%b3n/17073101/) · [Mapping Spain – Almuñécar](https://mappingspain.com/what-to-see-in-almunecar-and-impressions/) · [datos.gob.es – MDT05](https://datos.gob.es/es/catalogo/e0dat0002-modelo-digital-del-terreno-con-paso-de-malla-de-5-metros-mdt05-de-espana1) · [OSM legal FAQ](https://wiki.openstreetmap.org/wiki/Legal_FAQ).

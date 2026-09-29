@@ -6,7 +6,8 @@
 - `game/` contains runtime code. Keep player, vehicle, pedestrian, traffic, police, mission and UI systems separate. Use data/resources for mission definitions and vehicle tuning.
 - `tools/world/` owns geographic transformation and edited district data. `tools/blender/` owns asset generation. Never hand-edit an output in `generated/`; edit its source/seed and regenerate.
 - Keep deterministic seeds and input provenance in generation reports. Do not fetch network data during the game.
-- Avoid proprietary game assets, unlicensed music, copied maps, names and UI.
+- Avoid proprietary game assets, unlicensed music, and other games' maps, names and UI. The world is the real Almuñécar at 1:1 built from licensed data (OSM ODbL, CNIG MDT05 CC BY 4.0) with attribution; real public place and street names are allowed, but businesses, brands, characters and police insignia must be fictional (D-013, D-014).
+- Art must meet `docs/ART_DIRECTION.md`: no shipped flat untextured primitives; every landmark is accepted against its reference board with day and night captures.
 
 ## Style and performance
 

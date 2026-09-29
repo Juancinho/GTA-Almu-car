@@ -1,24 +1,82 @@
 # Game design — Brisa de Poniente
 
+Third-person open-world crime game in a faithful Almuñécar. Tone: grounded crime drama of the Costa Tropical — sea smuggling, summer-season rackets, property speculation, family loyalty — with the freedom, humour and chaos players expect from the genre. All characters, gangs, businesses and brands are fictional; places and streets are real.
+
 ## Pillars
 
-1. A dense, readable Mediterranean district with sea, promenade, palms, white façades, hill and castle silhouette visible from spawn.
-2. Responsive movement and arcade driving that work before content volume grows.
-3. Local consequence: witnessed incidents create a short police pursuit the player can evade.
-4. A single authored mission that connects walking, talking, driving and escape.
+1. **The real town as the playground**: every mission uses recognisable places (Peñón del Santo, castle, Calle Real, Majuelo, the beaches) and real street names.
+2. **Responsive action**: on foot, driving, shooting and fleeing feel tight before content volume grows.
+3. **Systemic consequences**: witnesses, police escalation, wrecked cars, fleeing crowds and money make every action matter.
+4. **Serious missions with variety**: every mission combines at least two verbs (drive, chase, shoot, sneak, rob, escape, talk, sail).
 
-## First playable loop
+## Core systems
 
-Spawn near Puerta del Mar → follow a seafront objective → speak with fictional courier Alba → enter a nearby compact car → drive through several streets toward the old town → trigger a witnessed minor incident → escape a level-1 pursuit → reach a drop point below the castle → mission complete. The mission working title is **El Recado**. Dialogue is brief and wholly original.
+| System | Scope for the first full district | Task |
+|--------|-----------------------------------|------|
+| Movement | Walk, sprint, jump, climb low walls, take stairs, crouch/cover | GAME-001, GAME-018 |
+| Vehicles | Enter/exit/carjack, arcade handling per class, damage/fire/explosion, horn, radio, lock-on doors | GAME-002/006/007/008 |
+| Combat | Melee (fists, bat, knife), firearms (pistol, SMG, shotgun, rifle), thrown (molotov, grenade); over-shoulder aim, gamepad soft lock, recoil, reload, ammo, hit reactions, cover | GAME-009 |
+| Health | Health + armour, food/drinks at bars heal, hospital respawn with fee | GAME-007, GAME-010 |
+| Wanted 1–5 | 1 local police foot/car, 2 more units + sirens, 3 national-police-style units + roadblocks, 4 helicopter + spike strips, 5 special unit; line-of-sight search, evade zones, respray at the garage clears level | GAME-004, GAME-012 |
+| Crimes | Assault, run-over, carjacking seen by police, shop holdup, armed robbery, vehicle theft, shooting, resisting arrest — each with witness rules | GAME-007/011 |
+| Economy | Money from missions, robberies, side jobs; spend on weapons, ammo, armour, clothes, car repairs/resprays, property | GAME-008, GAME-017 |
+| Save | Safehouse beds and garages save game and vehicles; autosave after missions | GAME-017 |
+| Phone | Mission contacts call/text, GPS waypoint, taxi, map | GAME-016, UI-003 |
+| Day/night & weather | 24 h cycle (~48 min real), summer/winter crowds, rare storm | VIS-002 |
+| Audio | Original score and radio stations (original music only), sirens, ambience per sector | AUD-001 |
 
-## Input and feedback
+## Transport
 
-WASD moves/drives, mouse orbits camera, Shift sprints, Space jumps/on foot or handbrakes/in car, E interacts or enters/exits, Escape pauses. Gamepad mapping should use the same action names. Show objective, health, wanted level, interact prompt and simplified minimap. The mission should be restartable. Save position, vehicle state, mission stage and settings; loading must put the player in a valid location.
+Cars (compact, saloon, SUV, van, sports), scooters and motorbikes (tight old-town lanes), bicycles, urban bus (drivable + passenger), taxi (side job), police cars and bikes, ambulance, boats (fishing boat, speedboat, jet ski, smuggler RIB), later helicopter and paraglider over the Sierra. Each class has data-driven tuning in `game/data/vehicles/` (mass, top speed, acceleration, grip, damage, seats).
 
-## Progression boundaries
+## Interiors
 
-Wanted levels 0–2 function in the vertical slice; levels 3–5 remain design targets. There is one dense district, one authored mission and a small set of NPC/vehicle variants. No weapons, combat campaign, full municipality, online systems or licensed soundtrack are required for the first slice. An incident can be a scripted traffic violation observed by a nearby officer, so the loop does not require violence.
+Entered through real façades; each is its own scene with navmesh, lighting and gameplay hooks.
 
-## Acceptance playthrough
+| Interior | Location (real area) | Use |
+|----------|----------------------|-----|
+| Safehouse flat | Seafront block on Paseo del Altillo (fictional name) | Save, wardrobe, weapons stash, TV news |
+| Beach bar (chiringuito) | Playa Puerta del Mar | Heal, missions, racket storyline |
+| 24 h shop and petrol station | Modern centre / coast road | Holdups, snacks |
+| Gun shop (armería, fictional) | Modern centre | Buy weapons/ammo/armour |
+| Garage / body shop | Avenida de Europa area | Repair, respray (clears wanted), mods |
+| Clothes shop and barber | Calle Real | Outfits (disguise lowers recognition) |
+| Jewellery shop (fictional) | Calle Real | Heist target |
+| Bank branch (fictional) | Plaza de la Constitución area | Heist finale |
+| Police station | Modern centre | Impound, story break-in |
+| Health centre | Modern centre | Respawn point |
+| Castle museum and courtyard | Castillo de San Miguel | Night deal, shoot-out |
+| Cueva de Siete Palacios | Old town (underground vaults) | Stealth/escape mission |
+| Palacete de La Najarra | San Cristóbal | Party infiltration |
+| Church (Encarnación) | Old town | Cutscene, procession event |
 
-A fresh launch must let a tester complete the loop without debug controls. A tester must also pause, restart, save, load and evade police once outside the mission. Record the build, hardware and captured gameplay; implementation alone does not establish playability.
+## Robberies and side activities
+
+Shop and petrol-station holdups (aim at the clerk, bag the cash, escape the response), armoured-van hits on the coast road, car-theft export orders, jewellery and bank heists (planning + crew + execution), smuggling runs by sea at night, taxi, bus and delivery jobs, street races, beach-bar racket collection, vigilante police calls, collectibles (Phoenician coins hidden around town). Interactions with people: talk, ask directions, buy, intimidate (raise weapon), pickpocket, hire crew, recruit a driver.
+
+## Mission arc (draft, fictional characters)
+
+| # | Mission | Setting | Verbs |
+|---|---------|---------|-------|
+| 1 | El Recado (exists) | Paseo → old town → castle | talk, drive, escape |
+| 2 | Hielo para el chiringuito | Beach bars, Calle Real | deliver on a scooter, fist fight |
+| 3 | La cuota | Beach bars at night | intimidate, collect, chase |
+| 4 | Pescadores | Fishing boats, Puerta del Mar | boat drive, pursuit at sea |
+| 5 | Noche en el Majuelo | Concert in Parque El Majuelo | stealth, pickpocket a key card |
+| 6 | Siete Palacios | Cueva de Siete Palacios | infiltration, escape through lanes |
+| 7 | Furgón | Coast road | armoured-van robbery, 3-star escape |
+| 8 | Fiesta en la Najarra | Palacete de La Najarra | disguise, eavesdrop, shoot-out |
+| 9 | La lancha | Night bay, Peñón del Santo | speedboat chase vs rival smugglers |
+| 10 | Calle Real | Jewellery heist | crew, timed robbery, motorbike getaway |
+| 11 | El castillo | Castle museum | ambush, siege, helicopter |
+| 12 | Poniente | Bank finale + escape to Marina del Este | heist, 5-star escape by sea |
+
+Each mission is JSON/resource data (objectives, triggers, dialogue, checkpoints, fail conditions), testable by a scripted route like El Recado.
+
+## Input
+
+Keyboard/mouse: WASD, mouse camera, Shift sprint, Space jump/handbrake, E interact/enter, F melee, right mouse aim, left mouse shoot, R reload (move restart to pause menu), Q/E wheel for weapon (hold Tab), G throw, H horn, C crouch, M map, phone ↑. Full gamepad parity.
+
+## Content boundaries
+
+Stylised, not gratuitous violence; no sexual content; no real people, businesses, logos or police insignia; drugs are implied plot (smuggling) not depicted use. Acceptance for any mission: a scripted-input test completes it and a human playthrough log records it.

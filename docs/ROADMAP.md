@@ -27,3 +27,15 @@ M0 is complete. M1–M10 have initial implementations in one small district; hea
 ## Update (2026-09-29, evening)
 
 A human fresh-launch playthrough on the GTX 1650 PC completed El Recado in 92.8 s, escaping a road-following police pursuit; in-game frame times held the 120 Hz cap on foot, driving and in pursuit. M2, M3, M7 and M9 now have human evidence (`docs/evidence/`). Open for the slice: human pause/save/load/restart (QA-002), confirmed native 1080p and a Windows export (PERF-001, BUILD-001), street-facing façades (ART-003) and road-graph traffic (GAME-006).
+
+## Next milestones (after the first vertical slice)
+
+| Milestone | Deliverable | Acceptance criteria |
+|-----------|-------------|---------------------|
+| M13 | Real Puerta del Mar (S1) | OSM/DEM-generated sector with façade kit, Paseo landmarks, beach; El Recado rerouted; reference comparisons (WORLD-004/005, ART-005/007). |
+| M14 | Combat and crime | Weapons, aiming, armour, holdups, wanted 3–5 (GAME-009…012). |
+| M15 | Old town, castle and interiors | S2/S3 with castle and church, interior framework, safehouse and shops (WORLD-006, ART-006/008, INT-001…003). |
+| M16 | Transport | Motorbikes, bicycles, boats, bus/taxi jobs (GAME-013…015, WORLD-009). |
+| M17 | Story act 1 | Missions 2–6 with route tests and human logs (MIS-001…003). |
+| M18 | Whole town + act 2 | S4/S5, streaming, missions 7–12, day/night, radio (WORLD-007/008, VIS-002, AUD-001, MIS-004). |
+| M19 | Release candidate | Windows export, credits/licences, QA regression per sector, performance on GTX 1650 (BUILD-001, QA-003). |
