@@ -1,0 +1,26 @@
+# Godot cache and editor state
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Local tools, builds, reports and caches
+.tools/
+build/
+dist/
+tmp/
+*.log
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Generated assets are recreated from source; keep manifests only.
+generated/**
+!generated/.gitkeep
+!generated/README.md
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.blend1
+*.blend2
