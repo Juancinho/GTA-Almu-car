@@ -2,15 +2,15 @@
 
 ## Inputs and outputs
 
-Editable sources live in `source_assets/`; deterministic Blender/Python scripts in `tools/blender/` and `tools/world/`; throwaway intermediate outputs in `generated/`; selected runtime GLB/textures in `game/assets/`. Each runtime asset records generator command, seed, source hashes, Blender version, triangle count, bounds, material count and license in a JSON manifest. Keep source assets under Git LFS when binary and large.
+Editable sources live in `source_assets/`; deterministic Blender/Python scripts in `tools/blender/` and `tools/world/`; throwaway intermediate outputs in `generated/`; selected runtime GLBs in `game/assets/`. Current GLB reports record kind, seed, source/output hashes, Blender version, mesh dimensions, material names, UV counts and triangle counts. Keep binary source assets under Git LFS when large. These Blender models are original project assets.
 
 ## Generator framework
 
-Use a shared primitive/material/export library and parameter presets rather than separate scripts with duplicated mesh logic. Start with one building family, one palm and one compact car; expand variants only after visual review. Asset IDs and seeds should produce identical geometry at the same tool version. Blender command convention: `blender --background --python tools/blender/generate.py -- --preset <name> --seed <integer> --out <path>`.
+`tools/blender/generate.py` provides shared primitive/material/export helpers and three kinds: `palm`, `building`, `compact_car`. Example: `.\.tools\blender\blender.exe --background --python tools/blender/generate.py -- --kind palm --seed 7401 --out game/assets/procedural/palm.glb`. The three GLBs, hash/mesh reports and Godot import are checked by `tools/verify_assets.py`; palms and the compact car are used in the world. The building model is a validated export awaiting runtime integration. Audio placeholders are synthesized by `py -3.13 tools/audio/generate.py` and described in their report.
 
 ## Validation
 
-Generation fails on zero-size objects, missing expected meshes/materials, unexpected face count, missing UVs on textured meshes, negative/non-unit transforms at export, missing collision proxy/seat markers when required, or absent GLB. Write structured reports even on failure. Import GLB in Godot headlessly and inspect one close, one medium and one far render. Generated textures need explicit color space and packing conventions; Blender-only shader nodes are not a deliverable.
+Current generation fails on zero-size meshes, missing materials or UVs, polygon budget overflow, missing collision proxy for building/car, or absent GLB output. The car also exports a driver-seat marker. The report is written on success; failures raise a clear error. Godot import and a representative screenshot are checked, with broader close/mid/far asset review still planned. Future generated textures need explicit color space and packing conventions; Blender-only shader nodes are not a deliverable.
 
 ## Audio
 

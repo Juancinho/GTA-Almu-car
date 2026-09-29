@@ -1,0 +1,272 @@
+{
+  "kind": "building",
+  "seed": 7401,
+  "blender": "5.2.2 LTS",
+  "source_sha256": "43567159f0c390b8421ead4f8629c82fe9e29f72e5aa46fbcfd701bdc7ecb4b6",
+  "output": "game\\assets\\procedural\\building.glb",
+  "output_sha256": "9508f3130478fec3b1b2e8512222e98ad34d3f142e5d689de2da1ff7ee001107",
+  "mesh_count": 20,
+  "triangles": 240,
+  "objects": [
+    {
+      "name": "BuildingShell",
+      "dimensions_m": [
+        12.7033,
+        12.1703,
+        9.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_plaster_warm"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "RoofTrim",
+      "dimensions_m": [
+        13.1033,
+        12.5703,
+        0.26
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_roof_terracotta"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_0_-1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_0_-1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_0_-1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_0_1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_0_1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_0_1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_1_-1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_1_-1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_1_-1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_1_1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_1_1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_1_1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_2_-1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_2_-1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_2_-1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Window_2_1",
+      "dimensions_m": [
+        1.45,
+        0.09,
+        1.55
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_glass_teal"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_2_1_L",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "Shutter_2_1_R",
+      "dimensions_m": [
+        0.3,
+        0.12,
+        1.6
+      ],
+      "triangles": 12,
+      "materials": [
+        "M_shutter_sage"
+      ],
+      "uv_layers": 1
+    }
+  ]
+}

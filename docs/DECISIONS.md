@@ -8,3 +8,5 @@
 | D-004 | 2026-09-29 | Source OSM coordinates and authored design offsets are separate. | Preserves provenance, repeatability and clear licensing boundaries. |
 | D-005 | 2026-09-29 | Start with a nonviolent witnessed traffic incident for wanted level 1. | Enables full police loop before combat systems exist. |
 | D-006 | 2026-09-29 | First district loads all at once; sector scenes define future streaming seam. | Avoids premature complexity while retaining expansion path. |
+| D-007 | 2026-09-29 | Use OpenStreetMap as cached reference while the first playable roads remain authored. | Allows a complete loop before reconciling dense source geometry with lane and mission design. The OSM-derived layer retains IDs and license metadata. |
+| D-008 | 2026-09-29 | Start with Godot Compatibility renderer and simple shared materials. | Gives a robust baseline on the detected GTX 1650; revisit after profiling Forward+ and lighting quality. |

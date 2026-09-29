@@ -19,3 +19,7 @@ Milestones are ordered by prerequisites. A milestone is complete only when its a
 | M12 | Polish | Visual QA pass, regression playthrough, credits/licenses and distributable Windows build. |
 
 Do not start a later feature merely to populate a checklist when its preceding playable interaction is broken.
+
+## Current evidence (2026-09-29)
+
+M0 is complete. M1–M10 have initial implementations in one small district; headless import, three Python tests, asset/hash checks and two gameplay tests pass. `game/tests/route_trial.gd` starts at the seafront, sends movement and interaction input, drives the street network, triggers a witnessed incident, escapes police and completes the castle delivery without teleporting. This establishes technical reachability, **not human handling quality**. Screenshot review covered seafront, town, car and castle views. The next work is a human playthrough, route/police tuning, integration of generated car/building models and measured performance before M11/M12 can be accepted.

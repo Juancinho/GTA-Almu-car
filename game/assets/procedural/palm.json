@@ -1,0 +1,142 @@
+{
+  "kind": "palm",
+  "seed": 7401,
+  "blender": "5.2.2 LTS",
+  "source_sha256": "43567159f0c390b8421ead4f8629c82fe9e29f72e5aa46fbcfd701bdc7ecb4b6",
+  "output": "game\\assets\\procedural\\palm.glb",
+  "output_sha256": "9a9d331f4cf83c92f8fa35572a63bdc2c38b40f3fa91c7ddffdb5b890dee904b",
+  "mesh_count": 10,
+  "triangles": 90,
+  "objects": [
+    {
+      "name": "PalmTrunk",
+      "dimensions_m": [
+        0.6657,
+        0.7,
+        7.5
+      ],
+      "triangles": 36,
+      "materials": [
+        "M_palm_bark"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_0",
+      "dimensions_m": [
+        3.6518,
+        1.0994,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_1",
+      "dimensions_m": [
+        2.7354,
+        2.5764,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_2",
+      "dimensions_m": [
+        1.1593,
+        3.9124,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_3",
+      "dimensions_m": [
+        2.1779,
+        3.1241,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_4",
+      "dimensions_m": [
+        3.4081,
+        1.3472,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_5",
+      "dimensions_m": [
+        3.4548,
+        1.5298,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_6",
+      "dimensions_m": [
+        1.779,
+        2.8683,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_7",
+      "dimensions_m": [
+        1.2926,
+        3.6144,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    },
+    {
+      "name": "PalmLeaf_8",
+      "dimensions_m": [
+        2.7842,
+        2.0948,
+        1.62
+      ],
+      "triangles": 6,
+      "materials": [
+        "M_palm_frond"
+      ],
+      "uv_layers": 1
+    }
+  ]
+}

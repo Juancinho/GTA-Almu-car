@@ -17,11 +17,10 @@
 
 ## Verification commands
 
-1. `pwsh -File .\tools\bootstrap.ps1`
-2. Once engines exist: `& .\.tools\godot\godot.exe --headless --path .\game --editor --quit` for import/parse validation.
-3. `py -3.13 -m unittest discover -s tests` for Python tooling tests when present.
-4. Run Blender generators through `blender --background --python ... -- <args>`; inspect JSON reports and GLB imports.
-5. Launch a playable build and inspect seafront, old town, castle silhouette and a mission frame. Record hardware/FPS and screenshots. Do not claim 60 FPS without measurement.
+1. `pwsh -File .\tools\validate.ps1` checks dependencies, Python, asset reports, Godot import, a scripted smoke test and a full mission route using simulated input. It fails on Godot stderr errors even if the Windows GUI executable returns 0.
+2. `pwsh -File .\tools\validate.ps1 -Capture` also renders a seafront frame. Other views: `godot --path game --script res://tests/capture.gd -- --view town|castle|car` (use the project-local executable).
+3. Regenerate Blender assets with `blender --background --python tools/blender/generate.py -- --kind palm|building|compact_car --seed 7401 --out game/assets/procedural/<kind>.glb`; inspect JSON reports and GLB imports.
+4. Run `godot --path game --script res://tests/performance.gd` for an indicative 1920×1080 offscreen sample, then launch a playable build and inspect seafront, old town, castle silhouette and a mission frame. Record hardware/FPS and screenshots. Do not claim stable 60 FPS from the offscreen sample alone.
 
 ## Definition of done
 

@@ -1,0 +1,29 @@
+{
+  "generator": "tools/audio/generate.py",
+  "sample_rate": 22050,
+  "seed": 7401,
+  "license": "original project-generated",
+  "placeholder": true,
+  "files": [
+    {
+      "file": "game\\assets\\audio\\ui_click.wav",
+      "seconds": 0.13,
+      "sha256": "92cec5a690a50487c71d2decdf601ca9004b79b5151c3f945efb472db8fd56f2"
+    },
+    {
+      "file": "game\\assets\\audio\\footstep.wav",
+      "seconds": 0.18,
+      "sha256": "2dcc4adc1704674290b21d787437d3e26ccef622bc61d802ffa9906a3c525228"
+    },
+    {
+      "file": "game\\assets\\audio\\engine_loop.wav",
+      "seconds": 1.0,
+      "sha256": "d73da68753515ec66f585d984c4604f0966e9c4736349b704a1385a47ce969e5"
+    },
+    {
+      "file": "game\\assets\\audio\\sea_wind_loop.wav",
+      "seconds": 4.0,
+      "sha256": "8832d880cde4d5ccec6ffbe2b24fcf934e68075c53a95b3901502351e338ceff"
+    }
+  ]
+}

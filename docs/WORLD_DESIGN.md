@@ -6,7 +6,7 @@ Target a roughly 600 × 600 m playable area spanning a compressed Puerta del Mar
 
 ## Coordinate contract
 
-Store a fixed WGS84 origin `(lat0, lon0)` and extraction bounding box in the world manifest **when source data is selected**. Do not invent these values. For source point latitude `φ` and longitude `λ` in radians, use a local tangent approximation:
+The cached OSM reference extract uses WGS84 origin **(36.7314508, -3.6902315)**, published for [Paseo del Altillo by the Junta de Andalucía](https://www.juntadeandalucia.es/cultura/agendaculturaldeandalucia/espacios/paseo-del-altillo-almunecar). Extraction box (south, west, north, east): `(36.7285, -3.6970, 36.7355, -3.6840)`. For source point latitude `φ` and longitude `λ` in radians, use a local tangent approximation:
 
 `east_m = R * cos(φ0) * (λ - λ0)` and `north_m = R * (φ - φ0)`, with `R = 6378137 m`.
 
@@ -20,7 +20,7 @@ Godot uses `(x, y, z) = (east_m, elevation_m, -north_m)`. A separately versioned
 4. Generate road meshes, sidewalks, terrain masks, building parcels, lane graph and minimap geometry from the same normalized data and seed.
 5. Review scale, visibility and collision in Godot; edit the design layer rather than raw OSM.
 
-No network request belongs in gameplay. The first playable block may be hand-authored while the OSM pipeline is developed, but must conform to the same scene/data schema.
+One bounded Overpass request was cached at `source_assets/osm/altillo_2026-09-29.json`, with query, timestamp and SHA-256 in its metadata file. `tools/world/osm_pipeline.py` converts it to `game/data/world/osm_reference.json`: 218 roads, 313 paths, 1,400 building footprints, 41 parks and one coastline feature. The **playable geometry remains hand-authored**; this normalized reference is not yet the runtime road/building source. No network request belongs in gameplay. The source is a small request consistent with the [Overpass public instance guidance](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html).
 
 ## Attribution
 

@@ -1,0 +1,37 @@
+[CmdletBinding()]
+param([switch]$Capture)
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+$gamePath = Join-Path $root 'game'
+$godot = Join-Path $root '.tools/godot/godot.exe'
+$logs = Join-Path $root 'generated/validation'
+New-Item -ItemType Directory -Path $logs -Force | Out-Null
+
+& (Join-Path $PSScriptRoot 'bootstrap.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Bootstrap check failed.' }
+& py -3.13 -m unittest discover -s (Join-Path $root 'tests') -v
+if ($LASTEXITCODE -ne 0) { throw 'Python tests failed.' }
+& py -3.13 (Join-Path $PSScriptRoot 'verify_assets.py')
+if ($LASTEXITCODE -ne 0) { throw 'Asset verification failed.' }
+
+function Invoke-Godot([string]$Name, [string[]]$Arguments) {
+    $stdout = Join-Path $logs "$Name.out.log"
+    $stderr = Join-Path $logs "$Name.err.log"
+    $process = Start-Process -FilePath $godot -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    $outText = Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue
+    $errText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
+    if ($outText) { Write-Host $outText.TrimEnd() }
+    if ($errText) { Write-Host $errText.TrimEnd() }
+    if ($process.ExitCode -ne 0 -or $errText -match '(?m)^(SCRIPT ERROR:|ERROR:)') {
+        throw "Godot $Name failed; see $stdout and $stderr"
+    }
+}
+
+Invoke-Godot 'import' @('--headless', '--editor', '--path', ('"' + $gamePath + '"'), '--quit')
+Invoke-Godot 'smoke' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/smoke.gd')
+Invoke-Godot 'route' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')
+if ($Capture) {
+    Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
+}
+Write-Host 'VALIDATION PASS'

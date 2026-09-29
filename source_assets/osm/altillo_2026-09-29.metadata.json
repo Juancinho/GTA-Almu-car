@@ -1,0 +1,9 @@
+{
+  "url": "https://overpass-api.de/api/interpreter",
+  "query": "[out:json][timeout:25];(way[\"highway\"](36.7285,-3.697,36.7355,-3.684);way[\"building\"](36.7285,-3.697,36.7355,-3.684);way[\"natural\"=\"coastline\"](36.7285,-3.697,36.7355,-3.684);way[\"leisure\"~\"park|garden\"](36.7285,-3.697,36.7355,-3.684);way[\"landuse\"~\"grass|forest\"](36.7285,-3.697,36.7355,-3.684););out body geom;",
+  "fetched_utc": "2026-09-29T18:32:29.014532+00:00",
+  "sha256": "4f9856157f6e5a1d7a9e0b5f9b61fd9eeaf39c5e5157dd6d84274b1cc8ed8305",
+  "license": "ODbL-1.0",
+  "attribution": "Map data \u00a9 OpenStreetMap contributors",
+  "attribution_url": "https://www.openstreetmap.org/copyright"
+}

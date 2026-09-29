@@ -15,7 +15,7 @@ function Add-Check([string]$Name, [string]$Required, [string]$Found, [bool]$Ok, 
         Required = $Required
         Detected = $Found
         Status = if ($Ok) { 'OK' } else { 'MISSING / WRONG VERSION' }
-        Action = $Action
+        Action = if ($Ok) { '-' } else { $Action }
     })
     if (-not $Ok) { $script:failed = $true }
 }
