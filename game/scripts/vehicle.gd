@@ -4,6 +4,9 @@ extends CharacterBody3D
 const CarScene = preload("res://assets/procedural/compact_car.glb")
 const MODELS_PATH := "res://data/vehicles/models.json"
 static var model_catalog: Dictionary = {}
+## Paint materials are shared by colour and live for the whole session, so freeing a
+## car never leaves the renderer holding a freed override material.
+static var paint_materials: Dictionary = {}
 
 const MAX_FORWARD_SPEED := 22.0
 const MAX_REVERSE_SPEED := 8.0
@@ -110,9 +113,13 @@ static func traffic_variants() -> Array:
 
 
 func _material(color: Color) -> StandardMaterial3D:
+	var key := color.to_html()
+	if paint_materials.has(key):
+		return paint_materials[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = 0.7
+	paint_materials[key] = mat
 	return mat
 
 
