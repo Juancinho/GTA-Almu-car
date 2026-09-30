@@ -20,6 +20,9 @@ var gps_path := PackedVector3Array()
 var gps_goal := Vector3.INF
 var gps_from := Vector3.INF
 var offers: Array = []
+var waypoint := Vector3.INF  # player-chosen destination from the full map
+var waypoint_path := PackedVector3Array()
+var waypoint_from := Vector3.INF
 
 
 func _ready() -> void:
@@ -43,7 +46,33 @@ func _position() -> Vector3:
 	return player.driving_vehicle.global_position if player.driving_vehicle != null else player.global_position
 
 
+func set_waypoint(point: Vector3) -> void:
+	waypoint = point
+	waypoint_path = PackedVector3Array()
+	waypoint_from = Vector3.INF
+	_update_waypoint()
+
+
+func _update_waypoint() -> void:
+	if waypoint == Vector3.INF or road_network == null or player == null:
+		waypoint_path = PackedVector3Array()
+		return
+	var from := _position()
+	if Vector2(from.x - waypoint.x, from.z - waypoint.z).length() < 25.0:
+		waypoint = Vector3.INF  # arrived
+		waypoint_path = PackedVector3Array()
+		return
+	if not waypoint_path.is_empty() and from.distance_to(waypoint_from) < 12.0:
+		return
+	waypoint_from = from
+	waypoint_path = road_network.find_path(from, waypoint)
+	if not waypoint_path.is_empty():
+		waypoint_path.insert(0, from)
+		waypoint_path.append(waypoint)
+
+
 func _update_gps() -> void:
+	_update_waypoint()
 	offers = mission.offers()
 	var goal := mission.gps_target()
 	var from := _position()
@@ -96,6 +125,16 @@ func _draw() -> void:
 				draw_polyline(line, road_color, maxf(2.0, float(road["width"]) * scale * 0.9))
 			else:
 				draw_polyline(line, Color(0.85, 0.8, 0.7, 0.45), 1.5)
+	if waypoint_path.size() >= 2:
+		var detour := PackedVector2Array()
+		for p in waypoint_path:
+			detour.append(_to_map(Vector2(p.x, p.z), center, map_center, scale))
+		draw_polyline(detour, Color(0.1, 0.05, 0.12, 0.6), 6.0)
+		draw_polyline(detour, Color("c77dff"), 3.5)
+	if waypoint != Vector3.INF:
+		var flag := _edge_clamp(_to_map(Vector2(waypoint.x, waypoint.z), center, map_center, scale), 9.0)
+		draw_circle(flag, 6.5, Color(0.05, 0.05, 0.05, 0.85))
+		draw_circle(flag, 5.0, Color("c77dff"))
 	if gps_path.size() >= 2:
 		var route := PackedVector2Array()
 		for p in gps_path:

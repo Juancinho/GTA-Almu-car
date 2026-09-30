@@ -129,7 +129,23 @@ func _run() -> void:
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":
 		return _fail("offers after the chapter are wrong")
-	print("MISSIONS PASS: offers/unlocks, Hielo (timed run, fail reset, fight), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), rewards 1700 €, save/load")
+	# --- Full map and waypoint ------------------------------------------------------
+	root.call("_toggle_map")
+	var hud := root.get("hud") as GameHud
+	if not hud.world_map.visible or not paused:
+		return _fail("map did not open and pause")
+	var destination := (world.venues["supermarket"] as VenueInterior).exterior_entry
+	hud.minimap.set_waypoint(destination)
+	if hud.minimap.waypoint_path.size() < 3:
+		return _fail("waypoint has no road route")
+	root.call("_toggle_map")
+	if hud.world_map.visible or paused:
+		return _fail("map did not close")
+	player.global_position = destination + Vector3(0, 0.4, 0)
+	hud.minimap._update_gps()
+	if hud.minimap.waypoint != Vector3.INF:
+		return _fail("waypoint not cleared on arrival")
+	print("MISSIONS PASS: offers/unlocks, Hielo (timed run, fail reset, fight), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), rewards 1700 €, save/load, map + waypoint")
 	root.queue_free()
 	await process_frame
 	quit(0)

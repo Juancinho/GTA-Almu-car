@@ -30,6 +30,8 @@ var objective_flash_timer := 0.0
 var title_label: Label
 var title_timer := 0.0
 var timer_label: Label
+var world_map: WorldMap
+var pause_missions: Label
 var money_delta_timer := 0.0
 
 
@@ -174,6 +176,9 @@ func _ready() -> void:
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dialogue_label.add_theme_font_size_override("font_size", 19)
 	root.add_child(dialogue_label)
+	world_map = WorldMap.new()
+	world_map.name = "WorldMap"
+	root.add_child(world_map)
 	pause_overlay = ColorRect.new()
 	pause_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pause_overlay.color = Color(0.04, 0.10, 0.13, 0.75)
@@ -187,6 +192,14 @@ func _ready() -> void:
 	pause_label.add_theme_font_size_override("font_size", 28)
 	pause_label.text = "PAUSA"
 	pause_overlay.add_child(pause_label)
+	pause_missions = Label.new()
+	pause_missions.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	pause_missions.position = Vector2(-300, 170)
+	pause_missions.custom_minimum_size = Vector2(600, 200)
+	pause_missions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_missions.add_theme_font_size_override("font_size", 19)
+	pause_missions.add_theme_color_override("font_color", Color("f2e3b3"))
+	pause_overlay.add_child(pause_missions)
 
 
 func _outline(label: Label, size: int = 5) -> void:
@@ -235,11 +248,13 @@ func _on_mission_started(title: String) -> void:
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
 
 
 func _process(delta: float) -> void:
-	pause_overlay.visible = get_tree().paused
+	pause_overlay.visible = get_tree().paused and not world_map.visible
+	if pause_overlay.visible and mission != null:
+		pause_missions.text = _mission_summary()
 	if player == null:
 		return
 	mission_label.text = "MISIÓN · " + mission.objective_label()
@@ -333,6 +348,20 @@ func _process(delta: float) -> void:
 		prompt_label.text = "E · Entrar en el coche"
 	else:
 		prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · Ratón cámara"
+
+
+func _mission_summary() -> String:
+	var lines: Array[String] = ["MISIONES"]
+	for entry in mission.catalog:
+		var id := str(entry["id"])
+		var title := str(mission._titles.get(id, id))
+		if mission.completed_missions.has(id):
+			lines.append("✔ " + title)
+		elif id == mission.mission_id and not mission.completed and mission.stage > 0:
+			lines.append("▶ %s — %s" % [title, mission.objective_label()])
+		elif mission.is_available(id):
+			lines.append("● %s — habla con %s (%s)" % [title, str(entry.get("contact", "")), str(entry.get("blip", ""))])
+	return "\n".join(lines)
 
 
 ## Countdown for timed objectives and the state of a chased vehicle.

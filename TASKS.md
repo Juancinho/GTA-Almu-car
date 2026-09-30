@@ -104,7 +104,7 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 
 | ID | Description | Dependencies | Status | Acceptance criteria / evidence |
 |----|-------------|--------------|--------|--------------------------------|
-| UI-003 | Round minimap, full map with real street names, waypoints | WORLD-005 | IN PROGRESS | Done: GPS route to the objective along the road graph, off-map objective arrow, contact letters, heading arrow, speed-dependent zoom; 3D objective column, target arrows and floating contact letters (`mission_markers.gd`); mission title card, big objective text, countdown and target status. Remaining: full map (M) with street names and player waypoints. |
+| UI-003 | Round minimap, full map with real street names, waypoints | WORLD-005 | IMPLEMENTED BUT NOT VERIFIED | Minimap: GPS route to the objective along the road graph, off-map objective arrow, contact letters, heading arrow, speed-dependent zoom, purple waypoint route cleared on arrival. Full map (M, pauses): coastline, parks, footprints, all streets with real names, services, beach bars, contacts with mission titles, objective, waypoint by click; OSM ODbL attribution. 3D objective column, target arrows, contact letters; title cards, big objective text, countdown, target status; pause screen lists missions. `tests/missions.gd` covers map and waypoint; map capture reviewed. Round frame and human use pending. |
 | UI-004 | Main menu, settings, pause with restart; key remap | UI-001 | PLANNED | R moves to pause menu, remapping saved. |
 | QA-003 | Scripted regression suite per sector | WORLD-005 | PLANNED | Walk/drive/traffic/police soak per sector in validate.ps1. |
 

@@ -92,6 +92,7 @@ func _ready() -> void:
 	for kind in world.venues:
 		var venue := world.venues[kind] as VenueInterior
 		hud.minimap.venue_markers[kind] = Vector2(venue.exterior_entry.x, venue.exterior_entry.z)
+	hud.world_map.configure(world, mission, player, hud.minimap)
 	perf_monitor = PerfMonitorScript.new()
 	perf_monitor.name = "PerfMonitor"
 	perf_monitor.context_provider = _perf_context
@@ -286,7 +287,25 @@ func _on_player_busted() -> void:
 	mission.fail_to_checkpoint("Te han detenido (-%d €)." % ARREST_FEE)
 
 
+func _toggle_map() -> void:
+	if hud.world_map.visible:
+		hud.world_map.close()
+		get_tree().paused = false
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	else:
+		hud.world_map.open()
+		get_tree().paused = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	playtest_log.record("map", {"open": hud.world_map.visible})
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("map_toggle") or (hud.world_map.visible and event.is_action_pressed("pause")):
+		_toggle_map()
+		get_viewport().set_input_as_handled()
+		return
+	if hud.world_map.visible:
+		return
 	if event.is_action_pressed("pause"):
 		if get_tree().paused:
 			get_tree().paused = false
@@ -351,6 +370,8 @@ func _configure_input() -> void:
 	_add_key("perf_overlay", KEY_F2)
 	_add_key("fullscreen_toggle", KEY_F11)
 	_add_key("perf_report", KEY_F6)
+	_add_key("map_toggle", KEY_M)
+	_add_joy_button("map_toggle", JOY_BUTTON_BACK)
 	for action in ["look_left", "look_right", "look_up", "look_down"]:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action, 0.2)
