@@ -94,7 +94,7 @@ func _create_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.85
+	env.ambient_light_energy = 0.75
 	env.ambient_light_sky_contribution = 0.45
 	env.ambient_light_color = Color("e3d8c6")
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
@@ -107,7 +107,7 @@ func _create_environment() -> void:
 	add_child(environment_node)
 	sun_light = DirectionalLight3D.new()
 	sun_light.name = "Sun"
-	sun_light.rotation_degrees = Vector3(-38.0, -145.0, 0.0)  # late-afternoon sun from the south-west
+	sun_light.rotation_degrees = Vector3(-40.0, -30.0, 0.0)  # afternoon sun from the south-south-west: the seafront faces it
 	sun_light.light_color = Color("ffe3bd")
 	sun_light.light_energy = 1.25
 	sun_light.shadow_enabled = true

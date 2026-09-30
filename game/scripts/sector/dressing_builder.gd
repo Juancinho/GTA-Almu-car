@@ -186,6 +186,11 @@ static func _scatter_scene(parent: Node3D, label: String, scene: PackedScene, tr
 		instance.multimesh = multi
 		if mesh_instance.name == "PalmTrunk":
 			instance.material_override = mats.palm_bark()
+		elif str(mesh_instance.name).begins_with("PalmLeaf"):
+			# Olive date-palm green (the generated mint green read as plastic).
+			var frond := mats.plain("palm_frond", Color("56702f"), 0.78)
+			frond.cull_mode = BaseMaterial3D.CULL_DISABLED
+			instance.material_override = frond
 		instance.visibility_range_end = 600.0
 		parent.add_child(instance)
 	template.free()

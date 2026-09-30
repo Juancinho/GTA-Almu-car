@@ -54,7 +54,7 @@ func textured(key: String, texture_id: String, tint: Color, tile_m: float, rough
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = tint
 	mat.roughness = roughness
-	mat.albedo_texture = load(TEXTURE_DIR + texture_id + "_color.png") as Texture2D
+	mat.albedo_texture = _albedo(texture_id)
 	mat.normal_enabled = true
 	mat.normal_texture = load(TEXTURE_DIR + texture_id + "_normal.png") as Texture2D
 	mat.normal_scale = 0.8
@@ -65,6 +65,28 @@ func textured(key: String, texture_id: String, tint: Color, tile_m: float, rough
 	mat.vertex_color_use_as_albedo = vertex_tint
 	cache[key] = mat
 	return mat
+
+
+## Rock020's scan is a dark basalt (mean 79/255): used as limestone it rendered
+## façades, steps and the monument almost black. Lift it once to a pale stone
+## (mean ~190) so tints behave like the other, light textures.
+func _albedo(texture_id: String) -> Texture2D:
+	var texture := load(TEXTURE_DIR + texture_id + "_color.png") as Texture2D
+	if texture_id != "rock020" or texture == null:
+		return texture
+	if cache.has("tex_rock020_light"):
+		return cache["tex_rock020_light"]
+	var image := texture.get_image()
+	if image == null:
+		return texture
+	if image.is_compressed():
+		image.decompress()
+	image.clear_mipmaps()
+	image.adjust_bcs(2.35, 0.85, 0.8)
+	image.generate_mipmaps()
+	var light := ImageTexture.create_from_image(image)
+	cache["tex_rock020_light"] = light
+	return light
 
 
 func plain(key: String, color: Color, roughness: float = 0.8, metallic: float = 0.0) -> StandardMaterial3D:

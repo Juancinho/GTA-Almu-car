@@ -7,18 +7,15 @@ extends RefCounted
 
 
 static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> void:
-	var materials := [
-		mats.textured("seabed", "ground080", Color("4a5a5e"), 5.0),
-		mats.textured("beach", "ground080", Color("6e6c69"), 2.5, 0.97),
-		mats.textured("urban_ground", "pavingstones046", Color("ece5d6"), 2.2),
-		mats.textured("park_ground", "ground037", Color("a9bf7c"), 5.0),
-		mats.textured("natural_ground", "ground037", Color("98a064"), 9.0),
-		mats.textured("promenade", "tiles040", Color("eadcc2"), 2.6, 0.8),
-	]
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
-	vertices.resize(data.cols * data.rows)
-	normals.resize(data.cols * data.rows)
+	var colors := PackedColorArray()
+	var weights_b := PackedVector2Array()
+	var count := data.cols * data.rows
+	vertices.resize(count)
+	normals.resize(count)
+	colors.resize(count)
+	weights_b.resize(count)
 	for iz in range(data.rows):
 		for ix in range(data.cols):
 			var i := iz * data.cols + ix
@@ -29,25 +26,38 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> vo
 			var hu := data.heights[maxi(iz - 1, 0) * data.cols + ix]
 			var hd := data.heights[mini(iz + 1, data.rows - 1) * data.cols + ix]
 			normals[i] = Vector3(hl - hr, 2.0 * data.cell, hu - hd).normalized()
-	var indices: Array = []  # plain Arrays are shared references (Packed arrays would copy)
-	for s in range(materials.size()):
-		indices.append([])
+			# Surface weights: the share of each class in the 3×3 neighbourhood,
+			# so classes fade over ~8 m instead of stepping along the grid.
+			var share := [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+			for dz in range(-1, 2):
+				for dx in range(-1, 2):
+					var jx := clampi(ix + dx, 0, data.cols - 1)
+					var jz := clampi(iz + dz, 0, data.rows - 1)
+					var weight := 2.0 if dx == 0 and dz == 0 else 1.0
+					share[data.surface[jz * data.cols + jx]] += weight
+			# SURFACES: sea, beach, urban, park, natural, promenade
+			colors[i] = Color(share[1] / 10.0, share[2] / 10.0, share[3] / 10.0, share[4] / 10.0)
+			weights_b[i] = Vector2(share[5] / 10.0, share[0] / 10.0)
+	var indices := PackedInt32Array()
+	indices.resize((data.rows - 1) * (data.cols - 1) * 6)
+	var k := 0
 	for iz in range(data.rows - 1):
 		for ix in range(data.cols - 1):
 			var i := iz * data.cols + ix
 			# clockwise seen from above (Godot front face): v00, v10, v01 / v10, v11, v01
-			(indices[data.surface[i]] as Array).append_array([i, i + 1, i + data.cols, i + 1, i + data.cols + 1, i + data.cols])
+			for index in [i, i + 1, i + data.cols, i + 1, i + data.cols + 1, i + data.cols]:
+				indices[k] = index
+				k += 1
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV2] = weights_b
+	arrays[Mesh.ARRAY_INDEX] = indices
 	var mesh := ArrayMesh.new()
-	for s in range(materials.size()):
-		if (indices[s] as Array).is_empty():
-			continue
-		var arrays := []
-		arrays.resize(Mesh.ARRAY_MAX)
-		arrays[Mesh.ARRAY_VERTEX] = vertices
-		arrays[Mesh.ARRAY_NORMAL] = normals
-		arrays[Mesh.ARRAY_INDEX] = PackedInt32Array(indices[s])
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, materials[s])
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, _ground_material())
 	var visual := MeshInstance3D.new()
 	visual.name = "TerrainMesh"
 	visual.mesh = mesh
@@ -74,3 +84,13 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> vo
 	sea.material_override = mats.sea()
 	sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(sea)
+
+
+static func _ground_material() -> ShaderMaterial:
+	var dir := SectorMaterials.TEXTURE_DIR
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/terrain_blend.gdshader") as Shader
+	for pair in [["gravel", "ground080"], ["paving", "pavingstones046"], ["grass", "ground037"], ["tiles", "tiles040"]]:
+		mat.set_shader_parameter(pair[0] + "_albedo", load(dir + pair[1] + "_color.png") as Texture2D)
+		mat.set_shader_parameter(pair[0] + "_normal", load(dir + pair[1] + "_normal.png") as Texture2D)
+	return mat

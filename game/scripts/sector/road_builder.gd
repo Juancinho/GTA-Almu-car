@@ -11,8 +11,8 @@ const LIFT_WALK := 0.11
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> void:
 	var asphalt := mats.road_asphalt()
-	var paving := mats.textured("lane_paving", "pavingstones046", Color("f2ead9"), 1.8)
-	var steps := mats.textured("steps_stone", "rock020", Color("d6d0c2"), 2.0)
+	var paving := mats.textured("lane_paving", "pavingstones046", Color("d9d0bf"), 1.8)
+	var steps := mats.textured("steps_stone", "rock020", Color("cfc6b4"), 1.2)
 	var curb := mats.plain("curb", Color("cfc8b8"), 0.85)
 	var paint := mats.plain("road_paint", Color("eeeae0"), 0.7)
 	var tools: Dictionary = {}  # "chunk|kind" -> SurfaceTool
