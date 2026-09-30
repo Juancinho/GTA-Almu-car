@@ -6,6 +6,10 @@ signal player_busted
 signal crime_reported(kind: String, witnessed: bool)
 
 const VehicleScript = preload("res://scripts/vehicle.gd")
+const OfficerScript = preload("res://scripts/police_officer.gd")
+const MAX_LEVEL := 5
+const OFFICER_DEPLOY_RANGE := 18.0
+const OFFICERS_PER_CAR := 2
 const SIGHT_RANGE := 95.0
 const SEARCH_SECONDS := 12.0
 const UNSEEN_SECONDS := 20.0
@@ -13,9 +17,9 @@ const SEARCH_RADIUS := 80.0
 const ARREST_RADIUS := 8.5
 const ARREST_MAX_SPEED := 3.0
 const ARREST_SECONDS := 2.5
-const PURSUIT_SPEEDS := [0.0, 20.0, 21.5]
+const PURSUIT_SPEEDS := [0.0, 20.0, 21.5, 23.0, 24.0, 25.0]
 ## Level 1: the witnessing patrol appears behind the player; level 2 intercepts ahead.
-const SPAWN_BANDS := [Vector2.ZERO, Vector2(34.0, 48.0), Vector2(60.0, 85.0)]
+const SPAWN_BANDS := [Vector2.ZERO, Vector2(34.0, 48.0), Vector2(60.0, 85.0), Vector2(55.0, 95.0), Vector2(55.0, 110.0), Vector2(50.0, 120.0)]
 
 var player: PlayerController
 var road_network: RoadNetwork
@@ -29,6 +33,9 @@ var incident_cooldown := 0.0
 var arrest_timer := 0.0
 var in_restricted_zone := false
 var police_cars: Array[DriveableVehicle] = []
+var officers: Array[Node] = []
+var reinforce_timer := 0.0
+var spawn_serial := 0
 var restricted_zones: Array = []  # [{name, x, z, radius}] from the sector data
 
 
@@ -72,7 +79,7 @@ func _physics_process(delta: float) -> void:
 	var reached_last_known := false
 	var close_unit := false
 	for car in police_cars:
-		if not is_instance_valid(car):
+		if not is_instance_valid(car) or car.destroyed:
 			continue
 		if _can_see(car, target_pos):
 			seen = true
@@ -80,6 +87,16 @@ func _physics_process(delta: float) -> void:
 				close_unit = true
 		if car.global_position.distance_to(last_known) < 22.0:
 			reached_last_known = true
+	officers = officers.filter(func(o: Node) -> bool: return is_instance_valid(o) and not (o as Pedestrian).dead)
+	for officer in officers:
+		var o := officer as Pedestrian
+		var gap := o.global_position.distance_to(target_pos)
+		if gap < 60.0 and o.state != Pedestrian.State.DOWN:
+			seen = seen or gap < 35.0
+			if gap < 2.6 and level <= 1:
+				close_unit = true
+	_update_officers(target_pos, delta)
+	_reinforce(delta)
 	if seen:
 		last_seen_velocity = player.driving_vehicle.velocity if player.driving_vehicle != null else player.velocity
 		last_seen_velocity.y = 0.0
@@ -99,7 +116,7 @@ func _physics_process(delta: float) -> void:
 			_set_phase("responding")
 		if phase == "search":
 			search_timer += delta
-		if search_timer >= SEARCH_SECONDS or unseen_timer >= UNSEEN_SECONDS:
+		if search_timer >= SEARCH_SECONDS + maxi(level - 2, 0) * 5.0 or unseen_timer >= UNSEEN_SECONDS + maxi(level - 2, 0) * 6.0:
 			clear_wanted()
 			return
 	_assign_targets(seen)
@@ -117,6 +134,68 @@ func _assign_targets(seen: bool) -> void:
 		elif car.global_position.distance_to(car.pursuit_target) < 12.0 or car.pursuit_target.distance_to(last_known) > SEARCH_RADIUS:
 			car.pursuit_target = _search_point(index)
 		index += 1
+
+
+## Higher levels bring one patrol car per star, arriving a few seconds apart.
+func _reinforce(delta: float) -> void:
+	reinforce_timer -= delta
+	police_cars = police_cars.filter(func(c: DriveableVehicle) -> bool: return is_instance_valid(c))
+	var active := police_cars.filter(func(c: DriveableVehicle) -> bool: return not c.destroyed).size()
+	if active < level and reinforce_timer <= 0.0:
+		reinforce_timer = 5.0
+		_spawn_police_car(mini(level, SPAWN_BANDS.size() - 1))
+
+
+## Patrols that reach a player on foot (or stopped) put officers on the street;
+## when the player gets away by car they climb back in and resume the chase.
+func _update_officers(target_pos: Vector3, _delta: float) -> void:
+	var slow := player_speed() < 4.0
+	for car in police_cars:
+		if not is_instance_valid(car) or car.destroyed:
+			continue
+		var crew: Array = car.get_meta("crew", [])
+		crew = crew.filter(func(o: Node) -> bool: return is_instance_valid(o) and not (o as Pedestrian).dead)
+		var near := car.global_position.distance_to(target_pos) < OFFICER_DEPLOY_RANGE
+		if crew.is_empty() and near and slow and not bool(car.get_meta("crew_out", false)):
+			car.set_meta("crew_out", true)
+			car.pursuing = false
+			car.speed = 0.0
+			for k in range(OFFICERS_PER_CAR if level >= 2 else 1):
+				var officer := OfficerScript.new() as PoliceOfficer
+				officer.name = "Agente_%d" % spawn_serial
+				spawn_serial += 1
+				officer.wanted = self
+				officer.car = car
+				var side := car.global_transform.basis.x * (1.8 if k == 0 else -1.8)
+				officer.position = car.global_position + side + Vector3(0, 0.2, 0)
+				get_parent().add_child(officer)
+				officer.state = Pedestrian.State.FIGHT
+				crew.append(officer)
+				officers.append(officer)
+		elif bool(car.get_meta("crew_out", false)) and (crew.is_empty() or car.global_position.distance_to(target_pos) > 45.0 and not slow):
+			for officer in crew:
+				officers.erase(officer)
+				(officer as Node).queue_free()
+			crew.clear()
+			car.set_meta("crew_out", false)
+			car.pursuing = true
+		car.set_meta("crew", crew)
+
+
+## Attacking the police is always seen: at least three stars.
+func report_police_attack(location: Vector3) -> void:
+	var before := level
+	level = clampi(maxi(level + 1, 3), 1, MAX_LEVEL) if level < MAX_LEVEL else MAX_LEVEL
+	incident_cooldown = 6.0
+	last_known = location
+	search_timer = 0.0
+	unseen_timer = 0.0
+	if before == 0:
+		_spawn_police_car(1)
+	_set_phase("pursuit")
+	if before != level:
+		wanted_changed.emit(level, phase)
+		crime_reported.emit("agresión a la policía", true)
 
 
 func _search_point(index: int) -> Vector3:
@@ -163,7 +242,7 @@ func report_incident(location: Vector3, forced: bool = false) -> bool:
 	last_seen_velocity = Vector3.ZERO
 	search_timer = 0.0
 	unseen_timer = 0.0
-	level = mini(level + 1, 2)
+	level = mini(level + 1, MAX_LEVEL)
 	_set_phase("responding")
 	_spawn_police_car(level)
 	for car in police_cars:
@@ -187,7 +266,8 @@ func _witness_near(location: Vector3) -> bool:
 
 func _spawn_police_car(index: int) -> void:
 	var car := VehicleScript.new() as DriveableVehicle
-	car.name = "Policia_%d" % index
+	car.name = "Policia_%d" % index if police_cars.is_empty() else "Policia_%d_%d" % [index, spawn_serial]
+	spawn_serial += 1
 	car.body_color = Color("344d67")
 	car.variant = "police_local"
 	var spawn := _spawn_point(last_known, index)
@@ -196,7 +276,7 @@ func _spawn_police_car(index: int) -> void:
 	car.rotation.y = atan2(-facing.x, -facing.z) if facing.length_squared() > 1.0 else 0.0
 	car.pursuing = true
 	car.pursuit_target = last_known
-	car.pursuit_speed = PURSUIT_SPEEDS[mini(index, 2)]
+	car.pursuit_speed = PURSUIT_SPEEDS[clampi(maxi(index, level), 0, MAX_LEVEL)]
 	car.road_network = road_network
 	get_parent().add_child(car)
 	police_cars.append(car)
@@ -206,7 +286,7 @@ func _spawn_point(location: Vector3, index: int) -> Vector3:
 	var fallback := location + Vector3(40, 0, 0)
 	if road_network == null or road_network.nodes.is_empty():
 		return fallback
-	var band: Vector2 = SPAWN_BANDS[mini(index, 2)]
+	var band: Vector2 = SPAWN_BANDS[clampi(index, 0, SPAWN_BANDS.size() - 1)]
 	var heading := _player_heading()
 	var best := fallback
 	var best_score := INF
@@ -270,4 +350,8 @@ func clear_wanted() -> void:
 				car.engine_audio.stop()
 			car.queue_free()
 	police_cars.clear()
+	for officer in officers:
+		if is_instance_valid(officer):
+			officer.queue_free()
+	officers.clear()
 	wanted_changed.emit(level, phase)

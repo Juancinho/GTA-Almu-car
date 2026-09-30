@@ -177,6 +177,11 @@ func _draw() -> void:
 				var police_pos := _to_map(Vector2(car.global_position.x, car.global_position.z), center, map_center, scale)
 				if bounds.has_point(police_pos):
 					draw_circle(police_pos, 5.0, Color("e0504a") if blink else Color("4a7be0"))
+		for officer in wanted.officers:
+			if is_instance_valid(officer):
+				var officer_pos := _to_map(Vector2((officer as Node3D).global_position.x, (officer as Node3D).global_position.z), center, map_center, scale)
+				if bounds.has_point(officer_pos):
+					draw_circle(officer_pos, 3.0, Color("4a7be0") if blink else Color("e0504a"))
 	var forward := -player.camera.global_transform.basis.z if player.camera != null else Vector3.FORWARD
 	var heading := Vector2(forward.x, forward.z).normalized() if Vector2(forward.x, forward.z).length() > 0.01 else Vector2.UP
 	var across := Vector2(-heading.y, heading.x)

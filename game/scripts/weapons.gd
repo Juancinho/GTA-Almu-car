@@ -268,6 +268,8 @@ func _apply_hit(target: Object, spec: Dictionary, at: Vector3) -> void:
 			wanted.report_crime("agresión armada", person.global_position)
 	elif target is DriveableVehicle:
 		(target as DriveableVehicle).apply_damage(float(spec.get("vehicle_damage", 50.0)))
+		if wanted.police_cars.has(target):
+			wanted.report_police_attack((target as Node3D).global_position)
 
 
 ## Bat swing: hits the first person or car in front after the wind-up.

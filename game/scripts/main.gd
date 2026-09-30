@@ -172,6 +172,36 @@ func add_money(amount: int) -> void:
 	hud.show_money_change(amount)
 
 
+## Pay-and-spray: driving into Taller Poniente unseen repaints the car and clears
+## the wanted level (150 €). Seen by a patrol, the mechanic will not open up.
+const RESPRAY_FEE := 150
+var respray_notice := 0.0
+
+
+func _physics_process(delta: float) -> void:
+	respray_notice -= delta
+	if wanted == null or wanted.level == 0 or player.driving_vehicle == null:
+		return
+	if player.driving_vehicle.global_position.distance_to(world.workshop.exterior_entry) > 10.0:
+		return
+	if wanted.phase == "pursuit":
+		if respray_notice <= 0.0:
+			mission._show_dialogue("Mecánico: ¡Con la policía detrás no te abro! Despístalos primero.")
+			respray_notice = 6.0
+		return
+	if money < RESPRAY_FEE:
+		if respray_notice <= 0.0:
+			mission._show_dialogue("Mecánico: pintura nueva son %d €." % RESPRAY_FEE)
+			respray_notice = 6.0
+		return
+	add_money(-RESPRAY_FEE)
+	wanted.clear_wanted()
+	player.driving_vehicle.repair()
+	hud.show_banner("PINTURA NUEVA", Color("6fd4a4"))
+	mission._show_dialogue("Mecánico: color nuevo y matrícula limpia. Nadie te busca ya.")
+	playtest_log.record("respray", {})
+
+
 func _on_workshop_repair() -> void:
 	var selected: DriveableVehicle
 	var nearest := 15.0
