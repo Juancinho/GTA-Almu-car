@@ -1,0 +1,30 @@
+{
+  "generator": "tools/textures/facade_atlas.py",
+  "seed": 7404,
+  "grid": [
+    4,
+    4
+  ],
+  "cell_px": 256,
+  "cells": [
+    "window_shutters_green",
+    "window_shutters_blue",
+    "window_shutters_brown",
+    "window_reja",
+    "balcony_door",
+    "shop_front",
+    "door_wood",
+    "window_modern",
+    "garage_door",
+    "shop_front_awning",
+    "window_small_reja",
+    "door_arched",
+    "window_modern_blind",
+    "balcony_door_shutters",
+    "railing",
+    "vent"
+  ],
+  "source_sha256": "b44d027b8cf103f43613e734162481e3ec924d0d9a0b222495e1623205e5e3b6",
+  "output_sha256": "16cfdcd594f32ae93519ea073d292c901e89f9244f56413050ff7102fb7d4d54",
+  "license": "Original project art"
+}

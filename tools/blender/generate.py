@@ -48,41 +48,60 @@ def cube(name: str, xyz: tuple[float, float, float], size: tuple[float, float, f
     return obj
 
 
-def leaf(index: int, angle: float, length: float, mat: bpy.types.Material) -> None:
+def leaf(index: int, angle: float, length: float, mat: bpy.types.Material, rib_mat: bpy.types.Material) -> None:
     direction = (math.cos(angle), math.sin(angle))
     side = (-direction[1], direction[0])
-    rings = ((0.0, 0.05, 7.55), (0.28, 0.48, 7.70), (0.62, 0.55, 7.05), (1.0, 0.03, 6.08))
     vertices: list[tuple[float, float, float]] = []
-    for along, half_width, height in rings:
+    uv_coords: list[tuple[float, float]] = []
+    faces: list[tuple[int, int, int]] = []
+    material_indices: list[int] = []
+
+    def point(t: float, lateral: float = 0.0, drop: float = 0.0) -> tuple[float, float, float]:
+        height = 7.45 + 0.38 * math.sin(math.pi * t) - 1.52 * t * t - drop
+        return (direction[0] * length * t + side[0] * lateral,
+                direction[1] * length * t + side[1] * lateral, height)
+
+    def quad(corners: list[tuple[float, float, float]], material_index: int) -> None:
+        base = len(vertices)
+        vertices.extend(corners)
+        uv_coords.extend([(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (1.0, 0.0)])
+        faces.extend(((base, base + 1, base + 2), (base, base + 2, base + 3)))
+        material_indices.extend((material_index, material_index))
+
+    # Narrow rachis and individual tapering leaflets give a feathered silhouette.
+    for segment in range(10):
+        t0, t1 = segment / 10.0, (segment + 1) / 10.0
+        quad([point(t0, -0.055), point(t0, 0.055), point(t1, 0.04), point(t1, -0.04)], 1)
+    for leaflet in range(12):
+        t = 0.14 + leaflet * 0.067
+        reach = 0.58 * (1.0 - t) + 0.16
         for sign in (-1.0, 1.0):
-            vertices.append((direction[0] * length * along + side[0] * half_width * sign,
-                             direction[1] * length * along + side[1] * half_width * sign,
-                             height))
-    faces = []
-    for segment in range(len(rings) - 1):
-        a = segment * 2
-        faces.extend(((a, a + 1, a + 2), (a + 1, a + 3, a + 2)))
+            quad([point(t, sign * 0.03), point(t + 0.12, sign * 0.06),
+                  point(t + 0.17, sign * reach, 0.18), point(t + 0.09, sign * reach * 0.55, 0.08)], 0)
     mesh = bpy.data.meshes.new(f"PalmLeafMesh_{index}")
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
     uv = mesh.uv_layers.new(name="UVMap")
     for polygon in mesh.polygons:
+        polygon.material_index = material_indices[polygon.index]
         for loop_index in polygon.loop_indices:
             vertex_index = mesh.loops[loop_index].vertex_index
-            uv.data[loop_index].uv = ((vertex_index // 2) / (len(rings) - 1), vertex_index % 2)
+            uv.data[loop_index].uv = uv_coords[vertex_index]
     obj = bpy.data.objects.new(f"PalmLeaf_{index}", mesh)
     bpy.context.collection.objects.link(obj)
     obj.data.materials.append(mat)
+    obj.data.materials.append(rib_mat)
 
 
 def make_palm(rng: random.Random) -> None:
     bark = material("M_palm_bark", (0.34, 0.27, 0.18, 1.0))
-    green = material("M_palm_frond", (0.12, 0.32, 0.22, 1.0))
+    green = material("M_palm_frond", (0.13, 0.35, 0.21, 1.0))
+    rib = material("M_palm_frond_rib", (0.31, 0.40, 0.20, 1.0))
     bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=0.35, radius2=0.18, depth=7.5, location=(0, 0, 3.75))
     bpy.context.object.name = "PalmTrunk"
     bpy.context.object.data.materials.append(bark)
-    for index in range(9):
-        leaf(index, index * math.tau / 9.0 + rng.uniform(-0.08, 0.08), rng.uniform(3.3, 4.5), green)
+    for index in range(11):
+        leaf(index, index * math.tau / 11.0 + rng.uniform(-0.08, 0.08), rng.uniform(3.3, 4.5), green, rib)
 
 
 def make_building(rng: random.Random, floors: int) -> None:
