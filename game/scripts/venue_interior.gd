@@ -102,7 +102,10 @@ func _process(delta: float) -> void:
 	var players := get_tree().get_nodes_in_group("player")
 	if players.is_empty():
 		return
-	var at := (players[0] as Node3D).global_position
+	update_room_visibility((players[0] as Node3D).global_position)
+
+
+func update_room_visibility(at: Vector3) -> void:
 	room.visible = contains_player(at) or at.distance_to(inside_entry) < 45.0 or at.distance_to(exterior_entry) < 45.0
 
 
