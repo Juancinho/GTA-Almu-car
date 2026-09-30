@@ -20,6 +20,7 @@ var gps_path := PackedVector3Array()
 var gps_goal := Vector3.INF
 var gps_from := Vector3.INF
 var offers: Array = []
+var activities: Node  # ActivitySystem: its target takes over the GPS while active
 var waypoint := Vector3.INF  # player-chosen destination from the full map
 var waypoint_path := PackedVector3Array()
 var waypoint_from := Vector3.INF
@@ -75,6 +76,8 @@ func _update_gps() -> void:
 	_update_waypoint()
 	offers = mission.offers()
 	var goal := mission.gps_target()
+	if activities != null and activities.call("gps_target") != Vector3.INF:
+		goal = activities.call("gps_target")
 	var from := _position()
 	if goal == Vector3.INF or road_network == null:
 		gps_path = PackedVector3Array()

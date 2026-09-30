@@ -10,6 +10,7 @@ const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
 const MarkersScript = preload("res://scripts/mission_markers.gd")
 const WeaponScript = preload("res://scripts/weapons.gd")
 const DayNightScript = preload("res://scripts/day_night.gd")
+const ActivityScript = preload("res://scripts/activities.gd")
 const ARREST_FEE := 100
 const HOSPITAL_FEE := 100
 
@@ -22,6 +23,7 @@ var wanted: WantedSystem
 var mission: MissionController
 var weapons: WeaponScript
 var day_night: DayNightScript
+var activities: ActivityScript
 var perf_monitor: PerfMonitor
 var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
@@ -84,6 +86,12 @@ func _ready() -> void:
 	day_night.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(day_night)
 	day_night.configure(world, player)
+	activities = ActivityScript.new() as ActivityScript
+	activities.name = "Activities"
+	activities.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(activities)
+	activities.configure(world, player)
+	activities.activity_changed.connect(func(text: String) -> void: playtest_log.record("activity", {"label": text}))
 	var markers := MarkersScript.new() as MarkersScript
 	markers.name = "MissionMarkers"
 	markers.mission = mission
@@ -111,6 +119,8 @@ func _ready() -> void:
 		var venue := world.venues[kind] as VenueInterior
 		hud.minimap.venue_markers[kind] = Vector2(venue.exterior_entry.x, venue.exterior_entry.z)
 	hud.world_map.configure(world, mission, player, hud.minimap)
+	hud.minimap.activities = activities
+	activities.activity_changed.connect(func(text: String) -> void: if text != "": hud._on_objective_changed(text, Vector3.ZERO))
 	perf_monitor = PerfMonitorScript.new()
 	perf_monitor.name = "PerfMonitor"
 	perf_monitor.context_provider = _perf_context
@@ -452,6 +462,7 @@ func _configure_input() -> void:
 	_add_key("fullscreen_toggle", KEY_F11)
 	_add_key("perf_report", KEY_F6)
 	_add_key("map_toggle", KEY_M)
+	_add_key("activity", KEY_T)
 	_add_joy_button("map_toggle", JOY_BUTTON_BACK)
 	for action in ["look_left", "look_right", "look_up", "look_down"]:
 		if not InputMap.has_action(action):
@@ -521,6 +532,7 @@ func _save_game() -> void:
 		"jewellery_robbed": jewellery_robbed,
 		"weapons": weapons.to_save(),
 		"hours": day_night.hours,
+		"best_race": activities.best_race,
 		"health": player.health,
 		"breath": player.breath,
 		"vehicle_name": vehicle.name if vehicle != null else "",
@@ -573,6 +585,8 @@ func _load_game() -> void:
 	jewellery_robbed = bool(data.get("jewellery_robbed", false))
 	weapons.from_save(data.get("weapons", {}))
 	day_night.hours = float(data.get("hours", day_night.hours))
+	activities.best_race = float(data.get("best_race", activities.best_race))
+	activities.stop("")
 	(world.venues["jewellery"] as VenueInterior).set_robbed(jewellery_robbed)
 	player.heal_full()
 	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)

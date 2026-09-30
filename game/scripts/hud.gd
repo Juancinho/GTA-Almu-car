@@ -301,6 +301,9 @@ func _process(delta: float) -> void:
 	if player == null:
 		return
 	mission_label.text = "MISIÓN · " + mission.objective_label()
+	var main_node := get_parent()
+	if main_node != null and "activities" in main_node and main_node.activities != null and str(main_node.activities.active) != "":
+		mission_label.text = main_node.activities.label()
 	var phase_text: String = {"clear": "sin búsqueda", "responding": "en camino", "pursuit": "persecución", "search": "buscando"}.get(wanted.phase, wanted.phase)
 	wanted_label.text = "POLICÍA · %s" % phase_text
 	var blink := wanted.phase == "search" and int(Time.get_ticks_msec() / 400) % 2 == 0
@@ -354,6 +357,8 @@ func _process(delta: float) -> void:
 	dialogue_label.text = mission.dialogue
 	if player.driving_vehicle != null:
 		prompt_label.text = "WASD conducir · Espacio freno de mano · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
+		if player.driving_vehicle.variant == "taxi" and main != null and "activities" in main and str(main.activities.active) == "":
+			prompt_label.text = "T · Empezar servicio de taxi  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
 	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.service_point) < 2.8:
 		prompt_label.text = "E · Reparar coche aparcado (75 €)"
 	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.inside_entry) < 2.8:
@@ -462,6 +467,9 @@ func _update_mission_status() -> void:
 				if person != null and is_instance_valid(person) and not person.defeated:
 					remaining += 1
 			parts.append("QUEDAN %d" % remaining)
+	var main_node := get_parent()
+	if main_node != null and "activities" in main_node and main_node.activities != null and main_node.activities.status_text() != "":
+		parts.append(main_node.activities.status_text())
 	timer_label.visible = not parts.is_empty()
 	timer_label.text = "   ".join(parts)
 	timer_label.add_theme_color_override("font_color", Color("e0645a") if urgent and int(Time.get_ticks_msec() / 300) % 2 == 0 else Color("fff1c1"))

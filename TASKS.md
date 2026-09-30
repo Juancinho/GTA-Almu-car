@@ -98,7 +98,7 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 | MIS-002 | Chapter one missions 2–7 (crime story) | MIS-001, GAME-009, GAME-012 | IMPLEMENTED BUT NOT VERIFIED | Protección (400 €), La cuota (600 €), El coche del concejal (800 €, bribe ledger), Ajuste de cuentas (1000 €, armed gunmen), El furgón (2500 €, armoured SUV, 3 stars), Golpe en Joyería Faro (3500 €, heist, fence at Taller Poniente), Pescadores (3000 €, RIB chase at sea, Paco); story in GAME_DESIGN "Ladrillo y cuota". `tests/missions.gd` completes all of them, fails/reset on escape and timeout, save/load with the old "hielo" id aliased. Human playthrough pending. |
 | MIS-003 | Chapter one missions 8–11 | MIS-002, GAME-014 | IMPLEMENTED BUT NOT VERIFIED | Pescadores (sea chase), Emboscada en el castillo (five armed escorts), La copia (official SUV chase, three stars), Poniente (bank vault holdup, four stars, escape by sea, credits). `tests/missions.gd` completes the whole chapter. Human playthrough pending. |
 | MIS-004 | Chapter two (Marina del Este, Ferrer trial, new rivals) | MIS-003, NARR-001 | PLANNED | Needs the S6 expansion (Marina del Este, N-340) and new cast; same acceptance as chapter one. |
-| MIS-005 | Side activities and collectibles | GAME-015 | PLANNED | Taxi, bus, races, vigilante, Phoenician coins. |
+| MIS-005 | Side activities and collectibles | GAME-015 | IN PROGRESS | `activities.gd`: taxi shifts in any taxi (T; fares with meter, pay and speed bonus, chained) and a street race from the chequered column on the Paseo del Altillo (checkpoints, par time bonus, best time saved); shop/bank holdups in `weapons.gd`. `tests/activities.gd` passes. Bus, vigilante, more races and Phoenician coins remain. |
 
 ## UI and production
 
