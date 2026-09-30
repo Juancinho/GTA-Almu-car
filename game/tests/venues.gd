@@ -24,6 +24,9 @@ func _run() -> void:
 			return _fail(kind + " not attached to the selected building")
 		if not DressingBuilder._clear_of_driveable(venue.exterior_entry, world.road_network, 0.0):
 			return _fail(kind + " doorway inside a driveable lane")
+		player.global_position = venue.exterior_entry + venue.exterior_normal * 6.0  # seen from the street outside
+		for i in range(20):
+			await process_frame
 		if not venue.room.visible or venue.inside_entry.y > 100.0:
 			return _fail(kind + " is not a visible street-level interior")
 		player.global_position = venue.exterior_entry

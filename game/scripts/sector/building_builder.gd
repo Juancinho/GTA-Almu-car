@@ -336,14 +336,24 @@ static func _emit_boxes(parent: Node3D, label: String, transforms: Array, materi
 		return
 	var box := BoxMesh.new()
 	box.size = Vector3.ONE
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = box
-	multi.instance_count = transforms.size()
-	for i in range(transforms.size()):
-		multi.set_instance_transform(i, transforms[i])
-	var instance := MultiMeshInstance3D.new()
-	instance.name = label
-	instance.multimesh = multi
-	instance.material_override = material
-	parent.add_child(instance)
+	var chunks: Dictionary = {}
+	for t in transforms:
+		var key := Geo.chunk_key((t as Transform3D).origin.x, (t as Transform3D).origin.z)
+		if not chunks.has(key):
+			chunks[key] = []
+		(chunks[key] as Array).append(t)
+	for key in chunks:
+		var list: Array = chunks[key]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = box
+		multi.instance_count = list.size()
+		for i in range(list.size()):
+			multi.set_instance_transform(i, list[i])
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "%s_%d_%d" % [label, key.x, key.y]
+		instance.multimesh = multi
+		instance.material_override = material
+		instance.visibility_range_end = 300.0
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(instance)

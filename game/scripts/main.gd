@@ -29,12 +29,14 @@ var volume_level := 2
 var money := 0
 var bank_balance := 0
 var jewellery_robbed := false
+var _warm_resources: Array = []  # scenes loaded up front: no hitch when police or weapons first appear
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_configure_input()
 	_configure_audio()
+	_warm_up()
 	world = WorldScript.new()
 	world.name = "District_Altillo"
 	world.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -112,6 +114,15 @@ func _ready() -> void:
 	add_child(playtest_log)
 	_apply_settings()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _warm_up() -> void:
+	var catalog: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/vehicles/models.json"))
+	if catalog is Dictionary:
+		for spec in (catalog["variants"] as Dictionary).values():
+			_warm_resources.append(load(str(spec["scene"])))
+	for id in HumanModel.MODELS:
+		_warm_resources.append(load(HumanModel.MODEL_DIR + id + ".fbx"))
 
 
 func _configure_audio() -> void:

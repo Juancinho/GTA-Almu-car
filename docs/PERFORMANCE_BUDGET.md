@@ -60,3 +60,20 @@ After furnishing the venues, `performance.gd -- --view supermarket` and `--view 
 With Caja Poniente and Joyería Faro added, the same exterior sample measured 80.0 average FPS (12.50 ms) and 49.2 FPS 1% low (20.32 ms). The isolated jewellery interior measured 120.0 average / 119.0 FPS 1% low, apparently capped. The exterior still misses the stable 60 FPS target and needs a visible-window worst-case route before making performance claims. Logs: `generated/performance_outside_final.out.log` and `generated/performance_jewellery_final.out.log`.
 
 After the physical storefronts, church/gallery, promenade commerce, five staffed beach bars, 2K Clean Asphalt material and tertiary-road edge lines, the 1080p exterior sample measured 69.1 average FPS (14.47 ms) and 44.2 FPS 1% low (22.60 ms). This is a material regression from the 80.0 / 49.2 sample. Planar road UVs removed unnecessary triplanar texture reads, and bar geometry was batched locally, but neither recovered the previous rate. Profiling draw calls, lights and texture cost in a visible-window drive is required before raising density or claiming stable 60 FPS. Log: `generated/performance_current.out.log`.
+
+### Render-cost pass (2026-09-30, afternoon)
+
+A human session at 1280×720 (quality 2) measured 70 FPS average and 45.6 FPS 1 % low in pursuit, 2.3–3.8 M primitives and up to 2,390 draw calls. A per-category breakdown of one street view (`RenderingServer` frame info in a software-GL capture, same scene) showed the costs and the fixes:
+
+| Category | Before prim / draws | After prim / draws | Change |
+|----------|--------------------|--------------------|--------|
+| Whole frame | 2,273,621 / 1,742 | 783,264 / 1,220 | |
+| Terrain | 835,848 / 31 | 78,540 / 63 | 128 m tiles culled by the camera, no shadow casting |
+| Shadows (directional) | 1,509,055 / 647 | 128,068 / 336 | 2 splits, 150 m max; flat/small props do not cast |
+| Façade details + balconies | 475,992 / 13 | 46,502 / 6 | balcony boxes chunked, 320 m range, no shadow |
+| Lamps / benches | 193,448 / 46 | 23,116 / 46 | chunked, single-ring poles, no shadow |
+| Palms | 84,028 / 141 | 123,708 / 43 | chunked, 11 frond meshes merged into one crown |
+| Interiors + landmarks | 21,936 / 346 | 13,064 / 134 | furnished rooms drawn only within 45 m of their doors |
+
+Vehicle and character scenes are loaded at start-up so the first police car no longer stalls the frame. Re-measure on Windows with `validate.ps1 -Perf`.
+

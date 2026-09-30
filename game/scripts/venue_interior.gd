@@ -69,6 +69,7 @@ func try_interact(player: PlayerController) -> bool:
 	if not contains_player(player.global_position) and player.global_position.distance_to(exterior_entry) < 3.0:
 		player.global_position = inside_entry
 		player.velocity = Vector3.ZERO
+		room.visible = true
 		return true
 	if contains_player(player.global_position) and player.global_position.distance_to(inside_entry) < 2.7:
 		player.global_position = exterior_entry + exterior_normal * 0.35
@@ -86,6 +87,23 @@ func try_interact(player: PlayerController) -> bool:
 		bank_transaction_requested.emit("withdraw")
 		return true
 	return false
+
+
+## Furnished rooms are only drawn near their doors or with the player inside
+## (eight always-drawn interiors cost ~350 draw calls from the street).
+var _gate_timer := 0.0
+
+
+func _process(delta: float) -> void:
+	_gate_timer -= delta
+	if room == null or _gate_timer > 0.0:
+		return
+	_gate_timer = 0.25
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return
+	var at := (players[0] as Node3D).global_position
+	room.visible = contains_player(at) or at.distance_to(inside_entry) < 45.0 or at.distance_to(exterior_entry) < 45.0
 
 
 func contains_player(at: Vector3) -> bool:

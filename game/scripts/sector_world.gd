@@ -112,15 +112,16 @@ func _create_environment() -> void:
 	sun_light.light_color = Color("ffe3bd")
 	sun_light.light_energy = 1.25
 	sun_light.shadow_enabled = true
-	sun_light.directional_shadow_max_distance = 220.0
+	sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun_light.directional_shadow_max_distance = 150.0
 	add_child(sun_light)
 
 
 func apply_quality(level: int) -> void:
 	sun_light.shadow_enabled = level >= 1
-	sun_light.directional_shadow_max_distance = [0.0, 120.0, 220.0][level]
+	sun_light.directional_shadow_max_distance = [0.0, 90.0, 150.0][level]
 	for node in find_children("Facade_*", "MultiMeshInstance3D", false, false):
-		(node as GeometryInstance3D).visibility_range_end = [160.0, 300.0, 420.0][level]
+		(node as GeometryInstance3D).visibility_range_end = [140.0, 230.0, 320.0][level]
 
 
 ## Car parked on the Paseo del Altillo, aligned with the nearest road.

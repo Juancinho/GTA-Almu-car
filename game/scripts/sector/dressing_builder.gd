@@ -168,6 +168,12 @@ static func _scatter_scene(parent: Node3D, label: String, scene: PackedScene, tr
 	if transforms.is_empty():
 		return
 	var template := scene.instantiate() as Node3D
+	# All fronds share one material: merge the 11 leaf meshes into one so each
+	# chunk costs two draw calls (trunk + crown) instead of twelve.
+	var crown := SurfaceTool.new()
+	crown.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var crown_source: MeshInstance3D
+	var parts: Array = []
 	for node in template.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
 		var local := mesh_instance.transform
@@ -175,25 +181,48 @@ static func _scatter_scene(parent: Node3D, label: String, scene: PackedScene, tr
 		while parent_node != template and parent_node is Node3D:
 			local = (parent_node as Node3D).transform * local
 			parent_node = parent_node.get_parent()
-		var multi := MultiMesh.new()
-		multi.transform_format = MultiMesh.TRANSFORM_3D
-		multi.mesh = mesh_instance.mesh
-		multi.instance_count = transforms.size()
-		for i in range(transforms.size()):
-			multi.set_instance_transform(i, transforms[i] * local)
-		var instance := MultiMeshInstance3D.new()
-		instance.name = "%s_%s" % [label, mesh_instance.name]
-		instance.multimesh = multi
-		if mesh_instance.name == "PalmTrunk":
-			instance.material_override = mats.palm_bark()
-		elif str(mesh_instance.name).begins_with("PalmLeaf"):
-			# Olive date-palm green (the generated mint green read as plastic).
-			var frond := mats.plain("palm_frond", Color("56702f"), 0.78)
-			frond.cull_mode = BaseMaterial3D.CULL_DISABLED
-			instance.material_override = frond
-		instance.visibility_range_end = 600.0
-		parent.add_child(instance)
+		if str(mesh_instance.name).begins_with("PalmLeaf"):
+			for surface in range(mesh_instance.mesh.get_surface_count()):
+				crown.append_from(mesh_instance.mesh, surface, local)
+			crown_source = mesh_instance
+		else:
+			parts.append([mesh_instance, local, mesh_instance.mesh])
+	if crown_source != null:
+		parts.append([crown_source, Transform3D.IDENTITY, crown.commit()])
+	for part in parts:
+		var mesh_instance: MeshInstance3D = part[0]
+		var local: Transform3D = part[1]
+		var by_chunk: Dictionary = {}
+		for t in transforms:
+			var key := Geo.chunk_key(t.origin.x, t.origin.z)
+			if not by_chunk.has(key):
+				by_chunk[key] = []
+			(by_chunk[key] as Array).append(t * local)
+		for key in by_chunk:
+			var list: Array = by_chunk[key]
+			var multi := MultiMesh.new()
+			multi.transform_format = MultiMesh.TRANSFORM_3D
+			multi.mesh = part[2]
+			multi.instance_count = list.size()
+			for i in range(list.size()):
+				multi.set_instance_transform(i, list[i])
+			_palm_instance(parent, "%s_%s_%d_%d" % [label, mesh_instance.name, key.x, key.y], multi, mesh_instance, mats)
 	template.free()
+
+
+static func _palm_instance(parent: Node3D, label: String, multi: MultiMesh, mesh_instance: MeshInstance3D, mats: SectorMaterials) -> void:
+	var instance := MultiMeshInstance3D.new()
+	instance.name = label
+	instance.multimesh = multi
+	if mesh_instance.name == "PalmTrunk":
+		instance.material_override = mats.palm_bark()
+	elif str(mesh_instance.name).begins_with("PalmLeaf"):
+		# Olive date-palm green (the generated mint green read as plastic).
+		var frond := mats.plain("palm_frond", Color("56702f"), 0.78)
+		frond.cull_mode = BaseMaterial3D.CULL_DISABLED
+		instance.material_override = frond
+	instance.visibility_range_end = 450.0
+	parent.add_child(instance)
 
 
 static func _lamp_posts(parent: Node3D, mats: SectorMaterials, transforms: Array[Transform3D]) -> void:
@@ -203,6 +232,7 @@ static func _lamp_posts(parent: Node3D, mats: SectorMaterials, transforms: Array
 	pole.bottom_radius = 0.1
 	pole.height = 6.0
 	pole.radial_segments = 6
+	pole.rings = 1
 	var head := BoxMesh.new()
 	head.size = Vector3(0.35, 0.22, 0.9)
 	var poles: Array[Transform3D] = []
@@ -229,21 +259,30 @@ static func _benches(parent: Node3D, mats: SectorMaterials, transforms: Array[Tr
 	_multimesh(parent, "BenchBacks", back, backs, wood)
 
 
-static func _multimesh(parent: Node3D, label: String, mesh: Mesh, transforms: Array[Transform3D], material: Material) -> void:
-	if transforms.is_empty():
-		return
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = mesh
-	multi.instance_count = transforms.size()
-	for i in range(transforms.size()):
-		multi.set_instance_transform(i, transforms[i])
-	var instance := MultiMeshInstance3D.new()
-	instance.name = label
-	instance.multimesh = multi
-	instance.material_override = material
-	instance.visibility_range_end = 500.0
-	parent.add_child(instance)
+## One MultiMesh per 160 m chunk so off-screen and distant chunks are culled
+## (a single sector-wide MultiMesh was always drawn in full, shadows included).
+static func _multimesh(parent: Node3D, label: String, mesh: Mesh, transforms: Array[Transform3D], material: Material, shadows: bool = false, range_end: float = 320.0) -> void:
+	var chunks: Dictionary = {}
+	for t in transforms:
+		var key := Geo.chunk_key(t.origin.x, t.origin.z)
+		if not chunks.has(key):
+			chunks[key] = []
+		(chunks[key] as Array).append(t)
+	for key in chunks:
+		var list: Array = chunks[key]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = mesh
+		multi.instance_count = list.size()
+		for i in range(list.size()):
+			multi.set_instance_transform(i, list[i])
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "%s_%d_%d" % [label, key.x, key.y]
+		instance.multimesh = multi
+		instance.material_override = material
+		instance.visibility_range_end = range_end
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(instance)
 
 
 ## Terraced Sierra backdrop north of the sector: three rolling ridgelines of

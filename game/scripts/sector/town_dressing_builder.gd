@@ -94,7 +94,7 @@ func _define_kinds(mats: SectorMaterials) -> void:
 	awning.shader = load("res://shaders/awning.gdshader") as Shader
 	_kinds = {
 		"RoofHut": [box, plaster, 420.0, true],
-		"RoofTank": [cylinder, _tinted(mats, "prop_paint", 0.55), 320.0, true],
+		"RoofTank": [cylinder, _tinted(mats, "prop_paint", 0.55), 320.0, false],
 		"RoofSolar": [box, _tinted(mats, "prop_glass", 0.2, 0.35), 320.0, false],
 		"RoofAntenna": [thin, _tinted(mats, "prop_metal", 0.5, 0.6), 220.0, false],
 		"WallAC": [box, _tinted(mats, "prop_paint", 0.55), 190.0, false],
