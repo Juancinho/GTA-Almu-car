@@ -25,7 +25,7 @@ var strike_timer := 0.0
 var provoked_by_player := false
 ## Mission enemies attack on sight, take several punches and never give up until beaten.
 var enemy := false
-var toughness := 1
+var toughness := 3  # punches before going down
 var hits := 0
 var defeated := false
 var health := 100.0
@@ -209,17 +209,25 @@ func take_hit(from: Vector3, impulse: float) -> void:
 	if state == State.DOWN or mission_contact:
 		return
 	hits += 1
-	if hits < toughness:
-		human.play_action("punch", 0.3)
-		var away := global_position - from
-		away.y = 0.0
-		if away.length() > 0.01:
-			global_position += away.normalized() * 0.35
+	health -= 16.0
+	var away := global_position - from
+	away.y = 0.0
+	if away.length() > 0.01:
+		velocity = away.normalized() * 2.2
+		global_position += away.normalized() * 0.3
+	if health <= 0.0:
+		die(from)
+		return
+	if hits >= toughness:
+		hits = 0
+		knock_down(from, impulse)
+		return
+	human.play_action("punch", 0.3)  # reels back, then answers or runs
+	if enemy or temperament > 0.5:
 		if state != State.FIGHT:
 			start_fight(18.0)
-		return
-	hits = 0
-	knock_down(from, impulse)
+	else:
+		flee_from(from)
 
 
 func _fight(delta: float) -> void:
@@ -274,17 +282,35 @@ func knock_down(from: Vector3, impulse: float) -> void:
 			other.flee_from(global_position)
 
 
+## Keeps a fallen body on the actual surface (terrain, road, steps, promenade):
+## no floating over slopes and no sinking through them.
+func _settle_on_ground(delta: float) -> void:
+	var from := global_position + Vector3.UP * 1.2
+	var query := PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 6.0)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return
+	var ground: float = (hit["position"] as Vector3).y
+	global_position.y = move_toward(global_position.y, ground, 9.0 * delta) if global_position.y > ground else ground
+
+
 func _update_down(delta: float) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
+	velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)
+	var slide := Vector3(velocity.x, 0.0, velocity.z) * delta
+	if slide.length() > 0.001:
+		var probe := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.5, global_position + Vector3.UP * 0.5 + slide.normalized() * (slide.length() + 0.4))
+		probe.exclude = [get_rid()]
+		if get_world_3d().direct_space_state.intersect_ray(probe).is_empty():
+			global_position += slide  # never slide through walls, cars or palms
+		else:
+			velocity = Vector3.ZERO
+	_settle_on_ground(delta)
 	if dead:
-		velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
-		velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)
-		global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
 		human.action_timer = 1.0  # stay in the final pose
 		return
 	down_timer -= delta
-	velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
-	velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)
-	global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
 	if down_timer <= 0.0:
 		collider.set_deferred("disabled", false)
 		human.action_timer = 0.0

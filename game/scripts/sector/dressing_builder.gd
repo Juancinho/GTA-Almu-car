@@ -14,7 +14,38 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 	_lamp_posts(parent, mats, planned["lamps"])
 	_benches(parent, mats, planned["benches"])
 	_sierra(parent, mats)
+	_colliders(parent, planned)
 	return {"palms": (planned["palms"] as Array).size(), "palms_rejected": planned["palms_rejected"]}
+
+
+## Palms, lamp posts and benches are solid: cars crash into them and people
+## stop against them instead of passing through.
+static func _colliders(parent: Node3D, planned: Dictionary) -> void:
+	var body := StaticBody3D.new()
+	body.name = "StreetFurnitureCollision"
+	parent.add_child(body)
+	var palm_shape := CylinderShape3D.new()
+	palm_shape.radius = 0.3
+	palm_shape.height = 4.0
+	var lamp_shape := CylinderShape3D.new()
+	lamp_shape.radius = 0.13
+	lamp_shape.height = 6.0
+	var bench_shape := BoxShape3D.new()
+	bench_shape.size = Vector3(1.9, 0.9, 0.55)
+	for t in planned["palms"]:
+		var s := (t as Transform3D).basis.get_scale().x
+		_solid(body, palm_shape, Transform3D(Basis.IDENTITY.scaled(Vector3(s, 1.0, s)), (t as Transform3D).origin + Vector3(0, 2.0, 0)))
+	for t in planned["lamps"]:
+		_solid(body, lamp_shape, Transform3D(Basis.IDENTITY, (t as Transform3D).origin + Vector3(0, 3.0, 0)))
+	for t in planned["benches"]:
+		_solid(body, bench_shape, Transform3D((t as Transform3D).basis.orthonormalized(), (t as Transform3D).origin + Vector3(0, 0.45, -0.1)))
+
+
+static func _solid(body: StaticBody3D, shape: Shape3D, at: Transform3D) -> void:
+	var collider := CollisionShape3D.new()
+	collider.shape = shape
+	collider.transform = at
+	body.add_child(collider)
 
 
 static func plan(data: SectorData, network: RoadNetwork) -> Dictionary:

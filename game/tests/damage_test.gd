@@ -27,8 +27,20 @@ func _run() -> void:
 	player.global_position = victim.global_position + Vector3(0, 0, 1.2)
 	player.visual.rotation.y = 0.0  # facing -Z, toward the victim
 	await physics_frame
+	victim.temperament = 0.2  # a timid victim stays put long enough for three punches
+	victim.set_physics_process(false)
 	player.punch()
-	for i in range(30):
+	for i in range(45):
+		await physics_frame
+	if victim.state == Pedestrian.State.DOWN or victim.health >= 100.0:
+		return _fail("one punch should hurt but not floor a pedestrian")
+	for k in range(2):
+		player.global_position = victim.global_position + Vector3(0, 0, 1.2)
+		player.punch()
+		for i in range(45):
+			await physics_frame
+	victim.set_physics_process(true)
+	for i in range(3):
 		await physics_frame
 	if victim.state != Pedestrian.State.DOWN or wanted.level < 1:
 		return _fail("punch: state=%d wanted=%d" % [victim.state, wanted.level])
@@ -103,7 +115,7 @@ func _run() -> void:
 		return _fail("hospital fee not charged: %d -> %d" % [money_before, root.money])
 	if car.destroyed:
 		return _fail("mission car not restored after respawn")
-	print("DAMAGE PASS: punch, knockdown recovery, run-over report, crash damage, explosion, wasted respawn (money %d)" % root.money)
+	print("DAMAGE PASS: three-punch knockdown, knockdown recovery, run-over report, crash damage, explosion, wasted respawn (money %d)" % root.money)
 	root.queue_free()
 	for i in range(3):
 		await process_frame

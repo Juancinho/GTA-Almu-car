@@ -35,6 +35,7 @@ var in_restricted_zone := false
 var police_cars: Array[DriveableVehicle] = []
 var officers: Array[Node] = []
 var reinforce_timer := 0.0
+var stopped_time := 0.0
 var spawn_serial := 0
 var restricted_zones: Array = []  # [{name, x, z, radius}] from the sector data
 
@@ -148,8 +149,10 @@ func _reinforce(delta: float) -> void:
 
 ## Patrols that reach a player on foot (or stopped) put officers on the street;
 ## when the player gets away by car they climb back in and resume the chase.
-func _update_officers(target_pos: Vector3, _delta: float) -> void:
-	var slow := player_speed() < 4.0
+func _update_officers(target_pos: Vector3, delta: float) -> void:
+	# Officers get out for a player on foot, or a driver who has stopped for a while.
+	stopped_time = stopped_time + delta if player_speed() < 1.0 else 0.0
+	var slow := player.driving_vehicle == null or stopped_time > 1.5
 	for car in police_cars:
 		if not is_instance_valid(car) or car.destroyed:
 			continue

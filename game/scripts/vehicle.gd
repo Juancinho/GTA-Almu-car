@@ -67,6 +67,8 @@ var ai_blocker: Object
 var sector_data: SectorData
 var last_dry_transform := Transform3D.IDENTITY
 var ram_cooldown := 0.0
+var model_yaw := 0.0
+var model_tilt := Quaternion.IDENTITY
 
 
 func _ready() -> void:
@@ -113,7 +115,8 @@ func _build_model() -> void:
 		scene = CarScene
 	var model := scene.instantiate() as Node3D
 	model.name = "CarVisual"
-	model.rotation.y = deg_to_rad(float(spec.get("yaw_degrees", 0.0)))
+	model_yaw = deg_to_rad(float(spec.get("yaw_degrees", 0.0)))
+	model.rotation.y = model_yaw
 	add_child(model)
 	var paint: Dictionary = spec.get("paint", {})
 	for node in model.find_children("*", "MeshInstance3D", true, false):
@@ -305,6 +308,7 @@ func _physics_process(delta: float) -> void:
 	if not _deep_water(global_position) and is_on_floor():
 		last_dry_transform = global_transform
 	_resolve_contacts(recent_speed)
+	_tilt_to_ground(delta)
 	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
 	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
 	engine_audio.volume_db = -22.0 + engine_load * 9.0
@@ -313,6 +317,21 @@ func _physics_process(delta: float) -> void:
 		var impact := absf(forward.dot(get_wall_normal()))
 		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+## The body stays upright for stable physics; the visible car pitches and rolls
+## with the slope so it neither buries its nose nor floats on hills.
+func _tilt_to_ground(delta: float) -> void:
+	var model := get_node_or_null("CarVisual") as Node3D
+	if model == null:
+		return
+	var normal := get_floor_normal() if is_on_floor() else Vector3.UP
+	var local := (global_transform.basis.inverse() * normal).normalized()
+	if local.y < 0.6:
+		local = Vector3.UP
+	var target := Quaternion(Vector3.UP, local)
+	model_tilt = model_tilt.slerp(target, minf(1.0, 8.0 * delta))
+	model.basis = Basis(model_tilt) * Basis(Vector3.UP, model_yaw)
 
 
 func _deep_water(at: Vector3) -> bool:
@@ -480,7 +499,13 @@ func _follow_target(delta: float, target: Vector3, cruise_speed: float) -> void:
 		speed = move_toward(speed, 0.0, 16.0 * delta)
 		return
 	var desired_angle := atan2(-offset.x, -offset.z)
-	rotation.y = lerp_angle(rotation.y, desired_angle, minf(1.0, 2.4 * delta))
+	# Cars cannot turn on the spot: the yaw rate is limited by speed (about a 5 m
+	# turning circle), and sharp corners slow the car down so it can make them.
+	var turn := wrapf(desired_angle - rotation.y, -PI, PI)
+	var max_rate := clampf(absf(speed) / 4.0 + 0.5, 0.5, 2.4)
+	rotation.y += clampf(turn * 3.0, -max_rate, max_rate) * delta
+	if absf(turn) > 0.9 and not pursuing:
+		cruise_speed = minf(cruise_speed, 5.0)
 	var look_ahead := -global_transform.basis.z
 	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.0, global_position + look_ahead * 7.0 + Vector3.UP * 1.0)
 	query.exclude = _ray_exclusions()
