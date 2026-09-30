@@ -1,15 +1,83 @@
 {
   "description": "Mission registry in story order. A mission is offered by its contact once every 'requires' mission is complete. 'blip' is the letter on the map and over the contact; contacts not placed by the sector are spawned from 'contacts'.",
   "missions": [
-    {"id": "el_recado", "contact": "Alba", "blip": "A", "color": "f2c14e"},
-    {"id": "jaime_playa", "contact": "Marina", "blip": "J", "color": "6fd4e6"},
-    {"id": "hielo", "contact": "Paco", "blip": "P", "color": "f2c14e", "requires": ["el_recado"]},
-    {"id": "la_cuota", "contact": "Alba", "blip": "A", "color": "f2c14e", "requires": ["hielo"]},
-    {"id": "coche_concejal", "contact": "Alba", "blip": "A", "color": "f2c14e", "requires": ["la_cuota"]}
+    {
+      "id": "el_recado",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e"
+    },
+    {
+      "id": "jaime_playa",
+      "contact": "Marina",
+      "blip": "J",
+      "color": "6fd4e6"
+    },
+    {
+      "id": "hielo",
+      "contact": "Paco",
+      "blip": "P",
+      "color": "f2c14e",
+      "requires": [
+        "el_recado"
+      ]
+    },
+    {
+      "id": "la_cuota",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "hielo"
+      ]
+    },
+    {
+      "id": "coche_concejal",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "la_cuota"
+      ]
+    },
+    {
+      "id": "ajuste_de_cuentas",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "coche_concejal"
+      ]
+    },
+    {
+      "id": "el_furgon",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "ajuste_de_cuentas"
+      ]
+    }
   ],
   "contacts": {
-    "Alba": {"where": "Alba en el Paseo del Altillo", "idle": "Alba: Paco, el del Chiringuito Arenas, necesita a alguien de confianza. Pásate por allí."},
-    "Marina": {"where": "Marina en Jaime Playa", "idle": "Marina: ¡Esta noche hay música! Pásate cuando quieras."},
-    "Paco": {"display": "Paco · Chiringuito Arenas", "where": "Paco en el Chiringuito Arenas", "model": "male_shirt", "at": [-85.4, 111.0], "yaw": 200, "idle": "Paco: Aquí siempre tienes una caña fresquita, que para eso tenemos hielo."}
+    "Alba": {
+      "where": "Alba en el Paseo del Altillo",
+      "idle": "Alba: Paco, el del Chiringuito Arenas, necesita a alguien de confianza. Pásate por allí."
+    },
+    "Marina": {
+      "where": "Marina en Jaime Playa",
+      "idle": "Marina: ¡Esta noche hay música! Pásate cuando quieras."
+    },
+    "Paco": {
+      "display": "Paco · Chiringuito Arenas",
+      "where": "Paco en el Chiringuito Arenas",
+      "model": "male_shirt",
+      "at": [
+        -85.4,
+        111.0
+      ],
+      "yaw": 200,
+      "idle": "Paco: Aquí siempre tienes una caña fresquita, que para eso tenemos hielo."
+    }
   }
 }

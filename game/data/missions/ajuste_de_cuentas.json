@@ -1,0 +1,116 @@
+{
+  "id": "ajuste_de_cuentas",
+  "title": "Ajuste de cuentas",
+  "reward": 1000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: Los hombres de Rubén siguen en El Majuelo. Vuelve cuando estés listo.",
+  "spawns": [
+    {
+      "id": "thug_1",
+      "kind": "enemy",
+      "display": "Hombre de Rubén",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -298.0,
+        -4.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "thug_2",
+      "kind": "enemy",
+      "display": "Hombre de Rubén",
+      "model": "male_longsleeve",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -309.0,
+        4.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "thug_3",
+      "kind": "enemy",
+      "display": "Hombre de Rubén",
+      "model": "male_shirt",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -292.0,
+        9.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "thug_4",
+      "kind": "enemy",
+      "display": "Hombre de Rubén",
+      "model": "male_casual",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -306.0,
+        -14.0
+      ],
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Rubén se ha enterado de lo de la cuota y del deportivo. Ha mandado a cuatro de los suyos a esperarte en el Parque El Majuelo.",
+        "Alba: No vamos a esconderte. Toma esto, y termina con el asunto antes de que venga él en persona."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -296.0,
+        -2.0
+      ],
+      "radius": 30,
+      "text": "Ve al Parque El Majuelo",
+      "give_weapon": {
+        "weapon": "pistol",
+        "ammo": 48
+      },
+      "dialogue": "Ahí están. Apunta con clic derecho y dispara con clic izquierdo.",
+      "spawn": [
+        "thug_1",
+        "thug_2",
+        "thug_3",
+        "thug_4"
+      ]
+    },
+    {
+      "type": "beat_up",
+      "targets": [
+        "thug_1",
+        "thug_2",
+        "thug_3",
+        "thug_4"
+      ],
+      "text": "Acaba con los hombres de Rubén",
+      "dialogue": "Se acabó. Los disparos se han oído en medio pueblo."
+    },
+    {
+      "type": "escape_police",
+      "text": "Pierde a la policía",
+      "dialogue": "Nadie te sigue."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Vuelve con Alba al Paseo del Altillo",
+      "dialogue": "Alba: Rubén ya sabe con quién se juega las cosas. Ahora vamos a por su dinero."
+    }
+  ]
+}

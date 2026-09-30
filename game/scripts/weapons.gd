@@ -41,6 +41,7 @@ func configure(target_player: PlayerController, target_world: SectorWorld, targe
 	world = target_world
 	wanted = target_wanted
 	rng.seed = 7420
+	add_to_group("weapon_system")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
 	if not parsed is Dictionary:
 		push_error("WeaponSystem: invalid " + DATA_PATH)
@@ -325,6 +326,23 @@ func _scare(at: Vector3, radius: float) -> void:
 		var person := node as Pedestrian
 		if person != null and not person.mission_contact and not person.enemy and person.global_position.distance_to(at) < radius:
 			person.flee_from(at)
+
+
+## Someone else's gunshot (gunmen): a sound at their position and a scared crowd.
+func play_remote_shot(at: Vector3) -> void:
+	_scare(at, 35.0)
+	if DisplayServer.get_name() == "headless" or not sounds.has("pistol_shot"):
+		return
+	var shot := AudioStreamPlayer3D.new()
+	shot.stream = (sounds["pistol_shot"] as AudioStreamPlayer3D).stream
+	shot.bus = "SFX"
+	shot.max_distance = 140.0
+	shot.unit_size = 8.0
+	shot.top_level = true
+	add_child(shot)
+	shot.global_position = at
+	shot.finished.connect(shot.queue_free)
+	shot.play()
 
 
 func _play(id: String) -> void:

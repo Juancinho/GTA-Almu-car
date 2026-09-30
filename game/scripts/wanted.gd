@@ -182,6 +182,22 @@ func _update_officers(target_pos: Vector3, _delta: float) -> void:
 		car.set_meta("crew", crew)
 
 
+## Scripted alarms (an armoured van's tracker...): jump straight to `stars`.
+func raise_to(stars: int, location: Vector3) -> void:
+	if level >= stars:
+		return
+	var before := level
+	level = clampi(stars, 1, MAX_LEVEL)
+	last_known = location
+	search_timer = 0.0
+	unseen_timer = 0.0
+	incident_cooldown = 6.0
+	if before == 0:
+		_spawn_police_car(1)
+	_set_phase("responding")
+	wanted_changed.emit(level, phase)
+
+
 ## Attacking the police is always seen: at least three stars.
 func report_police_attack(location: Vector3) -> void:
 	var before := level

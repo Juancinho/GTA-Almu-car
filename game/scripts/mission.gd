@@ -434,6 +434,8 @@ func _on_vehicle_entered(vehicle: DriveableVehicle) -> void:
 
 func _advance() -> void:
 	var finished := objectives[stage] if stage < objectives.size() else {}
+	if finished.has("set_wanted") and wanted != null:
+		wanted.raise_to(int(finished["set_wanted"]), player.global_position)
 	if finished.has("crime_on_complete") and wanted != null:
 		var pos := player.driving_vehicle.global_position if player.driving_vehicle != null else player.global_position
 		wanted.report_scripted_crime(str(finished["crime_on_complete"]), pos)
@@ -468,6 +470,9 @@ func _begin_objective() -> void:
 		var person := spawned.get(str(id)) as Pedestrian
 		if person != null:
 			person.start_fight(999.0)
+	if objective.has("give_weapon"):
+		var gift: Dictionary = objective["give_weapon"]
+		get_tree().call_group("weapon_system", "give", str(gift["weapon"]), int(gift.get("ammo", 0)))
 	objective_time_left = float(objective.get("time_limit", -1.0))
 	wait_left = float(objective.get("seconds", 0.0))
 	_emit_objective()
@@ -591,6 +596,8 @@ func _spawn(id: String) -> void:
 			world.add_child(car)
 			if spec.has("occupant"):
 				car.set_occupant(str(spec["occupant"]))
+			if spec.has("health"):
+				car.health = float(spec["health"])
 			if bool(spec.get("traffic", false)) and not outgoing.is_empty():
 				car.start_traffic(network, from_node, int(outgoing[0]), 9100 + id.length())
 				car.traffic_speed = float(spec.get("speed", 12.0))
@@ -602,6 +609,7 @@ func _spawn(id: String) -> void:
 			person.model_name = str(spec.get("model", "male_longsleeve"))
 			person.enemy = true
 			person.toughness = int(spec.get("toughness", 3))
+			person.armed = bool(spec.get("armed", false))
 			person.position = Vector3(point.x, world.height_at(point.x, point.z) + 0.1, point.z)
 			world.add_child(person)
 			node = person

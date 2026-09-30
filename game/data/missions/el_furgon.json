@@ -1,0 +1,78 @@
+{
+  "id": "el_furgon",
+  "title": "El furgón",
+  "reward": 2500,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: El furgón vuelve a salir de Caja Poniente cada tarde. Otra vez.",
+  "spawns": [
+    {
+      "id": "alba_car",
+      "kind": "vehicle",
+      "variant": "sedan_teal",
+      "at": [
+        0.9,
+        2.7
+      ],
+      "when": "start"
+    },
+    {
+      "id": "security_van",
+      "kind": "vehicle",
+      "variant": "suv_sand",
+      "at": [
+        150.0,
+        -105.0
+      ],
+      "traffic": true,
+      "speed": 12.5,
+      "occupant": "male_suit",
+      "health": 2200,
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: El dinero de Rubén lo mueve el todoterreno blindado de la empresa de seguridad. Sale de Caja Poniente ahora mismo.",
+        "Alba: Páralo como puedas: embístelo o dispara al motor. Tienes mi coche en la calle de abajo."
+      ]
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "security_van",
+      "health_below": 450,
+      "escape_distance": 380,
+      "spawn": [
+        "security_van"
+      ],
+      "text": "Detén el todoterreno blindado que sale de Caja Poniente",
+      "escape_text": "El blindado ha llegado a su destino. Se acabó.",
+      "dialogue": "El conductor huye. Las sacas están detrás."
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker_target": "security_van",
+      "radius": 4,
+      "text": "Coge las sacas de dinero del blindado",
+      "set_wanted": 3,
+      "dialogue": "¡El localizador del blindado ha avisado a la policía! Tres estrellas."
+    },
+    {
+      "type": "escape_police",
+      "text": "Pierde a la policía (o pinta un coche en el Taller Poniente)",
+      "dialogue": "Los has perdido."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Lleva el dinero a Alba",
+      "dialogue": "Alba: Dos mil quinientos para ti. Rubén está acabado en Almuñécar... pero alguien más grande va a querer saber quién ha sido."
+    }
+  ]
+}

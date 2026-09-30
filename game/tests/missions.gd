@@ -118,13 +118,65 @@ func _run() -> void:
 	await _drive_to(sports, mission.marker_position())
 	if not mission.completed_missions.has("coche_concejal") or int(root.get("money")) != 1700:
 		return _fail("El coche del concejal did not pay out (money %d)" % int(root.get("money")))
-	# --- Save/load and offers after the chapter --------------------------------
 	player._interact()
+	# --- Ajuste de cuentas -------------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	if mission.mission_id != "ajuste_de_cuentas" or mission.stage != 1:
+		return _fail("Ajuste de cuentas did not start")
+	await _walk_to(player, mission.marker_position())
+	var weapons := root.get_node("Weapons") as WeaponSystem
+	if mission.stage != 2 or not weapons.owned.has("pistol"):
+		return _fail("reaching El Majuelo did not arm the player / spawn gunmen")
+	var gunmen: Array = []
+	for id in ["thug_1", "thug_2", "thug_3", "thug_4"]:
+		var thug := mission.spawned.get(id) as Pedestrian
+		if thug == null or not thug.armed or thug.state != Pedestrian.State.FIGHT:
+			return _fail("gunman %s missing or passive" % id)
+		gunmen.append(thug)
+	var health_before := player.health
+	for i in range(60 * 4):
+		await physics_frame
+	if player.health >= health_before:
+		return _fail("gunmen did not shoot back")
+	player.heal_full()
+	for thug in gunmen:
+		for k in range(3):
+			(thug as Pedestrian).take_damage(34.0, player.global_position)
+	await _frames(3)
+	if mission.stage < 3:
+		return _fail("killing the gunmen did not advance (stage %d)" % mission.stage)
+	wanted.clear_wanted()
+	await _frames(3)
+	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed_missions.has("ajuste_de_cuentas") or int(root.get("money")) != 2700:
+		return _fail("Ajuste de cuentas did not pay out (money %d)" % int(root.get("money")))
+	# --- El furgón -------------------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	if mission.mission_id != "el_furgon" or mission.stage != 1:
+		return _fail("El furgón did not start")
+	var van := mission.spawned.get("security_van") as DriveableVehicle
+	if van == null or not van.traffic or van.health < 2000.0:
+		return _fail("armoured van missing, parked or soft")
+	van.apply_damage(1800.0)
+	await _frames(3)
+	if mission.stage != 2:
+		return _fail("stopping the van did not advance")
+	await _walk_to(player, mission.marker_position())
+	if mission.stage != 3 or wanted.level < 3:
+		return _fail("taking the money did not trigger three stars (level %d)" % wanted.level)
+	wanted.clear_wanted()
+	await _frames(3)
+	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed_missions.has("el_furgon") or int(root.get("money")) != 5200:
+		return _fail("El furgón did not pay out (money %d)" % int(root.get("money")))
+	# --- Save/load and offers after the chapter --------------------------------
 	root.set("save_path", "user://test_missions_save.json")
 	root.call("_save_game")
 	mission.completed_missions.clear()
 	root.call("_load_game")
-	for id in ["el_recado", "hielo", "la_cuota", "coche_concejal"]:
+	for id in ["el_recado", "hielo", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon"]:
 		if not mission.completed_missions.has(id):
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":
@@ -145,7 +197,7 @@ func _run() -> void:
 	hud.minimap._update_gps()
 	if hud.minimap.waypoint != Vector3.INF:
 		return _fail("waypoint not cleared on arrival")
-	print("MISSIONS PASS: offers/unlocks, Hielo (timed run, fail reset, fight), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), rewards 1700 €, save/load, map + waypoint")
+	print("MISSIONS PASS: offers/unlocks, Hielo (timed run, fail reset, fight), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), rewards 5200 €, save/load, map + waypoint")
 	root.queue_free()
 	await process_frame
 	quit(0)

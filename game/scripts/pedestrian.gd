@@ -29,6 +29,8 @@ var toughness := 1
 var hits := 0
 var defeated := false
 var health := 100.0
+var armed := false  # mission gunmen keep their distance and shoot
+var gun_timer := 1.5
 var dead := false
 
 
@@ -140,6 +142,39 @@ func start_fight(seconds: float) -> void:
 	strike_timer = 0.8
 
 
+func _armed_fight(delta: float) -> void:
+	var target := player.driving_vehicle.global_position if player.driving_vehicle != null else player.global_position
+	var offset := target - global_position
+	offset.y = 0.0
+	var distance := offset.length()
+	if distance > 9.0:
+		var direction := offset / maxf(distance, 0.01)
+		velocity = Vector3(direction.x * 4.5, -3.0, direction.z * 4.5)
+		move_and_slide()
+		human.update_motion(4.5)
+	else:
+		velocity = Vector3.ZERO
+		human.update_motion(0.0)
+	rotation.y = lerp_angle(rotation.y, atan2(-offset.x, -offset.z), minf(1.0, 10.0 * delta))
+	gun_timer -= delta
+	if gun_timer > 0.0 or distance > 45.0:
+		return
+	gun_timer = rng.randf_range(1.1, 1.8)
+	human.hold_pose("punch", 0.26)
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, target + Vector3.UP * 1.1)
+	query.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not (hit.is_empty() or hit.get("collider") == player or hit.get("collider") == player.driving_vehicle):
+		return
+	get_tree().call_group("weapon_system", "play_remote_shot", global_position)
+	var moving := Vector2(player.velocity.x, player.velocity.z).length() if player.driving_vehicle == null else absf(player.driving_vehicle.speed)
+	if rng.randf() < clampf(0.7 - distance / 60.0 - moving * 0.035, 0.1, 0.7):
+		if player.driving_vehicle != null:
+			player.driving_vehicle.apply_damage(30.0)
+		else:
+			player.take_damage(6.0, "gunman")
+
+
 ## Weapon damage. Heavy hits knock people down; at zero health they stay down.
 func take_damage(amount: float, from: Vector3) -> void:
 	if mission_contact or dead:
@@ -148,7 +183,7 @@ func take_damage(amount: float, from: Vector3) -> void:
 	provoked_by_player = true
 	if health <= 0.0:
 		die(from)
-	elif amount >= 40.0 or enemy:
+	elif amount >= 40.0 or (enemy and not armed):
 		if state == State.DOWN:
 			return
 		knock_down(from, 3.0)
@@ -188,6 +223,9 @@ func take_hit(from: Vector3, impulse: float) -> void:
 
 
 func _fight(delta: float) -> void:
+	if armed and player != null and not player.dead:
+		_armed_fight(delta)
+		return
 	if enemy and player != null and not player.dead and player.driving_vehicle != null:
 		velocity = Vector3.ZERO
 		human.update_motion(0.0)
