@@ -1,0 +1,54 @@
+{
+  "id": "golpe_joyeria",
+  "title": "Golpe en Joyería Faro",
+  "reward": 3500,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: La joyería vuelve a abrir mañana. Prepáralo mejor.",
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: El libro del concejal lo deja claro: Rubén blanquea lo que cobra a través de Joyería Faro. Las piezas buenas están en la vitrina del fondo.",
+        "Alba: Roba un coche que nadie conozca, entra, vacía la vitrina y sal antes de que llegue la policía. El mecánico del Taller Poniente compra lo que traigas."
+      ],
+      "reset_jewellery": true
+    },
+    {
+      "type": "enter_vehicle",
+      "text": "Consigue un coche para la huida (cualquiera vale)"
+    },
+    {
+      "type": "reach_area",
+      "marker_venue": "jewellery",
+      "radius": 12,
+      "text": "Ve a Joyería Faro, en el casco antiguo",
+      "dialogue": "Aparca cerca y entra a pie."
+    },
+    {
+      "type": "event",
+      "event": "jewellery_robbed",
+      "marker_venue": "jewellery",
+      "text": "Entra en Joyería Faro y roba la vitrina",
+      "set_wanted": 3,
+      "dialogue": "¡La alarma está conectada con la comisaría! Sal de ahí."
+    },
+    {
+      "type": "escape_police",
+      "text": "Huye y pierde a la policía (o pinta el coche en el Taller Poniente)",
+      "dialogue": "Nadie te sigue. Al taller."
+    },
+    {
+      "type": "reach_area",
+      "marker_workshop": true,
+      "radius": 10,
+      "requires_no_wanted": true,
+      "text": "Vende las joyas al mecánico del Taller Poniente",
+      "dialogue": [
+        "Mecánico: Buen material. Tres mil quinientos, y no me preguntes a quién se lo vendo.",
+        "Alba (teléfono): Rubén está acabado en Almuñécar. Pero el concejal ya sabe que tenemos su libro..."
+      ]
+    }
+  ]
+}

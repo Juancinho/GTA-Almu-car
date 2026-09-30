@@ -1,0 +1,117 @@
+{
+  "id": "proteccion",
+  "title": "Protección",
+  "reward": 400,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Paco: Vuelven cada viernes. La próxima vez, que no se escapen.",
+  "spawns": [
+    {
+      "id": "paco_suv",
+      "kind": "vehicle",
+      "variant": "suv_sand",
+      "at": [
+        -131.6,
+        88.5
+      ],
+      "when": "start"
+    },
+    {
+      "id": "cobrador_1",
+      "kind": "enemy",
+      "display": "Cobrador de Rubén",
+      "model": "male_longsleeve",
+      "toughness": 4,
+      "at": [
+        -99.0,
+        100.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "cobrador_2",
+      "kind": "enemy",
+      "display": "Cobrador de Rubén",
+      "model": "male_suit",
+      "toughness": 4,
+      "at": [
+        -94.0,
+        98.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "collector_car",
+      "kind": "vehicle",
+      "variant": "sedan_teal",
+      "at": [
+        -120.0,
+        70.0
+      ],
+      "traffic": true,
+      "speed": 14.0,
+      "occupant": "male_casual",
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Paco",
+      "text": "Habla con Paco en el Chiringuito Arenas",
+      "dialogue": [
+        "Paco: Cada viernes vienen dos de Rubén 'el del Puerto' a por la 'protección'. Trescientos euros, o me rompen el local.",
+        "Paco: Hoy no tengo para pagar. Alba dice que tú sabes arreglar estas cosas. Están al llegar."
+      ]
+    },
+    {
+      "type": "wait",
+      "seconds": 5,
+      "text": "Espera a los cobradores de Rubén junto a la barra",
+      "spawn": [
+        "cobrador_1",
+        "cobrador_2"
+      ],
+      "dialogue": "Cobrador: Paco, Paco... ¿otra vez sin dinero? Pues nos llevamos la caja."
+    },
+    {
+      "type": "beat_up",
+      "targets": [
+        "cobrador_1",
+        "cobrador_2"
+      ],
+      "text": "Da una lección a los cobradores (F / clic: golpear)",
+      "dialogue": "El conductor que esperaba en el paseo arranca con la caja del bar."
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "collector_car",
+      "health_below": 350,
+      "escape_distance": 320,
+      "spawn": [
+        "collector_car"
+      ],
+      "text": "Detén el coche de los cobradores: embístelo (el todoterreno de Paco está en el paseo)",
+      "escape_text": "Se han escapado con la caja de Paco.",
+      "dialogue": "El conductor abandona el coche y huye a pie."
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker_target": "collector_car",
+      "radius": 4,
+      "text": "Recupera la caja del chiringuito",
+      "dialogue": "Tienes la caja. Devuélvesela a Paco."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Paco",
+      "radius": 5,
+      "requires_no_wanted": true,
+      "text": "Devuélvele la caja a Paco",
+      "dialogue": [
+        "Paco: No sé cómo darte las gracias. Pero Rubén no perdona esto.",
+        "Paco: Habla con Alba. Si vais a por él, contad conmigo."
+      ]
+    }
+  ]
+}

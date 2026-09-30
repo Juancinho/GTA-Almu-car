@@ -164,7 +164,7 @@ func _update_officers(target_pos: Vector3, delta: float) -> void:
 			car.pursuing = false
 			car.speed = 0.0
 			for k in range(OFFICERS_PER_CAR if level >= 2 else 1):
-				var officer := OfficerScript.new() as PoliceOfficer
+				var officer := OfficerScript.new() as OfficerScript
 				officer.name = "Agente_%d" % spawn_serial
 				spawn_serial += 1
 				officer.wanted = self

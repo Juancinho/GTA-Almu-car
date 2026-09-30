@@ -1,5 +1,5 @@
 {
-  "description": "Mission registry in story order. A mission is offered by its contact once every 'requires' mission is complete. 'blip' is the letter on the map and over the contact; contacts not placed by the sector are spawned from 'contacts'.",
+  "description": "Mission registry in story order (chapter one: Alba, Paco and the war with Rubén 'el del Puerto' over the town's extortion and the planning-bribe money). A mission is offered by its contact once every 'requires' mission is complete. 'blip' is the letter on the map and over the contact; contacts not placed by the sector are spawned from 'contacts'. 'aliases' maps retired mission ids in old saves.",
   "missions": [
     {
       "id": "el_recado",
@@ -14,7 +14,7 @@
       "color": "6fd4e6"
     },
     {
-      "id": "hielo",
+      "id": "proteccion",
       "contact": "Paco",
       "blip": "P",
       "color": "f2c14e",
@@ -28,7 +28,7 @@
       "blip": "A",
       "color": "f2c14e",
       "requires": [
-        "hielo"
+        "proteccion"
       ]
     },
     {
@@ -57,12 +57,21 @@
       "requires": [
         "ajuste_de_cuentas"
       ]
+    },
+    {
+      "id": "golpe_joyeria",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "el_furgon"
+      ]
     }
   ],
   "contacts": {
     "Alba": {
       "where": "Alba en el Paseo del Altillo",
-      "idle": "Alba: Paco, el del Chiringuito Arenas, necesita a alguien de confianza. Pásate por allí."
+      "idle": "Alba: Paco, el del Chiringuito Arenas, tiene problemas con la gente de Rubén. Pásate por allí."
     },
     "Marina": {
       "where": "Marina en Jaime Playa",
@@ -77,7 +86,10 @@
         111.0
       ],
       "yaw": 200,
-      "idle": "Paco: Aquí siempre tienes una caña fresquita, que para eso tenemos hielo."
+      "idle": "Paco: Desde que Rubén no manda aquí, hasta vendo más espetos."
     }
+  },
+  "aliases": {
+    "hielo": "proteccion"
   }
 }

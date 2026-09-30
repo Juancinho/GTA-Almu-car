@@ -1,6 +1,10 @@
 class_name GameHud
 extends CanvasLayer
 
+# Preloaded (not class_name) so a stale editor class cache cannot break the HUD.
+const WorldMapScript = preload("res://scripts/world_map.gd")
+const WeaponScript = preload("res://scripts/weapons.gd")
+
 var player: PlayerController
 var mission: MissionController
 var wanted: WantedSystem
@@ -30,7 +34,7 @@ var objective_flash_timer := 0.0
 var title_label: Label
 var title_timer := 0.0
 var timer_label: Label
-var world_map: WorldMap
+var world_map: WorldMapScript
 var pause_missions: Label
 var weapon_label: Label
 var crosshair: Label
@@ -198,7 +202,7 @@ func _ready() -> void:
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dialogue_label.add_theme_font_size_override("font_size", 19)
 	root.add_child(dialogue_label)
-	world_map = WorldMap.new()
+	world_map = WorldMapScript.new()
 	world_map.name = "WorldMap"
 	root.add_child(world_map)
 	pause_overlay = ColorRect.new()
@@ -370,7 +374,7 @@ func _process(delta: float) -> void:
 	elif player.nearby_vehicle() != null:
 		prompt_label.text = "E · Entrar en el coche"
 	else:
-		var weapons: WeaponSystem = main.weapons if main != null and "weapons" in main else null
+		var weapons: WeaponScript = main.weapons if main != null and "weapons" in main else null
 		if weapons != null and weapons.is_gun():
 			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · 1-4 / rueda: armas"
 		elif weapons != null and weapons.current == "bat":
@@ -381,7 +385,7 @@ func _process(delta: float) -> void:
 
 func _update_weapon() -> void:
 	var main := get_parent()
-	var weapons: WeaponSystem = main.weapons if main != null and "weapons" in main else null
+	var weapons: WeaponScript = main.weapons if main != null and "weapons" in main else null
 	if weapons == null:
 		weapon_label.visible = false
 		crosshair.visible = false

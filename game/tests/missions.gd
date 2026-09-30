@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Mission system v2: contact offers and unlocks, the three chapter-one missions
-## after El Recado (Hielo para el chiringuito, La cuota, El coche del concejal),
+## after El Recado (Protección, La cuota, El coche del concejal, Ajuste de cuentas, El furgón, Golpe en Joyería Faro),
 ## spawned vehicles/enemies, timed objectives and failure reset, a vehicle chase
 ## target, wanted-level objectives, rewards and save/load of completed missions.
 
@@ -30,57 +30,59 @@ func _run() -> void:
 	if not ("A" in letters and "J" in letters):
 		return _fail("start offers should be Alba and Marina, got %s" % str(letters))
 	mission.restore_stage(mission.objectives.size())  # El Recado done
-	if mission.offer_of("Paco") != "hielo" or not mission.offers().any(func(o: Dictionary) -> bool: return o["letter"] == "P"):
+	if mission.offer_of("Paco") != "proteccion" or not mission.offers().any(func(o: Dictionary) -> bool: return o["letter"] == "P"):
 		return _fail("Paco's mission not offered after El Recado: %s" % mission.objective_label())
-	# --- Hielo para el chiringuito ---------------------------------------------
+	# --- Protección ------------------------------------------------------------------
 	var paco := world.get_node("Paco") as Pedestrian
 	player.global_position = paco.global_position + Vector3(0.8, 0.3, 0)
 	player._interact()
-	if mission.mission_id != "hielo" or mission.stage != 1:
-		return _fail("talking to Paco did not start Hielo (%s %d)" % [mission.mission_id, mission.stage])
-	var suv := mission.spawned.get("paco_suv") as DriveableVehicle
-	if suv == null:
-		return _fail("Paco's SUV not spawned")
-	await _board(player, suv)
-	if mission.stage != 2 or mission.objective_time_left <= 0.0:
-		return _fail("entering the SUV did not start the timed run (stage %d)" % mission.stage)
+	if mission.mission_id != "proteccion" or mission.stage != 1:
+		return _fail("talking to Paco did not start Protección (%s %d)" % [mission.mission_id, mission.stage])
 	var minimap := (root.get("hud") as GameHud).minimap
-	minimap._update_gps()
-	if minimap.gps_path.size() < 3:
-		return _fail("GPS found no road route to Mercado Azul")
-	mission.objective_time_left = 0.01  # the ice melts: failure resets to the SUV
-	await _frames(3)
-	if mission.stage != 1 or failed_reasons.is_empty() or player.driving_vehicle != null:
-		return _fail("timeout did not fail back to the checkpoint")
-	suv = mission.spawned.get("paco_suv") as DriveableVehicle
-	await _board(player, suv)
-	await _drive_to(suv, mission.marker_position())
-	if mission.stage != 3:
-		return _fail("reaching Mercado Azul did not advance (stage %d)" % mission.stage)
-	await _drive_to(suv, mission.marker_position())
-	if mission.stage != 4:
-		return _fail("returning to the paseo did not advance (stage %d)" % mission.stage)
-	player._interact()
-	await _walk_to(player, mission.marker_position())
-	if mission.stage != 5:
-		return _fail("carrying the ice to the bar did not advance (stage %d)" % mission.stage)
-	var gorrones := [mission.spawned.get("gorron_1"), mission.spawned.get("gorron_2")]
-	for enemy in gorrones:
+	for i in range(60 * 6):
+		await physics_frame
+	if mission.stage != 2:
+		return _fail("waiting for the collectors did not advance (stage %d)" % mission.stage)
+	var collectors := [mission.spawned.get("cobrador_1"), mission.spawned.get("cobrador_2")]
+	for enemy in collectors:
 		if enemy == null or (enemy as Pedestrian).state != Pedestrian.State.FIGHT:
-			return _fail("gorrones did not spawn and attack")
-	(gorrones[0] as Pedestrian).take_hit(player.global_position, 4.0)
-	if (gorrones[0] as Pedestrian).defeated:
+			return _fail("collectors did not spawn and attack")
+	(collectors[0] as Pedestrian).take_hit(player.global_position, 4.0)
+	if (collectors[0] as Pedestrian).defeated:
 		return _fail("a tough enemy went down with one punch")
-	for enemy in gorrones:
-		for k in range(3):
+	for enemy in collectors:
+		for k in range(4):
 			(enemy as Pedestrian).take_hit(player.global_position, 4.0)
 	await _frames(3)
-	if not mission.completed or not mission.completed_missions.has("hielo") or int(root.get("money")) != 300:
-		return _fail("Hielo did not complete with its reward (money %d)" % int(root.get("money")))
+	var getaway := mission.spawned.get("collector_car") as DriveableVehicle
+	if mission.stage != 3 or getaway == null or not getaway.traffic:
+		return _fail("beating the collectors did not start the car chase (stage %d)" % mission.stage)
+	minimap._update_gps()
+	var suv := mission.spawned.get("paco_suv") as DriveableVehicle
+	await _board(player, suv)
+	getaway.global_position = player.global_position + Vector3(0, 0, 500)  # it gets away: failure resets
+	await _frames(3)
+	if mission.stage != 1 or failed_reasons.is_empty() or player.driving_vehicle != null:
+		return _fail("an escaped target did not fail back to the checkpoint (stage %d)" % mission.stage)
+	for i in range(60 * 6):
+		await physics_frame
+	for enemy in [mission.spawned.get("cobrador_1"), mission.spawned.get("cobrador_2")]:
+		for k in range(4):
+			(enemy as Pedestrian).take_hit(player.global_position, 4.0)
+	await _frames(3)
+	getaway = mission.spawned.get("collector_car") as DriveableVehicle
+	getaway.apply_damage(700.0)
+	await _frames(3)
+	if mission.stage != 4:
+		return _fail("wrecking the collectors' car did not advance (stage %d)" % mission.stage)
+	await _walk_to(player, mission.marker_position())
+	await _walk_to(player, paco.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed or not mission.completed_missions.has("proteccion") or int(root.get("money")) != 400:
+		return _fail("Protección did not complete with its reward (money %d)" % int(root.get("money")))
 	# --- La cuota ----------------------------------------------------------------
 	var alba := world.get_node("Alba") as Pedestrian
 	if mission.offer_of("Alba") != "la_cuota":
-		return _fail("La cuota not offered after Hielo")
+		return _fail("La cuota not offered after Protección")
 	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
 	player._interact()
 	if mission.mission_id != "la_cuota" or mission.stage != 1:
@@ -100,7 +102,7 @@ func _run() -> void:
 	if mission.stage != 6:
 		return _fail("picking up the money did not advance")
 	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
-	if not mission.completed_missions.has("la_cuota") or int(root.get("money")) != 900:
+	if not mission.completed_missions.has("la_cuota") or int(root.get("money")) != 1000:
 		return _fail("La cuota did not pay out (money %d)" % int(root.get("money")))
 	# --- El coche del concejal -------------------------------------------------------
 	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
@@ -116,7 +118,7 @@ func _run() -> void:
 	if mission.stage != 3:
 		return _fail("losing the police did not advance")
 	await _drive_to(sports, mission.marker_position())
-	if not mission.completed_missions.has("coche_concejal") or int(root.get("money")) != 1700:
+	if not mission.completed_missions.has("coche_concejal") or int(root.get("money")) != 1800:
 		return _fail("El coche del concejal did not pay out (money %d)" % int(root.get("money")))
 	player._interact()
 	# --- Ajuste de cuentas -------------------------------------------------------------
@@ -149,7 +151,7 @@ func _run() -> void:
 	wanted.clear_wanted()
 	await _frames(3)
 	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
-	if not mission.completed_missions.has("ajuste_de_cuentas") or int(root.get("money")) != 2700:
+	if not mission.completed_missions.has("ajuste_de_cuentas") or int(root.get("money")) != 2800:
 		return _fail("Ajuste de cuentas did not pay out (money %d)" % int(root.get("money")))
 	# --- El furgón -------------------------------------------------------------------
 	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
@@ -169,14 +171,36 @@ func _run() -> void:
 	wanted.clear_wanted()
 	await _frames(3)
 	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
-	if not mission.completed_missions.has("el_furgon") or int(root.get("money")) != 5200:
+	if not mission.completed_missions.has("el_furgon") or int(root.get("money")) != 5300:
 		return _fail("El furgón did not pay out (money %d)" % int(root.get("money")))
+	# --- Golpe en Joyería Faro -------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	if mission.mission_id != "golpe_joyeria" or mission.stage != 1 or bool(root.get("jewellery_robbed")):
+		return _fail("the jewellery heist did not start with a fresh display")
+	var getaway_car := world.get_node("FirstCar") as DriveableVehicle
+	await _board(player, getaway_car)
+	if mission.stage != 2:
+		return _fail("taking a getaway car did not advance")
+	await _drive_to(getaway_car, mission.marker_position())
+	if mission.stage != 3:
+		return _fail("reaching Joyería Faro did not advance")
+	player._interact()
+	root.call("_on_jewellery_robbery")
+	await _frames(3)
+	if mission.stage < 4 or wanted.level < 3:
+		return _fail("robbing the display did not trigger three stars (stage %d level %d)" % [mission.stage, wanted.level])
+	wanted.clear_wanted()
+	await _frames(3)
+	await _walk_to(player, world.workshop.exterior_entry)
+	if not mission.completed_missions.has("golpe_joyeria") or int(root.get("money")) != 5300 + 250 + 3500:
+		return _fail("the heist did not pay out (money %d)" % int(root.get("money")))
 	# --- Save/load and offers after the chapter --------------------------------
 	root.set("save_path", "user://test_missions_save.json")
 	root.call("_save_game")
 	mission.completed_missions.clear()
 	root.call("_load_game")
-	for id in ["el_recado", "hielo", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon"]:
+	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria"]:
 		if not mission.completed_missions.has(id):
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":
@@ -197,7 +221,7 @@ func _run() -> void:
 	hud.minimap._update_gps()
 	if hud.minimap.waypoint != Vector3.INF:
 		return _fail("waypoint not cleared on arrival")
-	print("MISSIONS PASS: offers/unlocks, Hielo (timed run, fail reset, fight), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), rewards 5200 €, save/load, map + waypoint")
+	print("MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), rewards, save/load, map + waypoint")
 	root.queue_free()
 	await process_frame
 	quit(0)

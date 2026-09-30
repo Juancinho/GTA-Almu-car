@@ -10,6 +10,7 @@ const VehicleScript = preload("res://scripts/vehicle.gd")
 const PedestrianScript = preload("res://scripts/pedestrian.gd")
 const WorkshopScript = preload("res://scripts/workshop_interior.gd")
 const VenueScript = preload("res://scripts/venue_interior.gd")
+const TownDressingScript = preload("res://scripts/sector/town_dressing_builder.gd")
 const TRAFFIC_COUNT := 16
 const PEDESTRIAN_COUNT := 56
 
@@ -41,7 +42,7 @@ func _ready() -> void:
 	landmark_info = LandmarkBuilder.build(self, data, mats)
 	build_stats.merge(DressingBuilder.build(self, data, road_network, mats))
 	build_stats.merge(CommerceBuilder.build(self, data, road_network, mats))
-	build_stats.merge(TownDressingBuilder.build(self, data, road_network, mats))
+	build_stats.merge(TownDressingScript.build(self, data, road_network, mats))
 	var beach_bar_result := BeachBarsBuilder.build(self, data, road_network, mats)
 	for service in beach_bar_result["services"]:
 		beach_bars.append(service as BeachBarService)

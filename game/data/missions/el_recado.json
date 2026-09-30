@@ -8,7 +8,7 @@
       "type": "talk_to",
       "target": "Alba",
       "text": "Habla con Alba en el Paseo del Altillo",
-      "dialogue": "Alba: Lleva este paquete al castillo de San Miguel. El coche rojo está aparcado en el Paseo del Altillo.",
+      "dialogue": "Alba: Un constructor de Málaga quiere que un sobre llegue esta tarde al hombre del concejal de urbanismo, bajo el castillo de San Miguel. No lo abras. El coche rojo está en el Paseo del Altillo.",
       "marker_anchor": "alba"
     },
     {
@@ -32,9 +32,9 @@
     },
     {
       "type": "reach_area",
-      "text": "Entrega el paquete bajo el castillo de San Miguel",
+      "text": "Entrega el sobre bajo el castillo de San Miguel",
       "radius": 18,
-      "dialogue": "Alba: Perfecto. Te debo una.",
+      "dialogue": "Hombre del concejal: ¿Viene todo? Dile a Alba que la licencia sale el lunes. (Alba, al teléfono: bienvenido al negocio del ladrillo.)",
       "marker_anchor": "castle_drop"
     }
   ],

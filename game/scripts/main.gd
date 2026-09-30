@@ -19,7 +19,7 @@ var player: PlayerController
 var hud: GameHud
 var wanted: WantedSystem
 var mission: MissionController
-var weapons: WeaponSystem
+var weapons: WeaponScript
 var perf_monitor: PerfMonitor
 var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
@@ -68,14 +68,14 @@ func _ready() -> void:
 	mission.mission_completed.connect(_on_mission_completed)
 	mission.mission_failed.connect(_on_mission_failed)
 	mission.mission_started.connect(func(title: String) -> void: playtest_log.record("mission_started", {"id": mission.mission_id, "title": title}))
-	weapons = WeaponScript.new() as WeaponSystem
+	weapons = WeaponScript.new() as WeaponScript
 	weapons.name = "Weapons"
 	weapons.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(weapons)
 	weapons.configure(player, world, wanted)
 	player.weapons = weapons
 	weapons.fired.connect(func(id: String, _hit: Object) -> void: playtest_log.record("shot", {"weapon": id}))
-	var markers := MarkersScript.new() as MissionMarkers
+	var markers := MarkersScript.new() as MarkersScript
 	markers.name = "MissionMarkers"
 	markers.mission = mission
 	markers.player = player
@@ -266,6 +266,7 @@ func _on_jewellery_robbery() -> void:
 	add_money(250)
 	wanted.report_scripted_crime("robo en joyería", (world.venues["jewellery"] as VenueInterior).exterior_entry)
 	hud.show_banner("BOTÍN 250 €", Color("f2d36b"))
+	mission.notify_event("jewellery_robbed")
 	mission._show_dialogue("Dependienta: ¡Alto! La alarma está conectada con la comisaría.")
 
 
@@ -532,11 +533,11 @@ func _load_game() -> void:
 	player.velocity = Vector3.ZERO
 	player.camera_yaw = float(data.get("camera_yaw", -2.0))
 	player._update_camera_orientation()
-	if not mission.load_mission(str(data.get("mission_id", "el_recado")), false):
+	if not mission.load_mission(mission.alias(str(data.get("mission_id", "el_recado"))), false):
 		return
 	mission.completed_missions.clear()
 	for id in data.get("completed_missions", []):
-		mission.completed_missions[str(id)] = true
+		mission.completed_missions[mission.alias(str(id))] = true
 	mission.jaime_finished = bool(data.get("jaime_finished", false)) or mission.completed_missions.has("jaime_playa")
 	mission.suspended_el_recado_stage = int(data.get("suspended_el_recado_stage", -1))
 	if data.has("suspended_id"):

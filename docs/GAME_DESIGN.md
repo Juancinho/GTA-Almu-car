@@ -82,25 +82,23 @@ The player must always know what to do next, without a manual:
 
 Missions are data (`game/data/missions/*.json`, registry and unlock chain in `index.json`). Objective types: `talk_to`, `enter_vehicle`, `reach_area`, `escape_police`, `destroy_vehicle`, `beat_up`, `wait`; options include time limits, on-foot/vehicle/no-wanted requirements, spawned vehicles and enemies, live-target markers and a crime reported on completion.
 
-## First story chapter (draft, fictional characters)
+## First story chapter: "Ladrillo y cuota" (fictional characters)
 
-| # | Mission | Setting | Verbs |
-|---|---------|---------|-------|
-| 1 | El Recado (exists) | Paseo → old town → castle | talk, drive, escape |
-| 2 | Hielo para el chiringuito (playable) | Chiringuito Arenas → Mercado Azul → paseo | timed drive in Paco's SUV, on-foot delivery, fist fight with two tough gorrones |
-| 3 | La cuota (playable) | La Orilla, Sal y Sol, El Espeto, paseo | collect on foot, ram a fleeing sports car, recover the money |
-| 4 | El coche del concejal (playable) | Calle de la Puerta de Granada → Taller Poniente | car theft, lose the police, deliver for a respray |
-| 4b | Pescadores (after boats) | Fishing boats, Puerta del Mar | boat drive, pursuit at sea |
-| 5 | Noche en el Majuelo | Concert in Parque El Majuelo | stealth, pickpocket a key card |
-| 6 | Siete Palacios | Cueva de Siete Palacios | infiltration, escape through lanes |
-| 7 | Furgón | Coast road | armoured-van robbery, 3-star escape |
-| 8 | Fiesta en la Najarra | Palacete de La Najarra | disguise, eavesdrop, shoot-out |
-| 9 | La lancha | Night bay, Peñón del Santo | speedboat chase vs rival smugglers |
-| 10 | Calle Real | Jewellery heist | crew, timed robbery, motorbike getaway |
-| 11 | El castillo | Castle museum | ambush, siege, helicopter |
-| 12 | Poniente | Bank finale + escape to Marina del Este | heist, 5-star escape by sea |
+Dani Márquez comes home to Almuñécar owing money and starts working for his cousin **Alba Ruiz**, a fixer who moves envelopes between builders and the town hall. The town runs on two rackets: **Rubén "el del Puerto" Salcedo** extorts the beach bars and launders the takings through Joyería Faro, and planning councillor **Tomás Ferrer** sells building licences to developers and protection to Rubén. **Paco**, owner of Chiringuito Arenas, is one of Rubén's victims. Every mission is a crime with consequences; the chapter ends with Rubén broken and Ferrer knowing someone holds his ledger of bribes, setting up chapter two.
 
-Each mission is JSON/resource data (objectives, triggers, dialogue, checkpoints, fail conditions), testable by a scripted route like El Recado. Later chapters should broaden the cast and stakes across the whole municipality, with quieter character missions between chases, robberies and combat.
+| # | Mission (status) | Setting | Crime and verbs |
+|---|------------------|---------|-----------------|
+| 1 | El Recado (playable) | Paseo → Plaza de la Constitución → under the castle | deliver a developer's bribe envelope; drive through the pedestrian old town, lose the police |
+| 2 | Protección (playable) | Chiringuito Arenas, Paseo de Prieto Moreno | wait for Rubén's collectors, fist fight two tough men, ram their getaway car, return the till |
+| 3 | La cuota (playable) | La Orilla, Sal y Sol, El Espeto | take the extortion envelopes on foot, ram the fleeing sports car, recover the money |
+| 4 | El coche del concejal (playable) | Calle de la Puerta de Granada → Taller Poniente | steal the councillor's car, lose the police, deliver it — the glovebox holds his ledger of bribes |
+| 5 | Ajuste de cuentas (playable) | Parque El Majuelo | Rubén's retaliation: gunfight with four armed men, escape the police |
+| 6 | El furgón (playable) | Caja Poniente and the streets around | stop an armoured security SUV carrying Rubén's laundered cash, take the bags, three-star escape |
+| 7 | Golpe en Joyería Faro (playable) | Joyería Faro (old town) → Taller Poniente | heist: steal a getaway car, rob the display, three-star escape, sell the jewels to the fence |
+| 8 | Pescadores (after boats) | Fishing boats, Puerta del Mar | intercept Rubén's last shipment at sea |
+| 9–12 | La lancha, Calle Real, El castillo, Poniente | Night bay, old town, castle, bank | Ferrer strikes back: speedboat chase, ambush at the castle, bank finale at Caja Poniente and escape by sea |
+
+La noche de Jaime (Marina, Jaime Playa) is a light side mission requested by the product owner (D-018) and stays outside the crime story.
 
 ## Characters and dialogue
 

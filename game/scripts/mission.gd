@@ -387,11 +387,31 @@ func _process(delta: float) -> void:
 			if remaining == 0:
 				_show_lines(objective.get("dialogue", ""))
 				_advance()
+		"event":
+			pass  # advanced by notify_event()
 		"wait":
 			wait_left -= delta
 			if wait_left <= 0.0:
 				_show_lines(objective.get("dialogue", ""))
 				_advance()
+
+
+## World events a mission can wait for (e.g. "jewellery_robbed" from the venue).
+func notify_event(event_name: String) -> void:
+	if completed or objectives.is_empty():
+		return
+	var objective := objectives[stage]
+	if str(objective.get("type", "")) == "event" and str(objective.get("event", "")) == event_name:
+		_show_lines(objective.get("dialogue", ""))
+		_advance()
+
+
+## Retired mission ids in old saves ("hielo" became "proteccion").
+func alias(id: String) -> String:
+	var parsed: Variant = _read_json(INDEX_PATH)
+	if parsed is Dictionary:
+		return str((parsed.get("aliases", {}) as Dictionary).get(id, id))
+	return id
 
 
 func _is_required_vehicle(objective: Dictionary, vehicle: DriveableVehicle) -> bool:
@@ -423,6 +443,10 @@ func _on_contact(contact: Pedestrian) -> void:
 	if str(objective.get("type", "")) == "talk_to" and str(contact.name) == str(objective.get("target", "")):
 		if stage == 0:
 			mission_started.emit(mission_title)
+			if bool(objective.get("reset_jewellery", false)) and get_parent() != null and "jewellery_robbed" in get_parent():
+				get_parent().set("jewellery_robbed", false)
+				if world != null and world.venues.has("jewellery"):
+					(world.venues["jewellery"] as VenueInterior).set_robbed(false)
 		_show_lines(objective.get("dialogue", ""))
 		_advance()
 

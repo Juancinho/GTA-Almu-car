@@ -27,8 +27,9 @@ var _items: Dictionary = {}
 
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
-	var builder := TownDressingBuilder.new()
-	return builder._build(parent, data, network, mats)
+	# Loaded by path, not class_name, so a stale editor class cache cannot break the build.
+	var builder: Object = (load("res://scripts/sector/town_dressing_builder.gd") as GDScript).new()
+	return builder.call("_build", parent, data, network, mats)
 
 
 func _build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
