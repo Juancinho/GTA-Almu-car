@@ -11,6 +11,7 @@ Environment inspected on Windows 11 Professional (build 26200), PowerShell 7.6.6
 | Blender | 5.2 LTS x64 | 5.2.2 LTS at `.tools\blender\blender.exe` | DONE | Project-local executable verified. |
 | Godot | 4.7.x stable, standard x64 | 4.7.2 stable at `.tools\godot\godot.exe` | DONE | Project-local executable verified. |
 | Python | Python 3.11+ | `python` 3.11.9 at `C:\msys64\mingw64\bin\python.exe`; `py` 3.13.7 | DONE | Prefer `py -3.13` for Windows scripts. |
+| World builder packages | numpy 2.2.6, Shapely 2.1.2 | Both installed in Python 3.13 | DONE | Recreate with `py -3.13 -m pip install -r tools/world/requirements.txt`. |
 | uv | Available | 0.10.9 | DONE | None. |
 | GPU | Vulkan capable GPU preferred | NVIDIA GeForce GTX 1650 and AMD Radeon Graphics | DETECTED | Renderer/performance still need in-engine validation. |
 | Disk | Space for tools/assets | D: 140.3 GiB free | DONE | None. |

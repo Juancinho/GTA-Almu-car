@@ -20,7 +20,7 @@
 
 ## Verification commands
 
-1. `pwsh -File .\tools\run.ps1` refreshes new GDScript class registration and launches the game; `-ImportOnly` checks import without opening a window. `pwsh -File .\tools\validate.ps1` checks dependencies, Python, asset reports, Godot import, smoke, damage, traffic and a full mission route. It fails on Godot stderr errors even if the Windows GUI executable returns 0. The in-progress 1:1 migration currently stalls in the route test (PROD-001).
+1. `pwsh -File .\tools\run.ps1` refreshes new GDScript class registration and launches the game; `-ImportOnly` checks import without opening a window. `pwsh -File .\tools\validate.ps1` checks dependencies, Python, asset reports, Godot import, smoke, damage, traffic, the workshop and shops, and a full mission route. It fails on Godot stderr errors even if the Windows GUI executable returns 0.
 2. `pwsh -File .\tools\validate.ps1 -Capture` also renders a seafront frame. Other views: `godot --path game --script res://tests/capture.gd -- --view town|castle|car` (use the project-local executable).
 3. Regenerate Blender assets with `blender --background --python tools/blender/generate.py -- --kind palm|building|compact_car --seed 7401 --out game/assets/procedural/<kind>.glb`; inspect JSON reports and GLB imports.
 4. Run `godot --path game --script res://tests/performance.gd` for an indicative 1920×1080 offscreen sample, then launch a playable build and inspect seafront, old town, castle silhouette and a mission frame. Record hardware/FPS and screenshots. Do not claim stable 60 FPS from the offscreen sample alone.

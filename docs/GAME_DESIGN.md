@@ -1,12 +1,22 @@
 # Game design — Brisa de Poniente
 
-Third-person open-world crime game in a faithful Almuñécar. Tone: grounded crime drama of the Costa Tropical — sea smuggling, summer-season rackets, property speculation, family loyalty — with the freedom, humour and chaos players expect from the genre. All characters, gangs, businesses and brands are fictional; places and streets are real.
+Third-person open-world crime game in a faithful Almuñécar. Tone: grounded crime drama of the Costa Tropical — sea smuggling, summer-season rackets, property speculation, family loyalty — with the freedom, humour and chaos players expect from the genre. Characters, gangs and most businesses are fictional; Jaime Playa is the one named business explicitly requested by the product owner (D-018).
+
+The playable Jaime Playa mission is **La noche de Jaime**: Marina, a fictional staff character, asks for sound equipment left near the Phoenician monument. The player brings it to Jaime Playa on foot and checks in with her for a €150 reward. It can be started at any time; **El Recado** resumes at its previous objective afterward. Finishing **El Recado** first marks Marina on the minimap. This is a short introductory venue mission; the larger chiringuito storyline and detailed interior remain planned.
 
 ## Complete-game target
 
 The product target is a substantial standalone open-world game, not a single-mission demo. The 12 missions below are **the first story chapter**, not the full campaign. Plan three connected chapters with roughly 30–40 authored main missions, recurring characters, at least 15 replayable side activities, a varied vehicle fleet and a selection of fully playable interiors. These are planning targets, not implemented content. Grow the town and campaign only through finished, tested slices so each new system remains playable.
 
 Every new district needs purposeful things to do: missions, shops or interiors, traffic, pedestrian behaviour, secrets and traversal routes. Each main mission must have a distinct premise, at least one memorable character beat, a gameplay variation, a checkpoint/failure path, and dialogue that changes with the situation. Do not inflate the count with repeated delivery objectives.
+
+## Traversal, streets and town life
+
+The sea is playable space: the character can enter the water, swim at the surface, dive for a limited breath, climb out on a reachable shore and be rescued if air runs out. Cars have grounded suspension/traction and collision, lose power at the shoreline and cannot drive along the sea bed. A boarded driver appears seated inside the cabin, with the on-foot body and collision hidden until a safe exit.
+
+Street geometry must remain readable and driveable. Roads use licensed PBR asphalt with scaled markings and lane-appropriate centre/edge lines. Palm trunks and street furniture sit on pavements or planting strips after clearance checks against every driveable road. Building footprints must stay clear of the carriageway; where source footprints conflict, the design layer records a setback or removal rather than drawing a building over a lane. Sloped façades, entrances and road heights are checked together.
+
+The town needs connected destinations: bank, jewellery shop, supermarket, vehicle workshop, restaurants and casino, plus a police station, fire station and health centre. Each is an enterable, furnished place with a useful interaction and NPC routine, not only a sign. Businesses and staff are fictional except the specifically requested Jaime Playa (D-018). Civilians have varied routines and dispositions; they can talk, react to danger, argue and fight when provoked. Emergency services respond to relevant incidents. Population density and interactions scale to the hardware budget.
 
 ## Pillars
 
@@ -89,4 +99,4 @@ Keyboard/mouse: WASD, mouse camera, Shift sprint, Space jump/handbrake, E intera
 
 ## Content boundaries
 
-Stylised, not gratuitous violence; no sexual content; no real people, businesses, logos or police insignia; drugs are implied plot (smuggling) not depicted use. Acceptance for any mission: a scripted-input test completes it and a human playthrough log records it.
+Stylised, not gratuitous violence; no sexual content; no real people, logos or police insignia; businesses are fictional except the user-requested Jaime Playa venue (D-018); drugs are implied plot (smuggling) not depicted use. Acceptance for any mission: a scripted-input test completes it and a human playthrough log records it.

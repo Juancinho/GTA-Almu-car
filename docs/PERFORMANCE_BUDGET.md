@@ -47,4 +47,16 @@ After adding animated CC0 people, CC0 cars and triplanar PBR textures, `validate
 | uncapped | driving | 445.8 | 360.0 | 2.98 ms | 424 / 607 |
 | uncapped | pursuit | 466.8 | 364.0 | 5.23 ms | 339 / 617 |
 
-The 60 FPS target has roughly 6× headroom on the GTX 1650; spend it on traffic density, effects and lighting, re-measuring each step.
+Those results describe the previous, smaller district. Re-measure the expanded 1:1 sector before using that headroom estimate.
+
+### Expanded sector sample (2026-09-30)
+
+Godot 4.7.2 Compatibility renderer on the GTX 1650, 1920×1080 `SubViewport`, 90 warmup and 240 timed frames: 81.3 average FPS (12.29 ms), 49.6 FPS 1% low (20.15 ms) in an isolated repeat. An earlier sample taken while the automated mission route also ran measured 78.5 / 42.7 FPS. These are offscreen stationary samples with the new 1,252 buildings, 418 palms, 56 roaming civilians and Taller Poniente. The isolated 1% low misses the 60 FPS target; profile worst-case streets and visible-window driving before raising population or committing to a stable-60 claim.
+
+After adding Mercado Azul and La Brisa, the same isolated offscreen sample measured 81.0 average FPS (12.34 ms) and 50.2 FPS 1% low (19.94 ms). The two venues did not materially change this stationary result; the 1% low still misses the target. Capture log: `generated/performance_venues.out.log`.
+
+After furnishing the venues, `performance.gd -- --view supermarket` and `--view restaurant` measured 120.0 average FPS each; 1% lows were 119.1 and 114.4 FPS respectively in isolated 1920×1080 offscreen views. The 120 FPS average is likely a cap, and these views exclude the demanding exterior street scene. Logs: `generated/performance_supermarket.out.log` and `generated/performance_restaurant.out.log`.
+
+With Caja Poniente and Joyería Faro added, the same exterior sample measured 80.0 average FPS (12.50 ms) and 49.2 FPS 1% low (20.32 ms). The isolated jewellery interior measured 120.0 average / 119.0 FPS 1% low, apparently capped. The exterior still misses the stable 60 FPS target and needs a visible-window worst-case route before making performance claims. Logs: `generated/performance_outside_final.out.log` and `generated/performance_jewellery_final.out.log`.
+
+After the physical storefronts, church/gallery, promenade commerce, five staffed beach bars, 2K Clean Asphalt material and tertiary-road edge lines, the 1080p exterior sample measured 69.1 average FPS (14.47 ms) and 44.2 FPS 1% low (22.60 ms). This is a material regression from the 80.0 / 49.2 sample. Planar road UVs removed unnecessary triplanar texture reads, and bar geometry was batched locally, but neither recovered the previous rate. Profiling draw calls, lights and texture cost in a visible-window drive is required before raising density or claiming stable 60 FPS. Log: `generated/performance_current.out.log`.
