@@ -41,6 +41,7 @@ func _ready() -> void:
 	landmark_info = LandmarkBuilder.build(self, data, mats)
 	build_stats.merge(DressingBuilder.build(self, data, road_network, mats))
 	build_stats.merge(CommerceBuilder.build(self, data, road_network, mats))
+	build_stats.merge(TownDressingBuilder.build(self, data, road_network, mats))
 	var beach_bar_result := BeachBarsBuilder.build(self, data, road_network, mats)
 	for service in beach_bar_result["services"]:
 		beach_bars.append(service as BeachBarService)
@@ -99,8 +100,8 @@ func _create_environment() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_white = 6.0
 	env.fog_enabled = true
-	env.fog_light_color = Color("cfd9d6")
-	env.fog_density = 0.0006
+	env.fog_light_color = Color("bfd0da")
+	env.fog_density = 0.00018
 	env.fog_sky_affect = 0.25
 	environment_node.environment = env
 	add_child(environment_node)

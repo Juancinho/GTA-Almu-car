@@ -12,8 +12,8 @@ const PLINTH_M := 0.9
 const PARAPET_M := 0.8
 const BAY_M := 3.3
 const WHITES := ["f4f1ea", "efebe2", "f2eee6", "ebe6da", "f6f3ee"]
-const SEAFRONT := ["f1ede4", "ece2cf", "e7d5bb", "e9c9ae", "dcc7a4", "f3efe8"]
-const MODERN := ["e9e1d0", "dfd2bb", "e8dccb", "d9c3a0", "cfae8c", "efe9dc"]
+const SEAFRONT := ["f1ede4", "ece2cf", "e9d2ae", "efc9a6", "e4b894", "f4e3b8", "f3efe8", "dfe5e2", "f6f3ee", "e8c6a8"]
+const MODERN := ["e9e1d0", "dfd2bb", "e8dccb", "d9c3a0", "cfae8c", "efe9dc", "e7cfa5", "d6dcd6", "ecd2b8", "c9b79a"]
 const PLINTHS := ["c99a52", "3e6e9e", "8a8a86", "a65a3a", "4f6a4f", "6f5d4f"]
 const CELL := {"shutter_green": 0, "shutter_blue": 1, "shutter_brown": 2, "reja": 3, "balcony_door": 4, "shop": 5,
 	"door": 6, "modern": 7, "garage": 8, "shop_awning": 9, "small_reja": 10, "door_arched": 11,
@@ -165,8 +165,8 @@ static func _pick(zone: String, seed_value: int) -> String:
 		palette = SEAFRONT
 	elif zone == "modern":
 		palette = MODERN
-	elif seed_value % 9 == 0:  # the odd ochre or cream house in the old town
-		palette = ["e8d3a8", "efe0bf", "e6c9a1"]
+	elif seed_value % 6 == 0:  # the odd ochre, cream or almagra-washed house in the old town
+		palette = ["e8d3a8", "efe0bf", "e6c9a1", "f0cfb0", "e9bf8f", "f3e3a8"]
 	return palette[seed_value % palette.size()]
 
 

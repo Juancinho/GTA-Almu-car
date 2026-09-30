@@ -11,8 +11,8 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> vo
 		mats.textured("seabed", "ground080", Color("4a5a5e"), 5.0),
 		mats.textured("beach", "ground080", Color("6e6c69"), 2.5, 0.97),
 		mats.textured("urban_ground", "pavingstones046", Color("ece5d6"), 2.2),
-		mats.textured("park_ground", "ground037", Color("c6cf9e"), 5.0),
-		mats.textured("natural_ground", "ground037", Color("c9c08f"), 9.0),
+		mats.textured("park_ground", "ground037", Color("a9bf7c"), 5.0),
+		mats.textured("natural_ground", "ground037", Color("98a064"), 9.0),
 		mats.textured("promenade", "tiles040", Color("eadcc2"), 2.6, 0.8),
 	]
 	var vertices := PackedVector3Array()

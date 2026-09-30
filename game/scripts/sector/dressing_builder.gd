@@ -215,7 +215,7 @@ static func _multimesh(parent: Node3D, label: String, mesh: Mesh, transforms: Ar
 static func _sierra(parent: Node3D, mats: SectorMaterials) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7406
-	var columns := 72
+	var columns := 140
 	var rings := [[650.0, 25.0, 45.0], [1000.0, 90.0, 150.0], [1500.0, 190.0, 330.0], [2300.0, 260.0, 520.0]]
 	var profile: Array = []
 	for r in range(rings.size()):
@@ -227,22 +227,43 @@ static func _sierra(parent: Node3D, mats: SectorMaterials) -> void:
 			var radius: float = rings[r][0] + rng.randf_range(-40.0, 40.0)
 			row.append(Vector3(cos(angle) * radius, ridge, sin(angle) * radius - 150.0))
 		profile.append(row)
-	var tints := [Color("6b7a48"), Color("5c6c45"), Color("56654f"), Color("6a7a7e")]
+	# Orchard-green lower slopes fading to hazy blue-grey ridges. Colours vary smoothly
+	# along the range and normals are smoothed, so the backdrop reads as mountains
+	# instead of radial stripes (a stretched ground texture did exactly that).
+	var tints := [Color("4f6034"), Color("5d6c43"), Color("74827a"), Color("93a3aa")]
+	var shade := StandardMaterial3D.new()
+	shade.vertex_color_use_as_albedo = true
+	shade.roughness = 1.0
+	shade.disable_fog = true  # depth fog washed the range out to white; haze is in the colours
+	var colors: Array = []
+	for r in range(rings.size()):
+		var row: Array[Color] = []
+		for i in range(columns + 1):
+			var tint: Color = tints[r]
+			var dry := 0.5 + 0.5 * sin(i * 0.21 + r * 0.8) * cos(i * 0.057 + r * 1.7)
+			tint = tint.lerp(Color("8f8458"), clampf(dry - 0.45, 0.0, 0.5) * (0.9 if r < 2 else 0.35))
+			row.append(tint)
+		colors.append(row)
 	for r in range(rings.size() - 1):
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		for i in range(columns):
-			var a: Vector3 = profile[r][i]
-			var b: Vector3 = profile[r][i + 1]
-			var c: Vector3 = profile[r + 1][i + 1]
-			var d: Vector3 = profile[r + 1][i]
-			var n := (b - a).cross(d - a).normalized()
-			if n.y < 0:
-				n = -n
-			Geo.add_quad(st, a, b, c, d, n)
+			var quad := [[r, i], [r, i + 1], [r + 1, i + 1], [r + 1, i]]
+			for tri in [[0, 1, 2], [0, 2, 3]]:
+				var p0: Vector3 = profile[quad[tri[0]][0]][quad[tri[0]][1]]
+				var p1: Vector3 = profile[quad[tri[1]][0]][quad[tri[1]][1]]
+				var p2: Vector3 = profile[quad[tri[2]][0]][quad[tri[2]][1]]
+				var order := [tri[0], tri[1], tri[2]]
+				if (p1 - p0).cross(p2 - p0).y > 0.0:  # Godot front faces are clockwise from above
+					order = [tri[0], tri[2], tri[1]]
+				for k in order:
+					st.set_color(colors[quad[k][0]][quad[k][1]])
+					st.add_vertex(profile[quad[k][0]][quad[k][1]])
+		st.index()
+		st.generate_normals()
 		var hills := MeshInstance3D.new()
 		hills.name = "SierraBackdrop_%d" % r
 		hills.mesh = st.commit()
-		hills.material_override = mats.textured("sierra_%d" % r, "ground037", tints[r], 30.0 + r * 30.0, 1.0)
+		hills.material_override = shade
 		hills.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(hills)
