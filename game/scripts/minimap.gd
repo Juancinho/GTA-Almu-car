@@ -5,6 +5,8 @@ var player: PlayerController
 var mission: MissionController
 var wanted: WantedSystem
 var road_network: RoadNetwork
+var workshop_marker := Vector2.INF
+var venue_markers: Dictionary = {}
 
 
 func _ready() -> void:
@@ -13,8 +15,14 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func _process(_delta: float) -> void:
-	queue_redraw()
+var redraw_timer := 0.0
+
+
+func _process(delta: float) -> void:
+	redraw_timer -= delta
+	if redraw_timer <= 0.0:  # 15 Hz is plenty for a minimap with hundreds of streets
+		redraw_timer = 1.0 / 15.0
+		queue_redraw()
 
 
 func _draw() -> void:
@@ -23,20 +31,38 @@ func _draw() -> void:
 		return
 	var center := Vector2(player.global_position.x, player.global_position.z)
 	var map_center := size * 0.5
-	var scale := 0.74
+	var scale := 0.55
 	var road_color := Color("d9ccaa")
 	if road_network != null:
+		var reach := size.length() / scale
 		for road in road_network.roads:
-			var fixed := float(road["fixed"])
-			var from := Vector2(float(road["from"]), fixed) if str(road["axis"]) == "x" else Vector2(fixed, float(road["from"]))
-			var to := Vector2(float(road["to"]), fixed) if str(road["axis"]) == "x" else Vector2(fixed, float(road["to"]))
-			draw_line(_to_map(from, center, map_center, scale), _to_map(to, center, map_center, scale), road_color, 5.0)
-	if mission != null and not mission.completed and not mission.objectives.is_empty():
-		var objective := mission.objectives[mission.stage]
-		var marker := objective.get("marker", [0, 0]) as Array
-		var marker_pos := _to_map(Vector2(float(marker[0]), float(marker[1])), center, map_center, scale)
-		if Rect2(Vector2.ZERO, size).has_point(marker_pos):
-			draw_circle(marker_pos, 6.0, Color("efb65f"))
+			var points: PackedVector3Array = road["points"]
+			var first := points[0]
+			if Vector2(first.x - center.x, first.z - center.y).length() > reach + 250.0:
+				continue
+			var line := PackedVector2Array()
+			for p in points:
+				line.append(_to_map(Vector2(p.x, p.z), center, map_center, scale))
+			if road["driveable"]:
+				draw_polyline(line, road_color, maxf(2.0, float(road["width"]) * scale * 0.9))
+			else:
+				draw_polyline(line, Color(0.85, 0.8, 0.7, 0.45), 1.5)
+	if mission != null:
+		var marker := mission.active_marker()
+		if marker.size() == 2:
+			var marker_pos := _to_map(Vector2(float(marker[0]), float(marker[1])), center, map_center, scale)
+			if Rect2(Vector2.ZERO, size).has_point(marker_pos):
+				draw_circle(marker_pos, 6.0, Color("efb65f"))
+	if workshop_marker != Vector2.INF:
+		var shop_pos := _to_map(workshop_marker, center, map_center, scale)
+		if Rect2(Vector2.ZERO, size).has_point(shop_pos):
+			draw_circle(shop_pos, 6.0, Color("6fd4a4"))
+			draw_line(shop_pos + Vector2(-3, 0), shop_pos + Vector2(3, 0), Color("183b36"), 2.0)
+	for kind in venue_markers:
+		var venue_pos := _to_map(venue_markers[kind], center, map_center, scale)
+		if Rect2(Vector2.ZERO, size).has_point(venue_pos):
+			var marker_color := Color("63b5e3") if kind == "supermarket" else Color("ecaa73") if kind in ["restaurant", "cafe", "palm_restaurant"] else Color("d7c46e") if kind == "bank" else Color("d89cc9")
+			draw_circle(venue_pos, 5.5, marker_color)
 	if wanted != null:
 		var blink := int(Time.get_ticks_msec() / 250) % 2 == 0
 		for car in wanted.police_cars:

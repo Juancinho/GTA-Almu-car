@@ -18,6 +18,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Python tests failed.' }
 if ($LASTEXITCODE -ne 0) { throw 'Asset verification failed.' }
 & py -3.13 (Join-Path $PSScriptRoot 'third_party/import_assets.py') --check
 if ($LASTEXITCODE -ne 0) { throw 'Third-party asset verification failed.' }
+& py -3.13 (Join-Path $PSScriptRoot 'third_party/palm_bark.py') --check
+if ($LASTEXITCODE -ne 0) { throw 'Palm bark verification failed.' }
+& py -3.13 (Join-Path $PSScriptRoot 'third_party/clean_asphalt.py') --check
+if ($LASTEXITCODE -ne 0) { throw 'Clean asphalt verification failed.' }
+& py -3.13 (Join-Path $PSScriptRoot 'world/check_clearance.py')
+if ($LASTEXITCODE -ne 0) { throw 'Driveable road clearance failed.' }
 
 function Invoke-Godot([string]$Name, [string[]]$Arguments) {
     $stdout = Join-Path $logs "$Name.out.log"
@@ -35,8 +41,14 @@ function Invoke-Godot([string]$Name, [string[]]$Arguments) {
 Invoke-Godot 'import' @('--headless', '--editor', '--path', ('"' + $gamePath + '"'), '--quit')
 Invoke-Godot 'smoke' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/smoke.gd')
 Invoke-Godot 'damage' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/damage_test.gd')
+Invoke-Godot 'jaime_mission' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/jaime_mission.gd')
+Invoke-Godot 'slope_buildings' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/slope_buildings.gd')
+Invoke-Godot 'water_and_dressing' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/water_and_dressing.gd')
+Invoke-Godot 'civilian_life' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/civilian_life.gd')
+Invoke-Godot 'workshop_interior' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/workshop_interior.gd')
+Invoke-Godot 'venues' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/venues.gd')
 Invoke-Godot 'traffic' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_soak.gd')
-Invoke-Godot 'route' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')
+Invoke-Godot 'route' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')
 if ($Capture) {
     Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
 }

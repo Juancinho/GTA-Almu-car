@@ -7,35 +7,36 @@
     {
       "type": "talk_to",
       "target": "Alba",
-      "text": "Habla con Alba en el paseo",
-      "marker": [103, 27],
-      "dialogue": "Alba: Necesito que lleves este paquete al castillo. El coche rojo está junto al paseo."
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": "Alba: Lleva este paquete al castillo de San Miguel. El coche rojo está aparcado en el Paseo del Altillo.",
+      "marker_anchor": "alba"
     },
     {
       "type": "enter_vehicle",
       "text": "Entra en el coche rojo",
-      "marker": [112, 8]
+      "marker_anchor": "first_car"
     },
     {
       "type": "reach_area",
-      "text": "Conduce hacia el casco antiguo",
-      "marker": [58, -78],
-      "radius": 20,
+      "text": "Sube al casco antiguo por la Plaza de la Constitución",
+      "radius": 22,
       "requires_vehicle": true,
       "witnessed_incident": true,
-      "dialogue": "Una agente te ve entrar con el coche en la zona peatonal."
+      "dialogue": "Una agente te ve meter el coche en la zona peatonal del casco antiguo.",
+      "marker_anchor": "old_town_target"
     },
     {
       "type": "escape_police",
       "text": "Pierde a la policía",
-      "marker": [58, -158]
+      "marker_anchor": "castle_drop"
     },
     {
       "type": "reach_area",
-      "text": "Entrega el paquete bajo el castillo",
-      "marker": [58, -158],
+      "text": "Entrega el paquete bajo el castillo de San Miguel",
       "radius": 18,
-      "dialogue": "Alba: Perfecto. Te debo una."
+      "dialogue": "Alba: Perfecto. Te debo una.",
+      "marker_anchor": "castle_drop"
     }
-  ]
+  ],
+  "setting": "Paseo del Altillo -> Plaza de la Constitución (casco antiguo) -> bajo el Castillo de San Miguel. Markers resolve to sector anchors."
 }

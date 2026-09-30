@@ -1,23 +1,17 @@
 extends SceneTree
 
-## Fresh-start El Recado run driven only by simulated movement/interaction input.
-## The player follows the road graph, triggers the witnessed incident, is chased by
-## road-navigating police, evades them around the west blocks and delivers the package.
-## `-- --perf` also writes a PerfMonitor/PlaytestLog report: it switches the visible
-## window to fullscreen (native resolution) and `--uncapped` additionally disables
-## vsync to expose frame-time headroom above the display refresh rate.
-
-const RESTRICTED_ZONE := Rect2(38.0, -96.0, 40.0, 36.0)
-const EVASION_LOOP: Array[Vector3] = [
-	Vector3(-168, 0, -78), Vector3(-168, 0, 8), Vector3(-55, 0, 8),
-	Vector3(-55, 0, -78), Vector3(-55, 0, -158), Vector3(-168, 0, -158),
-]
+## Fresh-start El Recado run on the real 1:1 street network, driven only by simulated
+## movement/interaction input: walk to Alba and the car, drive the one-way streets up
+## to the old-town pedestrian zone, evade the road-following police through distant
+## streets and deliver below the castle. `-- --perf` also writes a PerfMonitor report
+## (fullscreen; `--uncapped` disables vsync). Run with --fixed-fps 60 for speed.
 
 var wanted: WantedSystem
 var busted := false
 var pursuit_seconds := 0.0
 var police_min_distance := INF
 var stats_car: DriveableVehicle
+var roads: RoadNetwork
 
 
 func _initialize() -> void:
@@ -35,8 +29,9 @@ func _run() -> void:
 	get_root().add_child(root)
 	if perf_mode:
 		root.playtest_log.mode = "automated_route_uncapped" if uncapped else "automated_route_vsync"
-	var world := root.get_node("District_Altillo")
+	var world := root.get_node("District_Altillo") as SectorWorld
 	var network: RoadNetwork = world.road_network
+	roads = network
 	var player := root.get_node("Player") as PlayerController
 	var mission := root.get_node("Mission") as MissionController
 	wanted = root.get_node("WantedSystem") as WantedSystem
@@ -44,46 +39,49 @@ func _run() -> void:
 	var alba := world.get_node("Alba") as Pedestrian
 	var car := world.get_node("FirstCar") as DriveableVehicle
 	stats_car = car
+	var avoid: Array[Rect2] = []
+	for zone in world.restricted_zones:
+		var r := float(zone["radius"])
+		avoid.append(Rect2(float(zone["x"]) - r, float(zone["z"]) - r, r * 2.0, r * 2.0))
 	for i in range(20):
 		await physics_frame
-	var walked_to_alba := await _walk_to(player, alba.global_position, 360)
+	var walked_to_alba := await _walk_to(player, alba.global_position, 600)
 	await _press_interact()
-	var walked_to_car := await _walk_to(player, car.global_position, 540)
+	var walked_to_car := await _walk_to(player, car.global_position, 1500)
 	await _press_interact()
 	if not walked_to_alba or not walked_to_car or mission.stage != 2:
 		push_error("Route trial setup failed: walk=%s stage=%d" % [[walked_to_alba, walked_to_car], mission.stage])
 		quit(1)
 		return
-	var to_old_town := await _drive_path(car, network.find_path(car.global_position, Vector3(58, 0, -78)), 1400)
+	var to_old_town := await _drive_path(car, network.find_path(car.global_position, world.anchor("old_town_target")), 15000, true)
 	var incident := wanted.level > 0 and mission.stage == 3
-	var away := await _drive_path(car, network.find_path(car.global_position, Vector3(58, 0, -158)), 900)
-	away = away and await _drive_path(car, network.find_path(car.global_position, Vector3(-168, 0, -158)), 1400)
 	var escape_frames := 0
-	var loop_index := 0
-	while wanted.level > 0 and not busted and escape_frames < 7200:
-		var target := EVASION_LOOP[loop_index % EVASION_LOOP.size()]
-		var result := await _drive_to(car, target, 900, true)
-		escape_frames += int(result["frames"])
-		loop_index += 1
+	var targets := ["hospital", "player_spawn", "castle_drop", "hospital"]
+	var leg := 0
+	while wanted.level > 0 and not busted and escape_frames < 12000:
+		var path := network.find_path(car.global_position, world.anchor(targets[leg % targets.size()]), avoid)
+		var before := Engine.get_physics_frames()
+		await _drive_path(car, path, 5000, false, true)
+		escape_frames += Engine.get_physics_frames() - before
+		leg += 1
 	var escaped := wanted.level == 0 and not busted and mission.stage == 4
-	var delivery_path := network.find_path(car.global_position, Vector3(58, 0, -158), [RESTRICTED_ZONE])
-	var delivery := await _drive_path(car, delivery_path, 2400)
+	var delivery := await _drive_path(car, network.find_path(car.global_position, world.anchor("castle_drop"), avoid), 15000)
 	_release_controls()
 	Input.action_press("brake")
-	for i in range(30):
+	for i in range(40):
 		await physics_frame
 	Input.action_release("brake")
 	await process_frame
-	var pursued := pursuit_seconds > 1.0 and police_min_distance < 60.0
-	var success := walked_to_alba and walked_to_car and to_old_town and incident and away and pursued and escaped and delivery and mission.completed and not busted
-	print("ROUTE TRIAL: walk=", [walked_to_alba, walked_to_car], " drive=", [to_old_town, away, delivery],
+	var pursued := pursuit_seconds > 1.0 and police_min_distance < 80.0
+	var success := walked_to_alba and walked_to_car and to_old_town and incident and pursued and escaped and delivery and mission.completed and not busted
+	print("ROUTE TRIAL: walk=", [walked_to_alba, walked_to_car], " drive=", [to_old_town, delivery],
 		" incident=", incident, " pursuit_s=", snappedf(pursuit_seconds, 0.1), " police_min_m=", snappedf(police_min_distance, 0.1),
-		" escaped=", escaped, " escape_s=", snappedf(escape_frames / 60.0, 0.1), " busted=", busted,
-		" car=", car.global_position, " mission_completed=", mission.completed)
+		" escaped=", escaped, " escape_s=", snappedf(escape_frames / 60.0, 0.1), " busted=", busted, " health=", int(car.health),
+		" car=", car.global_position.snapped(Vector3.ONE * 0.1), " mission_completed=", mission.completed)
 	if perf_mode:
-		var path: String = root.playtest_log.write_report("automated_route")
+		var report_path: String = root.playtest_log.write_report(root.playtest_log.mode)
 		print("PERF ROUTE: ", JSON.stringify(root.perf_monitor.summary()["contexts"]))
-		print("PERF OVERALL: ", JSON.stringify(root.perf_monitor.summary()["overall"]), " report=", path)
+		print("PERF OVERALL: ", JSON.stringify(root.perf_monitor.summary()["overall"]), " report=", report_path)
 	root.queue_free()
 	for i in range(3):
 		await process_frame
@@ -98,14 +96,24 @@ func _track_police(delta: float) -> void:
 			police_min_distance = minf(police_min_distance, police.global_position.distance_to(stats_car.global_position))
 
 
-func _drive_path(car: DriveableVehicle, path: PackedVector3Array, limit: int) -> bool:
+func _drive_path(car: DriveableVehicle, path: PackedVector3Array, limit: int, stop_on_incident: bool = false, stop_when_clear: bool = false) -> bool:
 	var used := 0
-	for i in range(path.size()):
+	var i := 0
+	while i < path.size():
+		# Skip waypoints already behind us (dense OSM nodes on curves).
+		while i + 1 < path.size() and Vector2(path[i].x - car.global_position.x, path[i].z - car.global_position.z).length() < 4.0:
+			i += 1
 		var next := path[i + 1] if i + 1 < path.size() else Vector3.INF
-		var result := await _drive_to(car, path[i], limit - used, false, next)
+		var result := await _drive_to(car, path[i], limit - used, stop_when_clear, next)
 		used += int(result["frames"])
-		if not bool(result["reached"]) or busted:
+		if busted or (stop_when_clear and wanted.level == 0):
+			return not busted
+		if stop_on_incident and wanted.level > 0 and i >= path.size() - 1:
+			return true
+		if not bool(result["reached"]):
+			print("DRIVE STALLED at ", car.global_position, " waypoint ", i, "/", path.size(), " -> ", path[i])
 			return false
+		i += 1
 	return true
 
 
@@ -119,7 +127,7 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 			await _reverse_out(car)
 		var offset := target - car.global_position
 		offset.y = 0
-		if offset.length() < 8.0 or busted or (stop_when_clear and wanted.level == 0):
+		if offset.length() < 4.5 or busted or (stop_when_clear and wanted.level == 0):
 			return {"reached": offset.length() < 8.0 or (stop_when_clear and wanted.level == 0), "frames": i}
 		var avoid := _traffic_ahead(car)
 		if avoid["distance"] < 18.0:
@@ -139,7 +147,14 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 			var outgoing := next - target
 			outgoing.y = 0
 			corner = outgoing.length() > 1.0 and offset.normalized().dot(outgoing.normalized()) < 0.6
-		if (absf(error) > 0.28 and absf(car.speed) > 8.0) or (corner and absf(car.speed) > 11.0) or (avoid["distance"] < 9.0 and absf(car.speed) > 6.0) or (offset.length() < 25.0 and absf(car.speed) > 12.0):
+		# A careful human: 15 m/s in town, 8 m/s in the old-town living streets.
+		var limit_speed := 15.0
+		if i % 20 == 0:
+			var hit: Dictionary = roads.nearest(car.global_position)
+			car.set_meta("lane_class", str((hit["road"] as Dictionary)["class"]) if not hit.is_empty() else "")
+		if str(car.get_meta("lane_class", "")) == "living_street":
+			limit_speed = 8.0
+		if (absf(error) > 0.28 and absf(car.speed) > 8.0) or (corner and absf(car.speed) > 10.0) or (avoid["distance"] < 9.0 and absf(car.speed) > 6.0) or (offset.length() < 25.0 and absf(car.speed) > 12.0) or absf(car.speed) > limit_speed:
 			Input.action_press("brake")
 		else:
 			Input.action_release("brake")
@@ -151,7 +166,7 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 			for police in wanted.police_cars:
 				if is_instance_valid(police):
 					units.append("%s(%.0f,%.0f d=%.0f v=%.1f)" % [police.name, police.global_position.x, police.global_position.z, police.global_position.distance_to(car.global_position), police.speed])
-			print("ROUTE step=", i, " pos=", car.global_position.snapped(Vector3(0.1, 0.1, 0.1)), " speed=", snappedf(car.speed, 0.1), " wanted=", wanted.level, "/", wanted.phase, " police=", units)
+			print("ROUTE step=", i, " pos=", car.global_position.snapped(Vector3(0.1, 0.1, 0.1)), " speed=", snappedf(car.speed, 0.1), " hp=", int(car.health), " wanted=", wanted.level, "/", wanted.phase, " police=", units)
 	return {"reached": false, "frames": limit}
 
 

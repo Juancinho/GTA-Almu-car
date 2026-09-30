@@ -1,7 +1,7 @@
 class_name Pedestrian
 extends CharacterBody3D
 
-enum State { IDLE, WANDER, FLEE, DOWN }
+enum State { IDLE, WANDER, FLEE, DOWN, FIGHT }
 
 var display_name := "Vecina"
 var mission_contact := false
@@ -17,6 +17,12 @@ var model_name := ""
 var collider: CollisionShape3D
 var down_timer := 0.0
 var knocked_from := Vector3.ZERO
+var temperament := 0.0
+var conversation_count := 0
+var conversation_timer := 0.0
+var fight_timer := 0.0
+var strike_timer := 0.0
+var provoked_by_player := false
 
 
 func _ready() -> void:
@@ -26,6 +32,7 @@ func _ready() -> void:
 	home = global_position
 	destination = home
 	rng.seed = int(absf(home.x * 237.0 + home.z * 83.0)) + 91
+	temperament = rng.randf()
 	_build_visual()
 
 
@@ -60,6 +67,12 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 		human.update_motion(0.0)
 		return
+	conversation_timer = maxf(0.0, conversation_timer - delta)
+	if conversation_timer <= 0.0:
+		conversation_count = 0
+	if state == State.FIGHT:
+		_fight(delta)
+		return
 	think_timer -= delta
 	if think_timer <= 0.0:
 		think_timer = rng.randf_range(2.5, 5.0)
@@ -92,6 +105,50 @@ func flee_from(location: Vector3) -> void:
 	think_timer = 4.0
 
 
+func speak() -> String:
+	if state == State.DOWN:
+		return ""
+	conversation_count = conversation_count + 1 if conversation_timer > 0.0 else 1
+	conversation_timer = 8.0
+	if state == State.FIGHT:
+		return "¡Déjame en paz!"
+	if temperament > 0.72 and conversation_count >= 3:
+		state = State.FIGHT
+		fight_timer = 12.0
+		return "Te he dicho que me dejes tranquilo."
+	if temperament > 0.72:
+		return "Ahora mismo no tengo ganas de hablar."
+	if temperament > 0.35:
+		return "Buenas. El paseo está animado hoy."
+	return "Hola. Si buscas el centro, sigue hacia Calle Real."
+
+
+func _fight(delta: float) -> void:
+	if player == null or player.dead or player.driving_vehicle != null:
+		state = State.FLEE
+		think_timer = 4.0
+		return
+	fight_timer -= delta
+	strike_timer = maxf(0.0, strike_timer - delta)
+	if fight_timer <= 0.0:
+		flee_from(player.global_position)
+		return
+	var offset := player.global_position - global_position
+	offset.y = 0.0
+	var distance := offset.length()
+	if distance > 1.5:
+		var direction := offset.normalized()
+		velocity = Vector3(direction.x * 3.2, -3.0, direction.z * 3.2)
+		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 8.0 * delta))
+		move_and_slide()
+		human.update_motion(3.2)
+	elif strike_timer <= 0.0:
+		velocity = Vector3.ZERO
+		strike_timer = 1.4
+		human.play_action("punch", 0.55)
+		player.take_damage(7.0, "civilian_fight")
+
+
 ## Hit by a car or punched: slide back, lie on the ground, then get up and flee.
 func knock_down(from: Vector3, impulse: float) -> void:
 	if state == State.DOWN or mission_contact:
@@ -118,5 +175,11 @@ func _update_down(delta: float) -> void:
 	if down_timer <= 0.0:
 		collider.set_deferred("disabled", false)
 		human.action_timer = 0.0
-		state = State.WANDER
-		flee_from(knocked_from)
+		if provoked_by_player and temperament > 0.55:
+			state = State.FIGHT
+			fight_timer = 18.0
+			strike_timer = 0.8
+		else:
+			state = State.WANDER
+			flee_from(knocked_from)
+		provoked_by_player = false

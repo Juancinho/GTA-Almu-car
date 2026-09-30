@@ -1,0 +1,142 @@
+{
+  "description": "Design layer over the OSM reference (WORLD-003). Terrain control points are PROVISIONAL design estimates until CNIG MDT05 is cached (WORLD-004). All values in local metres (x east, z south).",
+  "bounds": [
+    -620.0,
+    -600.0,
+    620.0,
+    470.0
+  ],
+  "terrain": {
+    "cell_m": 4.0,
+    "sea_depth_m": -6.0,
+    "shore_height_m": 1.6,
+    "inland_gradient": 0.028,
+    "bumps": [
+      {
+        "name": "Cerro de San Miguel (castle hill)",
+        "x": -214.0,
+        "z": 92.0,
+        "height": 28.0,
+        "sigma": 58.0
+      },
+      {
+        "name": "Old town slope",
+        "x": -110.0,
+        "z": -250.0,
+        "height": 12.0,
+        "sigma": 130.0
+      },
+      {
+        "name": "Encarnación rise",
+        "x": -40.0,
+        "z": -350.0,
+        "height": 6.0,
+        "sigma": 90.0
+      },
+      {
+        "name": "Northern hills",
+        "x": 0.0,
+        "z": -720.0,
+        "height": 40.0,
+        "sigma": 230.0
+      }
+    ]
+  },
+  "zones": [
+    {
+      "name": "old_town",
+      "polygon": [
+        [
+          -330,
+          -60
+        ],
+        [
+          -60,
+          -40
+        ],
+        [
+          80,
+          -120
+        ],
+        [
+          120,
+          -300
+        ],
+        [
+          40,
+          -470
+        ],
+        [
+          -330,
+          -470
+        ]
+      ]
+    },
+    {
+      "name": "san_miguel",
+      "polygon": [
+        [
+          -330,
+          -60
+        ],
+        [
+          -160,
+          -40
+        ],
+        [
+          -120,
+          40
+        ],
+        [
+          -170,
+          160
+        ],
+        [
+          -330,
+          160
+        ]
+      ]
+    },
+    {
+      "name": "seafront",
+      "coast_distance_m": 150.0
+    }
+  ],
+  "landmarks": {
+    "penon_del_santo": {
+      "x": -366.0,
+      "z": 392.0,
+      "radius": 36.0,
+      "height": 30.0,
+      "offshore": [
+        [
+          -352.0,
+          468.0,
+          11.0,
+          12.0
+        ],
+        [
+          -334.0,
+          525.0,
+          9.0,
+          10.0
+        ]
+      ]
+    },
+    "phoenician_monument": {
+      "x": 18.0,
+      "z": 30.0
+    },
+    "jaime_playa": {
+      "x": 36.0,
+      "z": 52.0,
+      "note": "Approximate playable position at Bajos del Altillo, beside the Phoenician monument; Paseo del Altillo 11 / Paseo Prieto Moreno."
+    },
+    "hospital": {
+      "x": 150.0,
+      "z": -200.0,
+      "snap_to_road": true
+    }
+  },
+  "business_names": "OSM business names are replaced by fictional ones at runtime, except the explicitly requested Jaime Playa venue (D-014 amendment)."
+}

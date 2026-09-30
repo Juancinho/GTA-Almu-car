@@ -13,7 +13,7 @@ func _run() -> void:
 	get_root().add_child(root)
 	for i in range(30):
 		await physics_frame
-	var world := root.get_node("District_Altillo")
+	var world := root.get_node("District_Altillo") as SectorWorld
 	var player := root.get_node("Player") as PlayerController
 	var wanted := root.get_node("WantedSystem") as WantedSystem
 	var mission := root.get_node("Mission") as MissionController
@@ -22,7 +22,8 @@ func _run() -> void:
 
 	# 1. Punch knocks a pedestrian down and a witnessed assault raises the wanted level.
 	var victim := world.get_node("Paseante_05") as Pedestrian
-	victim.global_position = Vector3(-30, 0.1, 24)
+	var spawn := world.anchor("player_spawn")
+	victim.global_position = spawn + Vector3(6, 0.1, 0)
 	player.global_position = victim.global_position + Vector3(0, 0, 1.2)
 	player.visual.rotation.y = 0.0  # facing -Z, toward the victim
 	await physics_frame
@@ -42,9 +43,12 @@ func _run() -> void:
 	var walker := world.get_node("Paseante_07") as Pedestrian
 	player.global_position = car.global_position + Vector3(2, 0, 0)
 	player._interact()
-	car.global_position = Vector3(-60, 0.2, 8)
-	car.rotation.y = PI * 0.5  # heading west (-X)
-	walker.global_position = Vector3(-72, 0.1, 8)
+	var straight := _straight_segment(world.road_network, 34.0)
+	var heading: Vector3 = (straight[1] - straight[0]).normalized()
+	car.global_position = straight[0] + Vector3(0, 0.6, 0)
+	car.rotation.y = atan2(-heading.x, -heading.z)
+	var walker_at: Vector3 = straight[0] + heading * 14.0
+	walker.global_position = Vector3(walker_at.x, world.height_at(walker_at.x, walker_at.z) + 0.1, walker_at.z)
 	walker.state = Pedestrian.State.IDLE
 	walker.destination = walker.global_position
 	await physics_frame
@@ -62,8 +66,10 @@ func _run() -> void:
 
 	# 3. A hard crash into a façade damages the car.
 	car.speed = 0.0
-	car.rotation.y = 0.0  # heading -Z toward the Casa_-16_-33 façade at z = -25.5
-	car.global_position = Vector3(-16.0, 0.3, -2.0)
+	var facade := await _street_facade(world)
+	var start: Vector3 = facade["mid"] + facade["normal"] * 26.0
+	car.global_position = Vector3(start.x, world.height_at(start.x, start.z) + 0.6, start.z)
+	car.rotation.y = atan2(facade["normal"].x, facade["normal"].z)  # facing the wall (-normal)
 	var health_before := car.health
 	Input.action_press("move_forward")
 	for i in range(150):
@@ -102,6 +108,48 @@ func _run() -> void:
 	for i in range(3):
 		await process_frame
 	quit(0)
+
+
+## First graph edge with a clear straight run of at least `length` m: [a, b].
+func _straight_segment(network: RoadNetwork, length: float) -> Array[Vector3]:
+	for a in network.edges:
+		for b in network.edges[a]:
+			var pa := network.nodes[a]
+			var pb := network.nodes[b]
+			if Vector2(pb.x - pa.x, pb.z - pa.z).length() >= length and absf(pb.y - pa.y) < 1.5:
+				return [pa, pb]
+	return [network.nodes[0], network.nodes[1]]
+
+
+## A street-facing seafront wall with a clear 26 m run-up (ray hits it first): {mid, normal}.
+func _street_facade(world: SectorWorld) -> Dictionary:
+	await physics_frame
+	var space := world.get_world_3d().direct_space_state
+	for b in world.data.raw["buildings"]:
+		if str(b["zone"]) != "seafront":
+			continue
+		var fp: Array = b["footprint"]
+		for i in range(fp.size()):
+			var a := Vector2(float(fp[i][0]), float(fp[i][1]))
+			var c := Vector2(float(fp[(i + 1) % fp.size()][0]), float(fp[(i + 1) % fp.size()][1]))
+			if int(b["street_edges"][i]) != 1 or a.distance_to(c) < 12.0:
+				continue
+			var edge := (c - a).normalized()
+			var mid := Vector3((a.x + c.x) * 0.5, 0, (a.y + c.y) * 0.5)
+			var normal := Vector3(edge.y, 0, -edge.x)
+			var start := mid + normal * 26.0
+			var ground := world.height_at(start.x, start.z)
+			if absf(ground - world.height_at(mid.x, mid.z)) > 1.5:
+				continue
+			var query := PhysicsRayQueryParameters3D.create(Vector3(start.x, ground + 1.0, start.z), Vector3(mid.x, ground + 1.0, mid.z) - normal * 0.5)
+			var exclusions: Array[RID] = []
+			for node in world.get_tree().get_nodes_in_group("terrain"):
+				exclusions.append((node as CollisionObject3D).get_rid())
+			query.exclude = exclusions
+			var hit := space.intersect_ray(query)
+			if not hit.is_empty() and (hit["position"] as Vector3).distance_to(Vector3(mid.x, ground + 1.0, mid.z)) < 1.0:
+				return {"mid": mid, "normal": normal}
+	return {}
 
 
 func _fail(message: String) -> void:

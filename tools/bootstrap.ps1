@@ -59,6 +59,14 @@ if ($python) {
     $pythonVersion = Read-Version $python @('--version')
 }
 Add-Check 'Python' '3.11+' "$pythonVersion [$python]" ($pythonVersion -match '^Python 3\.(1[1-9]|[2-9][0-9])\.') 'Install Python 3.11 or newer.'
+if ($python) {
+    if ((Split-Path -Leaf $python) -eq 'py.exe') {
+        $worldPackages = & $python -3.13 -c 'import numpy, shapely; print(numpy.__version__, shapely.__version__)' 2>&1 | Select-Object -Last 1
+    } else {
+        $worldPackages = & $python -c 'import numpy, shapely; print(numpy.__version__, shapely.__version__)' 2>&1 | Select-Object -Last 1
+    }
+    Add-Check 'World builder packages' 'numpy 2.2.6, shapely 2.1.2' "$worldPackages" ($worldPackages -match '^2\.2\.6 2\.1\.2$') 'Run: py -3.13 -m pip install -r tools/world/requirements.txt'
+}
 
 $uv = Find-Executable '' @() 'uv'
 $uvVersion = Read-Version $uv @('--version')

@@ -20,6 +20,7 @@ var pause_label: Label
 var stars_label: Label
 var money_label: Label
 var money_delta_label: Label
+var bank_label: Label
 var health_back: ColorRect
 var health_fill: ColorRect
 var banner_label: Label
@@ -99,6 +100,16 @@ func _ready() -> void:
 	money_delta_label.add_theme_font_size_override("font_size", 20)
 	_outline(money_delta_label)
 	root.add_child(money_delta_label)
+	bank_label = Label.new()
+	bank_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	bank_label.position = Vector2(-260, 322)
+	bank_label.custom_minimum_size = Vector2(242, 30)
+	bank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	bank_label.add_theme_font_size_override("font_size", 20)
+	bank_label.add_theme_color_override("font_color", Color("e6d79b"))
+	_outline(bank_label)
+	bank_label.visible = false
+	root.add_child(bank_label)
 	banner_label = Label.new()
 	banner_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	banner_label.position = Vector2(-400, -60)
@@ -174,14 +185,14 @@ func set_game(value: PlayerController, mission_value: MissionController, wanted_
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG (CC0)" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
 
 
 func _process(delta: float) -> void:
 	pause_overlay.visible = get_tree().paused
 	if player == null:
 		return
-	mission_label.text = "MISIÓN · " + mission.objectives[mission.stage].get("text", "") if not mission.completed else "MISIÓN · El Recado completado"
+	mission_label.text = "MISIÓN · " + mission.objective_label()
 	var phase_text: String = {"clear": "sin búsqueda", "responding": "en camino", "pursuit": "persecución", "search": "buscando"}.get(wanted.phase, wanted.phase)
 	wanted_label.text = "POLICÍA · %s" % phase_text
 	var blink := wanted.phase == "search" and int(Time.get_ticks_msec() / 400) % 2 == 0
@@ -200,13 +211,100 @@ func _process(delta: float) -> void:
 	if wanted.arrest_progress() > 0.0:
 		wanted_label.text += "  ·  ¡DETENCIÓN %d %%!" % int(wanted.arrest_progress() * 100.0)
 	var street := road_network.road_name_at(player.global_position) if road_network != null else ""
-	info_label.text = "BRISA DE PONIENTE\n%s · %s" % [street if street != "" else "Paseo del Altillo", "En coche" if player.driving_vehicle != null else "A pie"]
+	var workshop: WorkshopInterior = main.world.workshop if main != null and "world" in main else null
+	var in_workshop := workshop != null and player.global_position.distance_to(workshop.inside_entry) < 30.0
+	var active_venue: VenueInterior
+	if main != null and "world" in main:
+		for venue in main.world.venues.values():
+			if (venue as VenueInterior).contains_player(player.global_position):
+				active_venue = venue
+				break
+	minimap.visible = not in_workshop and active_venue == null
+	if in_workshop:
+		street = "Taller Poniente"
+	elif active_venue != null:
+		street = _venue_display_name(active_venue.kind)
+	bank_label.visible = active_venue != null and active_venue.kind == "bank"
+	if bank_label.visible:
+		bank_label.text = "Saldo bancario: %d €" % int(main.bank_balance)
+	var movement_label := "A pie"
+	if player.driving_vehicle != null:
+		movement_label = "En coche"
+	elif player.swimming:
+		movement_label = "Buceando" if player.diving else "Nadando"
+	info_label.text = "BRISA DE PONIENTE\n%s · %s" % [street if street != "" else "Paseo del Altillo", movement_label]
 	dialogue_label.text = mission.dialogue
 	if player.driving_vehicle != null:
 		prompt_label.text = "WASD conducir · Espacio freno de mano · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
+	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.service_point) < 2.8:
+		prompt_label.text = "E · Reparar coche aparcado (75 €)"
+	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.inside_entry) < 2.8:
+		prompt_label.text = "E · Salir del Taller Poniente"
+	elif workshop != null and player.global_position.distance_to(workshop.exterior_entry) < 3.0:
+		prompt_label.text = "E · Entrar en Taller Poniente"
+	elif active_venue != null and player.global_position.distance_to(active_venue.service_point) < 2.7:
+		match active_venue.kind:
+			"bank":
+				prompt_label.text = "E · Ingresar 100 €"
+			"jewellery":
+				prompt_label.text = "E · Vitrina vacía" if main.jewellery_robbed else "E · Robar vitrina"
+			"supermarket":
+				prompt_label.text = "E · Comprar comida (15 €)"
+			"mall":
+				prompt_label.text = "E · Comprar comida (15 €)"
+			"cafe":
+				prompt_label.text = "E · Café y tostada (8 €)"
+			"church":
+				prompt_label.text = "E · Descansar"
+			_:
+				prompt_label.text = "E · Pedir menú (35 €)"
+	elif active_venue != null and active_venue.kind == "bank" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
+		prompt_label.text = "E · Retirar 100 €"
+	elif active_venue != null and player.global_position.distance_to(active_venue.inside_entry) < 2.7:
+		prompt_label.text = "E · Salir del local"
+	elif _nearby_venue() != null:
+		prompt_label.text = "E · Entrar en " + _venue_display_name(_nearby_venue().kind)
+	elif _nearby_beach_bar() != null:
+		prompt_label.text = "E · Pedir menú en " + _nearby_beach_bar().bar_name + " (35 €)"
+	elif player.swimming:
+		prompt_label.text = "WASD nadar · C bucear · Espacio subir  |  Aire %.0f s" % player.breath
 	elif player.nearby_contact() != null:
 		prompt_label.text = "E · Hablar con " + player.nearby_contact().display_name
 	elif player.nearby_vehicle() != null:
 		prompt_label.text = "E · Entrar en el coche"
 	else:
 		prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · Ratón cámara"
+
+
+func _nearby_venue() -> VenueInterior:
+	for node in get_tree().get_nodes_in_group("interiors"):
+		if node is VenueInterior and player.global_position.distance_to((node as VenueInterior).exterior_entry) < 3.0:
+			return node as VenueInterior
+	return null
+
+
+func _nearby_beach_bar() -> BeachBarService:
+	var main := get_parent()
+	if main == null or not ("world" in main):
+		return null
+	for bar in main.world.beach_bars:
+		if player.global_position.distance_to(bar.global_position) < 2.6:
+			return bar
+	return null
+
+
+func _venue_display_name(kind: String) -> String:
+	match kind:
+		"supermarket":
+			return "Mercado Azul"
+		"restaurant":
+			return "La Brisa · Restaurante"
+		"bank":
+			return "Caja Poniente"
+		"jewellery":
+			return "Joyería Faro"
+		"church":
+			return "Iglesia de la Encarnación"
+		"mall":
+			return "Galería Costa Tropical"
+	return str(VenueInterior.SPECS.get(kind, {}).get("sign", kind))

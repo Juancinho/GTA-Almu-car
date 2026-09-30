@@ -2,6 +2,7 @@ class_name PlayerController
 extends CharacterBody3D
 
 signal contact_interacted(contact: Pedestrian)
+signal civilian_interacted(civilian: Pedestrian)
 signal vehicle_entered(vehicle: DriveableVehicle)
 signal vehicle_jacked(vehicle: DriveableVehicle, driver: Pedestrian)
 signal health_changed(value: float)
@@ -19,6 +20,9 @@ const CAMERA_RECENTER_DELAY := 0.9
 const GAMEPAD_LOOK_SPEED := 2.6
 const MAX_HEALTH := 100.0
 const PUNCH_RANGE := 1.9
+const SWIM_SPEED := 3.4
+const DIVE_SPEED := 2.7
+const MAX_BREATH := 16.0
 
 var camera_pivot: Node3D
 var camera_arm: SpringArm3D
@@ -35,6 +39,10 @@ var look_idle_time := 0.0
 var health := MAX_HEALTH
 var dead := false
 var attack_cooldown := 0.0
+var sector_data: SectorData
+var swimming := false
+var diving := false
+var breath := MAX_BREATH
 
 
 func _ready() -> void:
@@ -134,6 +142,15 @@ func _physics_process(delta: float) -> void:
 	if driving_vehicle != null:
 		global_position = driving_vehicle.global_position + Vector3(0, 0.3, 0)
 		return
+	var water_depth := -sector_data.height_at(global_position.x, global_position.z) if sector_data != null and sector_data.surface_at(global_position.x, global_position.z) == "sea" else 0.0
+	if water_depth > 0.7 and global_position.y < 0.35:
+		_swim(delta)
+		return
+	if swimming:
+		swimming = false
+		diving = false
+		breath = MAX_BREATH
+		global_position.y = maxf(global_position.y, sector_data.height_at(global_position.x, global_position.z) + 0.1)
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	elif Input.is_action_just_pressed("jump"):
@@ -159,6 +176,35 @@ func _physics_process(delta: float) -> void:
 		step_timer = 0.29 if Input.is_action_pressed("sprint") else 0.43
 
 
+func _swim(delta: float) -> void:
+	swimming = true
+	diving = Input.is_action_pressed("dive")
+	var axis := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var forward := -camera.global_transform.basis.z
+	var right := camera.global_transform.basis.x
+	forward.y = 0.0
+	right.y = 0.0
+	var direction := (right.normalized() * axis.x + forward.normalized() * -axis.y).normalized()
+	var target := direction * (DIVE_SPEED if diving else SWIM_SPEED)
+	velocity.x = move_toward(velocity.x, target.x, 7.0 * delta)
+	velocity.z = move_toward(velocity.z, target.z, 7.0 * delta)
+	var bed := sector_data.height_at(global_position.x, global_position.z)
+	var target_y := maxf(bed + 0.45, -2.4) if diving else maxf(bed + 0.1, -0.65)
+	if Input.is_action_pressed("jump"):
+		target_y = -0.15
+	velocity.y = clampf((target_y - global_position.y) * 4.0, -2.5, 2.5)
+	move_and_slide()
+	if direction.length_squared() > 0.01:
+		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 6.0 * delta))
+	human.update_motion(direction.length() * 2.0, false)
+	if global_position.y < -1.1:
+		breath = maxf(0.0, breath - delta)
+		if breath <= 0.0:
+			take_damage(18.0 * delta, "drowning")
+	else:
+		breath = minf(MAX_BREATH, breath + 3.0 * delta)
+
+
 func _interact() -> void:
 	if driving_vehicle != null:
 		var car := driving_vehicle
@@ -172,6 +218,9 @@ func _interact() -> void:
 		visual.visible = true
 		collider.set_deferred("disabled", false)
 		return
+	for interior in get_tree().get_nodes_in_group("interiors"):
+		if interior.has_method("try_interact") and bool(interior.call("try_interact", self)):
+			return
 	var best: DriveableVehicle
 	var best_distance := 4.0
 	for node in get_tree().get_nodes_in_group("vehicles"):
@@ -189,6 +238,19 @@ func _interact() -> void:
 	var contact := nearby_contact()
 	if contact != null:
 		contact_interacted.emit(contact)
+		return
+	var civilian: Pedestrian
+	var distance := 2.8
+	for node in get_tree().get_nodes_in_group("pedestrians"):
+		var person := node as Pedestrian
+		if person == null or person.mission_contact or person.state == Pedestrian.State.DOWN:
+			continue
+		var gap := global_position.distance_to(person.global_position)
+		if gap < distance:
+			civilian = person
+			distance = gap
+	if civilian != null:
+		civilian_interacted.emit(civilian)
 
 
 ## Put the player in the driver seat (used by interaction and save loading).
@@ -226,6 +288,13 @@ func heal_full() -> void:
 	health_changed.emit(health)
 
 
+func heal(amount: float) -> void:
+	if dead or amount <= 0.0:
+		return
+	health = minf(MAX_HEALTH, health + amount)
+	health_changed.emit(health)
+
+
 ## On-foot punch: the hit lands 0.25 s into the clip on the nearest person in front.
 func punch() -> void:
 	if dead or driving_vehicle != null or attack_cooldown > 0.0:
@@ -248,6 +317,7 @@ func _land_punch() -> void:
 		var offset := person.global_position - global_position
 		offset.y = 0.0
 		if offset.length() < PUNCH_RANGE and offset.normalized().dot(forward) > 0.35:
+			person.provoked_by_player = true
 			person.knock_down(global_position, 4.0)
 			assaulted.emit(person)
 			return
@@ -287,6 +357,10 @@ func _safe_exit_position(car: DriveableVehicle) -> Vector3:
 	for offset in candidates:
 		var spot := car.global_position + Vector3(offset.x, 0.2, offset.z)
 		query.transform = Transform3D(Basis.IDENTITY, spot + Vector3(0, 1.0, 0))
-		if space.intersect_shape(query, 1).is_empty():
+		# Building colliders are one-sided shells: a spot already past a wall does not
+		# overlap anything, so also require a clear line from the car to the spot.
+		var line := PhysicsRayQueryParameters3D.create(car.global_position + Vector3(0, 1.0, 0), spot + Vector3(0, 1.0, 0) + Vector3(offset.x, 0, offset.z).normalized() * 0.4)
+		line.exclude = [car.get_rid(), get_rid()]
+		if space.intersect_shape(query, 1).is_empty() and space.intersect_ray(line).is_empty():
 			return spot
 	return car.global_position + Vector3(0, 2.2, 0)

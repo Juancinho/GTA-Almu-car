@@ -25,6 +25,8 @@ const AI_REVERSE_SECONDS := 1.1
 const MAX_HEALTH := 1000.0
 const IMPACT_THRESHOLD := 7.0
 const EXPLOSION_RADIUS := 7.0
+const FAR_SIMULATION_M := 130.0  # beyond this, traffic moves kinematically along its lane
+static var terrain_rids: Array[RID] = []
 
 var driver: PlayerController
 var speed := 0.0
@@ -39,12 +41,14 @@ var traffic := false
 var traffic_speed := 10.0
 var lane_from := -1
 var lane_to := -1
+var lane_next := -1
 var traffic_rng := RandomNumberGenerator.new()
 var occupant: HumanModel
 var health := MAX_HEALTH
 var destroyed := false
 var burn_timer := -1.0
 var damage_fx: VehicleDamageFx
+var far_tick := 0
 var recent_speed := 0.0  # decaying peak speed: contacts are often reported a frame after the impact
 var occupant_name := ""
 var pursuit_target := Vector3.ZERO
@@ -60,10 +64,17 @@ var ai_wait_timer := 0.0
 var ai_reverse_timer := 0.0
 var ai_reverse_steer := 1.0
 var ai_blocker: Object
+var sector_data: SectorData
+var last_dry_transform := Transform3D.IDENTITY
 
 
 func _ready() -> void:
 	add_to_group("vehicles")
+	var sectors := get_tree().get_nodes_in_group("sector_world")
+	if not sectors.is_empty():
+		sector_data = (sectors[0] as SectorWorld).data
+	last_dry_transform = global_transform
+	floor_snap_length = 0.45
 	_build_visuals()
 	engine_audio = AudioStreamPlayer3D.new()
 	engine_audio.name = "EngineAudio"
@@ -149,7 +160,9 @@ func set_occupant(model_name: String) -> void:
 			occupant.queue_free()
 		occupant = HumanModel.new(model_name)
 		occupant.name = "Occupant"
-		occupant.position = Vector3(-0.38, 0.05, 0.15)
+		# FBX sitting animation retains a tall root offset. Keep the seated model
+		# under the roof line while the on-foot player body is hidden.
+		occupant.position = Vector3(-0.38, -0.45, 0.15)
 		add_child(occupant)
 	occupant.visible = true
 	occupant.play_state("sitting")
@@ -178,37 +191,64 @@ func start_traffic(network: RoadNetwork, from_node: int, to_node: int, seed_valu
 	lane_from = from_node
 	lane_to = to_node
 	traffic_rng.seed = seed_value
-	traffic_speed = traffic_rng.randf_range(8.5, 11.5)
+	traffic_speed = traffic_rng.randf_range(8.0, 11.0)
+	lane_next = _choose_next(lane_from, lane_to)
+
+
+func _lane_offset(a: int, b: int) -> float:
+	return road_network.lane_offset if road_network.is_two_way(a, b) else 0.0
 
 
 func _drive_traffic(delta: float) -> void:
 	var a := road_network.nodes[lane_from]
 	var b := road_network.nodes[lane_to]
-	var segment := b - a
+	var segment := Vector3(b.x - a.x, 0.0, b.z - a.z)
 	var length := segment.length()
-	if length < 0.5:
-		_pick_next_lane()
+	if length < 0.3:
+		_advance_lane()
 		return
 	var direction := segment / length
 	var right := Vector3(-direction.z, 0.0, direction.x)
-	var along := (global_position - a).dot(direction)
-	if along > length - 8.0:
-		_pick_next_lane()
+	var along := Vector3(global_position.x - a.x, 0.0, global_position.z - a.z).dot(direction)
+	if along > length - 3.0:
+		_advance_lane()
 		return
-	var aim := a + direction * minf(along + 11.0, length) + right * road_network.lane_offset
+	var look := along + 10.0
+	var aim: Vector3
+	if look <= length:
+		aim = a + direction * look + right * _lane_offset(lane_from, lane_to)
+	else:  # look ahead into the next segment so curves are anticipated
+		var c := road_network.nodes[lane_next]
+		var next_dir := Vector3(c.x - b.x, 0.0, c.z - b.z).normalized()
+		aim = b + next_dir * (look - length) + Vector3(-next_dir.z, 0.0, next_dir.x) * _lane_offset(lane_to, lane_next)
 	var cruise := traffic_speed
-	if length - along < 22.0:
-		cruise = minf(cruise, 6.0)
+	if length - along < 20.0 and _turn_is_sharp(direction):
+		cruise = minf(cruise, 5.5)
 	_follow_target(delta, aim, cruise)
 
 
-func _pick_next_lane() -> void:
-	var options: Array = (road_network.edges[lane_to] as Array).duplicate()
+func _turn_is_sharp(direction: Vector3) -> bool:
+	if (road_network.edges[lane_to] as Array).size() > 2:
+		return true  # intersection: slow down
+	var b := road_network.nodes[lane_to]
+	var c := road_network.nodes[lane_next]
+	var next_dir := Vector3(c.x - b.x, 0.0, c.z - b.z).normalized()
+	return direction.dot(next_dir) < 0.85
+
+
+func _choose_next(from_node: int, to_node: int) -> int:
+	var options: Array = (road_network.edges[to_node] as Array).duplicate()
 	if options.size() > 1:
-		options.erase(lane_from)
-	var next: int = options[traffic_rng.randi_range(0, options.size() - 1)]
+		options.erase(from_node)
+	if options.is_empty():
+		return from_node
+	return options[traffic_rng.randi_range(0, options.size() - 1)]
+
+
+func _advance_lane() -> void:
 	lane_from = lane_to
-	lane_to = next
+	lane_to = lane_next
+	lane_next = _choose_next(lane_from, lane_to)
 
 
 func _material(color: Color) -> StandardMaterial3D:
@@ -223,6 +263,11 @@ func _material(color: Color) -> StandardMaterial3D:
 
 
 func _physics_process(delta: float) -> void:
+	if _deep_water(global_position):
+		global_transform = last_dry_transform
+		speed = 0.0
+		velocity = Vector3.ZERO
+		return
 	if burn_timer > 0.0:
 		var before := burn_timer
 		burn_timer -= delta
@@ -239,17 +284,24 @@ func _physics_process(delta: float) -> void:
 	elif pursuing:
 		_pursue(delta)
 	elif traffic and road_network != null and lane_to >= 0:
+		if _far_from_player():
+			_far_traffic_step(delta)
+			return
 		_drive_traffic(delta)
 	elif auto_drive and route.size() > 1:
 		_follow_route(delta)
 	else:
 		speed = move_toward(speed, 0.0, DRAG * delta)
 	var forward := -global_transform.basis.z
+	if absf(speed) > 0.1 and _deep_water(global_position + forward * (speed * delta + signf(speed) * 2.3)):
+		speed = 0.0
 	velocity = forward * speed
-	velocity.y = -8.0 if not is_on_floor() else -0.2
+	velocity.y = maxf(velocity.y - 16.0 * delta, -18.0) if not is_on_floor() else -0.2
 	var speed_before := absf(speed)
 	recent_speed = maxf(speed_before, recent_speed - 25.0 * delta)
 	move_and_slide()
+	if not _deep_water(global_position) and is_on_floor():
+		last_dry_transform = global_transform
 	_resolve_contacts(recent_speed)
 	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
 	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
@@ -259,6 +311,10 @@ func _physics_process(delta: float) -> void:
 		var impact := absf(forward.dot(get_wall_normal()))
 		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+func _deep_water(at: Vector3) -> bool:
+	return sector_data != null and sector_data.surface_at(at.x, at.z) == "sea" and sector_data.height_at(at.x, at.z) < -0.7
 
 
 ## Pedestrians and an on-foot player hit at speed are knocked down / hurt.
@@ -420,8 +476,8 @@ func _follow_target(delta: float, target: Vector3, cruise_speed: float) -> void:
 	var desired_angle := atan2(-offset.x, -offset.z)
 	rotation.y = lerp_angle(rotation.y, desired_angle, minf(1.0, 2.4 * delta))
 	var look_ahead := -global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.8, global_position + look_ahead * 7.0 + Vector3.UP * 0.8)
-	query.exclude = [get_rid()]
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.0, global_position + look_ahead * 7.0 + Vector3.UP * 1.0)
+	query.exclude = _ray_exclusions()
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	var blocked := not hit.is_empty()
 	ai_blocker = hit.get("collider") if blocked else null
@@ -429,6 +485,51 @@ func _follow_target(delta: float, target: Vector3, cruise_speed: float) -> void:
 	var acceleration := 10.0 if pursuing else 6.0
 	speed = move_toward(speed, target_speed, (16.0 if blocked or speed > target_speed else acceleration) * delta)
 	_update_stuck(delta, blocked, cruise_speed)
+
+
+## The ground never counts as an obstacle (steep old-town lanes would read as walls).
+func _ray_exclusions() -> Array[RID]:
+	if terrain_rids.is_empty() or not terrain_rids[0].is_valid():
+		terrain_rids.clear()
+		for node in get_tree().get_nodes_in_group("terrain"):
+			terrain_rids.append((node as CollisionObject3D).get_rid())
+	var list: Array[RID] = [get_rid()]
+	list.append_array(terrain_rids)
+	return list
+
+
+func _far_from_player() -> bool:
+	var players := get_tree().get_nodes_in_group("player")
+	if players.is_empty():
+		return false
+	var p := (players[0] as Node3D).global_position
+	return Vector2(p.x - global_position.x, p.z - global_position.z).length() > FAR_SIMULATION_M
+
+
+## Distance-based simulation: far traffic glides along its lane every 4th tick with no
+## physics queries; it snaps back to full physics when the player comes close.
+func _far_traffic_step(delta: float) -> void:
+	far_tick += 1
+	if far_tick % 4 != 0:
+		return
+	var step := traffic_speed * delta * 4.0
+	var a := road_network.nodes[lane_from]
+	var b := road_network.nodes[lane_to]
+	var segment := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	var length := segment.length()
+	if length < 0.3:
+		_advance_lane()
+		return
+	var direction := segment / length
+	var along := Vector3(global_position.x - a.x, 0.0, global_position.z - a.z).dot(direction) + step
+	if along >= length:
+		_advance_lane()
+		return
+	var offset := _lane_offset(lane_from, lane_to)
+	var point := a.lerp(b, along / length) + Vector3(-direction.z, 0.0, direction.x) * offset
+	global_position = Vector3(point.x, point.y + 0.35, point.z)
+	rotation.y = atan2(-direction.x, -direction.z)
+	speed = traffic_speed
 
 
 ## Static geometry ahead (or a long wait behind traffic while pursuing) triggers a

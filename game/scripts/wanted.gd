@@ -29,6 +29,7 @@ var incident_cooldown := 0.0
 var arrest_timer := 0.0
 var in_restricted_zone := false
 var police_cars: Array[DriveableVehicle] = []
+var restricted_zones: Array = []  # [{name, x, z, radius}] from the sector data
 
 
 func configure(target: PlayerController, network: RoadNetwork = null) -> void:
@@ -44,6 +45,13 @@ func report_crime(kind: String, location: Vector3) -> void:
 	crime_reported.emit(kind, witnessed)
 
 
+func report_scripted_crime(kind: String, location: Vector3) -> void:
+	# A staffed venue has its own alarm, independent of nearby outdoor pedestrians.
+	incident_cooldown = 0.0
+	var reported := report_incident(location, true)
+	crime_reported.emit(kind, reported)
+
+
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
@@ -51,7 +59,9 @@ func _physics_process(delta: float) -> void:
 	var restricted := false
 	if player.driving_vehicle != null:
 		var vehicle_pos := player.driving_vehicle.global_position
-		restricted = absf(vehicle_pos.x - 58.0) < 20.0 and absf(vehicle_pos.z + 78.0) < 18.0
+		for zone in restricted_zones:
+			if Vector2(vehicle_pos.x - float(zone["x"]), vehicle_pos.z - float(zone["z"])).length() < float(zone["radius"]):
+				restricted = true
 		if restricted and not in_restricted_zone and incident_cooldown <= 0.0 and level < 2:
 			report_incident(vehicle_pos)
 	in_restricted_zone = restricted
@@ -144,8 +154,9 @@ func arrest_progress() -> float:
 	return clampf(arrest_timer / ARREST_SECONDS, 0.0, 1.0)
 
 
-func report_incident(location: Vector3) -> bool:
-	if incident_cooldown > 0.0 or not _witness_near(location):
+## `forced` skips the witness check (scripted sightings, e.g. a mission officer).
+func report_incident(location: Vector3, forced: bool = false) -> bool:
+	if incident_cooldown > 0.0 or not (forced or _witness_near(location)):
 		return false
 	incident_cooldown = 14.0
 	last_known = location
@@ -180,7 +191,7 @@ func _spawn_police_car(index: int) -> void:
 	car.body_color = Color("344d67")
 	car.variant = "police_local"
 	var spawn := _spawn_point(last_known, index)
-	car.position = spawn + Vector3(0, 0.2, 0)
+	car.position = spawn + Vector3(0, 0.6, 0)
 	var facing := last_known - spawn
 	car.rotation.y = atan2(-facing.x, -facing.z) if facing.length_squared() > 1.0 else 0.0
 	car.pursuing = true
@@ -192,31 +203,27 @@ func _spawn_police_car(index: int) -> void:
 
 
 func _spawn_point(location: Vector3, index: int) -> Vector3:
-	var fallback := Vector3(151.0 if index == 1 else -20.0, 0.0, -78.0)
-	if road_network == null:
+	var fallback := location + Vector3(40, 0, 0)
+	if road_network == null or road_network.nodes.is_empty():
 		return fallback
 	var band: Vector2 = SPAWN_BANDS[mini(index, 2)]
 	var heading := _player_heading()
 	var best := fallback
 	var best_score := INF
-	for road in road_network.roads:
-		var t := float(road["from"])
-		while t <= float(road["to"]):
-			var point := Vector3(t, 0, float(road["fixed"])) if str(road["axis"]) == "x" else Vector3(float(road["fixed"]), 0, t)
-			t += 4.0
-			var distance := Vector2(point.x - location.x, point.z - location.z).length()
-			if distance < band.x or distance > band.y:
-				continue
-			var direction := (point - location).normalized()
-			var score := direction.dot(heading)
-			if index >= 2:
-				score = -score
-			for car in police_cars:
-				if is_instance_valid(car) and car.global_position.distance_to(point) < 15.0:
-					score += 10.0
-			if score < best_score:
-				best_score = score
-				best = point
+	for point in road_network.nodes:
+		var distance := Vector2(point.x - location.x, point.z - location.z).length()
+		if distance < band.x or distance > band.y:
+			continue
+		var direction := (point - location).normalized()
+		var score := direction.dot(heading)
+		if index >= 2:
+			score = -score
+		for car in police_cars:
+			if is_instance_valid(car) and car.global_position.distance_to(point) < 15.0:
+				score += 10.0
+		if score < best_score:
+			best_score = score
+			best = point
 	return best
 
 

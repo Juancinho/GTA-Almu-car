@@ -1,0 +1,39 @@
+{
+  "id": "jaime_playa",
+  "title": "La noche de Jaime",
+  "reward": 150,
+  "fail_checkpoint": 0,
+  "fail_dialogue": "Marina: Sin prisa, el equipo sigue junto al monumento.",
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Marina",
+      "text": "Habla con Marina en Jaime Playa",
+      "dialogue": "Marina: Esta noche tenemos música en Jaime Playa. ¿Me ayudas a traer el equipo desde el monumento fenicio?",
+      "marker_anchor": "jaime_staff"
+    },
+    {
+      "type": "reach_area",
+      "text": "Recoge el equipo junto al monumento fenicio",
+      "radius": 3.0,
+      "requires_on_foot": true,
+      "dialogue": "Ya tienes el equipo. Vuelve a Jaime Playa por el paseo.",
+      "marker_anchor": "jaime_equipment"
+    },
+    {
+      "type": "reach_area",
+      "text": "Lleva el equipo a la terraza de Jaime Playa",
+      "radius": 7.0,
+      "requires_on_foot": true,
+      "dialogue": "Marina: Perfecto. Deja el equipo junto al mostrador.",
+      "marker_anchor": "jaime_playa"
+    },
+    {
+      "type": "talk_to",
+      "target": "Marina",
+      "text": "Confirma con Marina que todo está listo",
+      "dialogue": "Marina: Gracias. ¡Ahora sí puede empezar la noche!",
+      "marker_anchor": "jaime_staff"
+    }
+  ]
+}

@@ -1,19 +1,18 @@
 extends Node3D
 
-const WorldScript = preload("res://scripts/world.gd")
+const WorldScript = preload("res://scripts/sector_world.gd")
 const PlayerScript = preload("res://scripts/player.gd")
 const HudScript = preload("res://scripts/hud.gd")
 const WantedScript = preload("res://scripts/wanted.gd")
 const MissionScript = preload("res://scripts/mission.gd")
 const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
 const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
-const ARREST_RESPAWN := Vector3(92.0, 0.2, 30.0)
-const HOSPITAL_RESPAWN := Vector3(-110.0, 0.2, 26.0)
-const MISSION_REWARD := 500
 const ARREST_FEE := 100
 const HOSPITAL_FEE := 100
 
-var world: Node3D
+var world: SectorWorld
+var ARREST_RESPAWN := Vector3.ZERO
+var HOSPITAL_RESPAWN := Vector3.ZERO
 var player: PlayerController
 var hud: GameHud
 var wanted: WantedSystem
@@ -25,6 +24,8 @@ var ui_audio: AudioStreamPlayer
 var quality_level := 2
 var volume_level := 2
 var money := 0
+var bank_balance := 0
+var jewellery_robbed := false
 
 
 func _ready() -> void:
@@ -37,7 +38,11 @@ func _ready() -> void:
 	add_child(world)
 	player = PlayerScript.new()
 	player.name = "Player"
-	player.position = Vector3(92.0, 0.2, 30.0)
+	player.sector_data = world.data
+	player.position = world.anchor("player_spawn") + Vector3(0, 0.3, 0)
+	player.camera_yaw = PI * 0.15
+	ARREST_RESPAWN = world.anchor("arrest_release") + Vector3(0, 0.3, 0)
+	HOSPITAL_RESPAWN = world.anchor("hospital") + Vector3(3.5, 0.4, 0)
 	player.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(player)
 	wanted = WantedScript.new()
@@ -45,12 +50,14 @@ func _ready() -> void:
 	wanted.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(wanted)
 	wanted.configure(player, world.road_network)
+	wanted.restricted_zones = world.restricted_zones
 	wanted.player_busted.connect(_on_player_busted)
 	wanted.wanted_changed.connect(_on_wanted_changed)
 	mission = MissionScript.new()
 	mission.name = "Mission"
 	mission.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(mission)
+	mission.anchors = world.data.raw.get("anchors", {})
 	mission.configure(player, wanted)
 	mission.objective_changed.connect(_play_ui_feedback)
 	mission.objective_changed.connect(_on_objective_changed)
@@ -60,11 +67,23 @@ func _ready() -> void:
 	player.vehicle_jacked.connect(_on_vehicle_jacked)
 	player.died.connect(_on_player_died)
 	player.assaulted.connect(func(victim: Pedestrian) -> void: wanted.report_crime("agresión", victim.global_position))
+	player.civilian_interacted.connect(func(civilian: Pedestrian) -> void: mission._show_dialogue(civilian.speak()))
+	world.workshop.repair_requested.connect(_on_workshop_repair)
+	for venue in world.venues.values():
+		(venue as VenueInterior).purchase_requested.connect(_on_venue_purchase)
+		(venue as VenueInterior).bank_transaction_requested.connect(_on_bank_transaction)
+		(venue as VenueInterior).robbery_requested.connect(_on_jewellery_robbery)
+	for bar in world.beach_bars:
+		bar.meal_requested.connect(func() -> void: _on_venue_purchase("restaurant"))
 	wanted.crime_reported.connect(func(kind: String, witnessed: bool) -> void: playtest_log.record("crime", {"kind": kind, "witnessed": witnessed}))
 	hud = HudScript.new()
 	add_child(hud)
 	hud.set_game(player, mission, wanted)
 	hud.road_network = world.road_network
+	hud.minimap.workshop_marker = Vector2(world.workshop.exterior_entry.x, world.workshop.exterior_entry.z)
+	for kind in world.venues:
+		var venue := world.venues[kind] as VenueInterior
+		hud.minimap.venue_markers[kind] = Vector2(venue.exterior_entry.x, venue.exterior_entry.z)
 	perf_monitor = PerfMonitorScript.new()
 	perf_monitor.name = "PerfMonitor"
 	perf_monitor.context_provider = _perf_context
@@ -135,6 +154,73 @@ func add_money(amount: int) -> void:
 	hud.show_money_change(amount)
 
 
+func _on_workshop_repair() -> void:
+	var selected: DriveableVehicle
+	var nearest := 15.0
+	for node in get_tree().get_nodes_in_group("vehicles"):
+		var vehicle := node as DriveableVehicle
+		if vehicle == null or vehicle.destroyed or vehicle.traffic:
+			continue
+		var distance := vehicle.global_position.distance_to(world.workshop.exterior_entry)
+		if distance < nearest:
+			selected = vehicle
+			nearest = distance
+	if selected == null:
+		mission._show_dialogue("Mecánico: aparca el coche junto al taller y vuelve.")
+	elif money < 75:
+		mission._show_dialogue("Mecánico: la reparación cuesta 75 €.")
+	else:
+		selected.repair()
+		add_money(-75)
+		mission._show_dialogue("Mecánico: listo. Ya puedes volver a la carretera.")
+
+
+func _on_venue_purchase(kind: String) -> void:
+	if kind == "church":
+		player.heal(20.0)
+		mission._show_dialogue("Un momento de calma en la Encarnación. Recuperas fuerzas.")
+		return
+	var spec: Dictionary = VenueInterior.SPECS.get(kind, {})
+	var price := int(spec.get("price", 15 if kind == "supermarket" or kind == "mall" else 35))
+	if player.health >= PlayerController.MAX_HEALTH:
+		mission._show_dialogue("Ahora mismo no necesitas recuperar salud.")
+	elif money < price:
+		mission._show_dialogue("Te faltan %d € para pagar." % (price - money))
+	else:
+		add_money(-price)
+		player.heal(float(spec.get("heal", 30.0 if kind == "supermarket" or kind == "mall" else PlayerController.MAX_HEALTH)))
+		mission._show_dialogue("Camarera: café recién hecho y tostada. ¡Que aproveche!" if kind == "cafe" else "Dependiente: aquí tienes. Que te aproveche." if kind == "supermarket" or kind == "mall" else "Camarero: el menú de hoy te sentará bien.")
+
+
+func _on_bank_transaction(action: String) -> void:
+	if action == "deposit":
+		if money < 100:
+			mission._show_dialogue("Caja Poniente: necesitas 100 € en efectivo. Saldo: %d €." % bank_balance)
+			return
+		add_money(-100)
+		bank_balance += 100
+		mission._show_dialogue("Caja Poniente: ingresados 100 €. Saldo: %d €." % bank_balance)
+	elif action == "withdraw":
+		if bank_balance < 100:
+			mission._show_dialogue("Cajero: saldo insuficiente. Saldo: %d €." % bank_balance)
+			return
+		bank_balance -= 100
+		add_money(100)
+		mission._show_dialogue("Cajero: retirados 100 €. Saldo: %d €." % bank_balance)
+
+
+func _on_jewellery_robbery() -> void:
+	if jewellery_robbed:
+		mission._show_dialogue("La vitrina está vacía. La dependienta ya ha avisado a la policía.")
+		return
+	jewellery_robbed = true
+	(world.venues["jewellery"] as VenueInterior).set_robbed(true)
+	add_money(250)
+	wanted.report_scripted_crime("robo en joyería", (world.venues["jewellery"] as VenueInterior).exterior_entry)
+	hud.show_banner("BOTÍN 250 €", Color("f2d36b"))
+	mission._show_dialogue("Dependienta: ¡Alto! La alarma está conectada con la comisaría.")
+
+
 func _on_vehicle_jacked(vehicle: DriveableVehicle, _driver: Pedestrian) -> void:
 	playtest_log.record("carjack", {"vehicle": str(vehicle.name)})
 
@@ -150,6 +236,7 @@ func _respawn_at_hospital() -> void:
 		player._interact()
 	wanted.clear_wanted()
 	player.global_position = HOSPITAL_RESPAWN
+	_sync_venue_rooms()
 	player.velocity = Vector3.ZERO
 	player.heal_full()
 	world.reset_vehicle("FirstCar")
@@ -158,8 +245,9 @@ func _respawn_at_hospital() -> void:
 
 
 func _on_mission_completed() -> void:
-	playtest_log.record("mission_completed", {"stage": mission.stage})
-	add_money(MISSION_REWARD)
+	playtest_log.record("mission_completed", {"id": mission.mission_id, "stage": mission.stage})
+	add_money(mission.reward)
+	hud.show_banner("MISIÓN COMPLETADA", Color("a4db8b"))
 	_auto_report("mission_completed")
 
 
@@ -180,6 +268,7 @@ func _on_player_busted() -> void:
 	if player.driving_vehicle != null:
 		player._interact()
 	player.global_position = ARREST_RESPAWN
+	_sync_venue_rooms()
 	player.velocity = Vector3.ZERO
 	world.reset_vehicle("FirstCar")
 	hud.show_banner("DETENIDO", Color("5b8bd9"))
@@ -235,6 +324,7 @@ func _configure_input() -> void:
 	_add_key("move_right", KEY_D)
 	_add_key("sprint", KEY_SHIFT)
 	_add_key("jump", KEY_SPACE)
+	_add_key("dive", KEY_C)
 	_add_key("interact", KEY_E)
 	_add_key("pause", KEY_ESCAPE)
 	_add_key("brake", KEY_SPACE)
@@ -264,6 +354,7 @@ func _configure_input() -> void:
 	_add_joy_axis("move_forward", JOY_AXIS_LEFT_Y, -1.0)
 	_add_joy_axis("move_back", JOY_AXIS_LEFT_Y, 1.0)
 	_add_joy_button("jump", JOY_BUTTON_A)
+	_add_joy_button("dive", JOY_BUTTON_B)
 	_add_joy_button("interact", JOY_BUTTON_X)
 	_add_joy_button("sprint", JOY_BUTTON_LEFT_SHOULDER)
 	_add_joy_button("pause", JOY_BUTTON_START)
@@ -305,10 +396,16 @@ func _save_game() -> void:
 		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
 		"camera_yaw": player.camera_yaw,
 		"mission_stage": mission.stage,
+		"mission_id": mission.mission_id,
+		"jaime_finished": mission.jaime_finished,
+		"suspended_el_recado_stage": mission.suspended_el_recado_stage,
 		"quality_level": quality_level,
 		"volume_level": volume_level,
 		"money": money,
+		"bank_balance": bank_balance,
+		"jewellery_robbed": jewellery_robbed,
 		"health": player.health,
+		"breath": player.breath,
 		"vehicle_name": vehicle.name if vehicle != null else "",
 		"vehicle_position": [vehicle.global_position.x, vehicle.global_position.y, vehicle.global_position.z] if vehicle != null else [],
 		"vehicle_yaw": vehicle.rotation.y if vehicle != null else 0.0
@@ -339,13 +436,22 @@ func _load_game() -> void:
 		push_error("Invalid player position in save_v1.json")
 		return
 	player.global_position = Vector3(float(point[0]), float(point[1]), float(point[2]))
+	_sync_venue_rooms()
 	player.velocity = Vector3.ZERO
 	player.camera_yaw = float(data.get("camera_yaw", -2.0))
 	player._update_camera_orientation()
+	if not mission.load_mission(str(data.get("mission_id", "el_recado")), false):
+		return
+	mission.jaime_finished = bool(data.get("jaime_finished", false))
+	mission.suspended_el_recado_stage = int(data.get("suspended_el_recado_stage", -1))
 	mission.restore_stage(int(data.get("mission_stage", 0)))
 	money = maxi(0, int(data.get("money", money)))
+	bank_balance = maxi(0, int(data.get("bank_balance", 0)))
+	jewellery_robbed = bool(data.get("jewellery_robbed", false))
+	(world.venues["jewellery"] as VenueInterior).set_robbed(jewellery_robbed)
 	player.heal_full()
 	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)
+	player.breath = clampf(float(data.get("breath", PlayerController.MAX_BREATH)), 0.0, PlayerController.MAX_BREATH)
 	player.health_changed.emit(player.health)
 	quality_level = clampi(int(data.get("quality_level", 2)), 0, 2)
 	volume_level = clampi(int(data.get("volume_level", 2)), 0, 2)
@@ -359,3 +465,9 @@ func _load_game() -> void:
 			car.rotation.y = float(data.get("vehicle_yaw", 0.0))
 			player.board_vehicle(car)
 	mission._show_dialogue("Partida cargada.")
+
+
+func _sync_venue_rooms() -> void:
+	for venue in world.venues.values():
+		var interior := venue as VenueInterior
+		interior.room.visible = true
