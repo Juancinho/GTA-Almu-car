@@ -42,6 +42,10 @@ var pause_missions: Label
 var weapon_label: Label
 var crosshair: Label
 var money_delta_timer := 0.0
+var objective_panel: PanelContainer
+var info_panel: PanelContainer
+var prompt_panel: PanelContainer
+var dialogue_panel: PanelContainer
 
 
 func _ready() -> void:
@@ -238,6 +242,54 @@ func _ready() -> void:
 	pause_missions.add_theme_font_size_override("font_size", 19)
 	pause_missions.add_theme_color_override("font_color", Color("f2e3b3"))
 	pause_overlay.add_child(pause_missions)
+	# Containers own wrapped text and grow with its real line count.
+	top.queue_free()
+	objective_back.queue_free()
+	prompt_back.queue_free()
+	info_panel = _text_panel(root, info_label, 390.0, Vector2(18, 16))
+	objective_panel = _text_panel(root, mission_label, 470.0, Vector2(18, 98))
+	var stack := objective_panel.get_child(0).get_child(0) as VBoxContainer
+	wanted_label.reparent(stack)
+	wanted_label.position = Vector2.ZERO
+	wanted_label.custom_minimum_size = Vector2.ZERO
+	wanted_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	prompt_panel = _text_panel(root, prompt_label, 760.0, Vector2.ZERO, 45.0)
+	dialogue_panel = _text_panel(root, dialogue_label, 880.0, Vector2.ZERO, 125.0)
+	for label in [pause_label, pause_missions, credits, title_label, banner_label]:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+
+func _text_panel(root: Control, label: Label, width: float, at: Vector2, bottom: float = 0.0) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = label.name + "Panel"
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.17, 0.20, 0.80)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
+	panel.add_theme_stylebox_override("panel", style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(panel)
+	panel.size.x = width
+	panel.position = at
+	var margin := MarginContainer.new()
+	panel.add_child(margin)
+	var stack := VBoxContainer.new()
+	margin.add_child(stack)
+	label.reparent(stack)
+	label.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	label.position = Vector2.ZERO
+	label.custom_minimum_size = Vector2.ZERO
+	label.size = Vector2(width - 28, 24)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if bottom > 0.0:
+		panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		panel.offset_left = -width * 0.5
+		panel.offset_right = width * 0.5
+		panel.offset_top = -bottom - panel.size.y
+		panel.offset_bottom = -bottom
+	return panel
 
 
 func _outline(label: Label, size: int = 5) -> void:
@@ -289,12 +341,21 @@ func _on_mission_started(title: String) -> void:
 
 
 func update_settings(quality: int, volume: int) -> void:
-	var quality_text: String = ["Baja", "Media", "Alta"][quality]
+	var quality_text: String = ["Baja · 3D 67 %", "Media · 3D 85 %", "Alta · 3D 100 %"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
 	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar partida\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
 
 
 func _process(delta: float) -> void:
+	if objective_panel != null:
+		objective_panel.position.y = info_panel.position.y + info_panel.size.y + 4.0
+		timer_label.position.y = objective_panel.position.y + objective_panel.size.y + 8.0
+	if dialogue_panel != null and prompt_panel != null:
+		prompt_panel.offset_bottom = -45.0
+		prompt_panel.offset_top = -45.0 - prompt_panel.size.y
+		dialogue_panel.offset_bottom = -45.0 - prompt_panel.size.y - 14.0
+		dialogue_panel.offset_top = dialogue_panel.offset_bottom - dialogue_panel.size.y
+		dialogue_panel.visible = dialogue_label.text != ""
 	pause_overlay.visible = get_tree().paused and not world_map.visible
 	if pause_overlay.visible and mission != null:
 		pause_missions.text = _mission_summary()
@@ -345,6 +406,8 @@ func _process(delta: float) -> void:
 		street = "Taller Poniente"
 	elif active_venue != null:
 		street = _venue_display_name(active_venue.kind)
+		if int(VenueInterior.SPECS[active_venue.kind].get("floors", 1)) > 1:
+			street += " · Planta %d" % active_venue.floor_number(player.global_position)
 	bank_label.visible = active_venue != null and active_venue.kind == "bank"
 	if bank_label.visible:
 		bank_label.text = "Saldo bancario: %d €" % int(main.bank_balance)
@@ -365,6 +428,8 @@ func _process(delta: float) -> void:
 		prompt_label.text = "E · Salir del Taller Poniente"
 	elif workshop != null and player.global_position.distance_to(workshop.exterior_entry) < 3.0:
 		prompt_label.text = "E · Entrar en Taller Poniente"
+	elif active_venue != null and active_venue.mission_prompt(player.global_position) != "":
+		prompt_label.text = active_venue.mission_prompt(player.global_position)
 	elif active_venue != null and player.global_position.distance_to(active_venue.service_point) < 2.7:
 		match active_venue.kind:
 			"bank":
@@ -379,10 +444,22 @@ func _process(delta: float) -> void:
 				prompt_label.text = "E · Café y tostada (8 €)"
 			"church":
 				prompt_label.text = "E · Descansar"
+			"casino":
+				prompt_label.text = "E · Ruleta: 100 € al rojo (pago 200 €, apuesta incluida)"
+			"gun_shop":
+				prompt_label.text = "E · Munición para el arma actual (100 €)"
+			"nightclub":
+				prompt_label.text = "E · Pedir una copa (10 €)"
+			"seafood":
+				prompt_label.text = "E · Fritura y espetos (30 €)"
 			_:
-				prompt_label.text = "E · Pedir menú (35 €)"
+				prompt_label.text = "E · " + str(VenueInterior.SPECS[active_venue.kind].get("service", "Interactuar"))
 	elif active_venue != null and active_venue.kind == "bank" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
 		prompt_label.text = "E · Retirar 100 €"
+	elif active_venue != null and active_venue.kind == "casino" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
+		prompt_label.text = "E · Tragaperras (20 €)"
+	elif active_venue != null and active_venue.kind == "gun_shop" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
+		prompt_label.text = "E · Comprar arma (pistola 300 € · escopeta 800 € · subfusil 1200 € · fusil 1500 €)"
 	elif active_venue != null and player.global_position.distance_to(active_venue.inside_entry) < 2.7:
 		prompt_label.text = "E · Salir del local"
 	elif _nearby_venue() != null:

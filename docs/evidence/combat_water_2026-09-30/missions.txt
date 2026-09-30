@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6388 ms
+MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), Pescadores (boats, sea chase), Emboscada, La copia, Poniente (bank, boat escape, credits), rewards, save/load, map + waypoint

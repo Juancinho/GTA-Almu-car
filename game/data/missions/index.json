@@ -14,6 +14,12 @@
       "color": "6fd4e6"
     },
     {
+      "id": "cuentas_pendientes",
+      "contact": "Ines",
+      "blip": "I",
+      "color": "d6a9ec"
+    },
+    {
       "id": "proteccion",
       "contact": "Paco",
       "blip": "P",
@@ -123,6 +129,14 @@
       ],
       "yaw": 200,
       "idle": "Paco: Desde que Rubén no manda aquí, hasta vendo más espetos."
+    },
+    "Ines": {
+      "display": "Inés · Contable",
+      "where": "Inés junto al Casino Costa Tropical",
+      "model": "female_alternative",
+      "venue": "casino",
+      "yaw": 180,
+      "idle": "Inés: Las cuentas siempre dejan rastro. Gracias por ayudarme a conservarlo."
     }
   },
   "aliases": {

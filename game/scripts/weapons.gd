@@ -1,12 +1,10 @@
 class_name WeaponSystem
 extends Node3D
 
-## The player's arsenal (res://data/weapons.json): fists, bat, pistol and SMG.
-## Right mouse / LT aims over the shoulder, left mouse / F / RB attacks, 1–4 or the
-## wheel / D-pad switch weapons, R reloads. Shots are hitscan from the camera
-## centre: pedestrians lose health (and can die), vehicles take damage, gunfire
-## scares everyone nearby and witnesses call the police. Weapons are found as
-## spinning pickups around town and respawn after a while.
+## Data-defined arsenal. Camera aim chooses a target, then shared ballistics casts
+## from the physical muzzle, with cover and glass attenuation for every shooter.
+## Pedestrians react, vehicles/props receive damage or impulses and witnesses
+## report gunfire. Pickups respawn; inventory/ammunition persist with the save.
 
 signal fired(weapon: String, hit: Object)
 signal inventory_changed
@@ -34,6 +32,15 @@ var tracer_mesh: ImmediateMesh
 var tracer_timer := 0.0
 var gun_visual: MeshInstance3D
 var rng := RandomNumberGenerator.new()
+var ballistics: Ballistics
+const MAX_IMPACT_EFFECTS := 12
+var active_impacts := 0
+var impact_mesh: SphereMesh
+var glass_shard_mesh: ArrayMesh
+var impact_materials: Dictionary = {}
+static var gun_materials: Dictionary = {}
+const MAX_REMOTE_SOUNDS := 8
+var remote_sounds := 0
 ## Holdups: aim a gun at the counter of a shop, café or restaurant for a few
 ## seconds and the staff empty the till. Two stars, and the shop needs time.
 const HOLDUP_KINDS := ["supermarket", "mall", "cafe", "restaurant", "palm_restaurant", "bank"]
@@ -44,9 +51,15 @@ var holdup_cooldowns: Dictionary = {}  # venue kind -> msec when it can be robbe
 
 
 func configure(target_player: PlayerController, target_world: SectorWorld, target_wanted: WantedSystem) -> void:
+	process_priority = 50  # pose after character animation and camera updates
 	player = target_player
 	world = target_world
 	wanted = target_wanted
+	ballistics = Ballistics.new()
+	ballistics.name = "Ballistics"
+	ballistics.wanted = wanted
+	add_child(ballistics)
+	ballistics.impact.connect(_impact)
 	rng.seed = 7420
 	add_to_group("weapon_system")
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
@@ -133,65 +146,104 @@ func weapon_model(id: String) -> Node3D:
 	model.scale = Vector3.ONE * scale
 	model.rotation.y = deg_to_rad(float(spec.get("model_yaw", 0.0)))
 	pivot.add_child(model)
-	var bounds := AABB()
-	var first := true
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		var mesh := node as MeshInstance3D
 		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		for surface in range(mesh.mesh.get_surface_count()):
 			var source := mesh.mesh.surface_get_material(surface)
 			var look: Array = GUN_COLORS.get(source.resource_name if source != null else "", ["303236", 0.5, 0.45])
-			var mat := StandardMaterial3D.new()
-			mat.albedo_color = Color(str(look[0]))
-			mat.metallic = float(look[1])
-			mat.roughness = float(look[2])
-			mesh.set_surface_override_material(surface, mat)
-		var local := mesh.get_aabb()
-		bounds = local if first else bounds.merge(local)
-		first = false
-	# Centre the mesh on the pivot so every gun sits in the hand the same way.
-	var centre := (model.transform * bounds.get_center()) if not first else Vector3.ZERO
-	model.position = -centre
+			var material_key := str(look)
+			if not gun_materials.has(material_key):
+				var mat := StandardMaterial3D.new()
+				mat.albedo_color = Color(str(look[0]))
+				mat.metallic = float(look[1])
+				mat.roughness = float(look[2])
+				gun_materials[material_key] = mat
+			# Keep shared overrides alive when pursuing officers despawn; the
+			# renderer can still query an instance during its deferred teardown.
+			mesh.set_surface_override_material(surface, gun_materials[material_key])
+	# The FBXs are skinned: a mesh AABB is in bind space, not the rendered pose.
+	# Author the grip relative to their trigger bone, never the mesh centre.
+	for node in model.find_children("*", "Skeleton3D", true, false):
+		var rig := node as Skeleton3D
+		var trigger := rig.find_bone("Trigger")
+		if trigger < 0:
+			continue
+		var transform_to_pivot := rig.transform
+		var ancestor := rig.get_parent() as Node3D
+		while ancestor != pivot and ancestor != null:
+			transform_to_pivot = ancestor.transform * transform_to_pivot
+			ancestor = ancestor.get_parent() as Node3D
+		var offset: Array = spec.get("grip_from_trigger", [0.0, -0.04, 0.035])
+		model.position = -(transform_to_pivot * rig.get_bone_global_pose(trigger)).origin - Vector3(float(offset[0]), float(offset[1]), float(offset[2]))
+		break
 	return pivot
 
 
-func _pose_gun(delta: float) -> void:
+func _pose_gun(_delta: float) -> void:
 	if gun_holder == null:
 		return
+	player.human.clear_weapon_pose()
 	for id in gun_models:
-		(gun_models[id] as Node3D).visible = id == current and player.driving_vehicle == null and not player.swimming
-	if not gun_models.has(current):
+		(gun_models[id] as Node3D).visible = id == current and player.driving_vehicle == null and not player.swimming and not player.dead
+	if not gun_models.has(current) or player.driving_vehicle != null or player.swimming or player.dead:
 		return
 	var long := bool(definition().get("long", false))
-	# The gun sits in the right fist (bone position) and points where the body faces.
 	var body := player.visual.global_transform.basis.orthonormalized()
-	var grip := _hand_position()
-	var basis := body if aiming else body * Basis(Vector3.RIGHT, deg_to_rad(-55.0 if long else -75.0))
-	if grip == Vector3.INF:
+	var grip := _bone_position("MiddleHand.R")
+	var shoulder := _bone_position("UpperArm.R")
+	if grip == Vector3.INF or shoulder == Vector3.INF:
 		grip = player.visual.global_position + body * Vector3(0.2, 1.3, -0.4)
-	var forward := -basis.z
-	# Long guns rest their stock against the shoulder: shift them back along the barrel.
-	var offset := forward * (-0.22 if long else 0.06) + basis.y * 0.04
-	gun_holder.global_transform = Transform3D(basis, grip + offset)
+		shoulder = player.visual.global_position + body * Vector3(0.2, 1.45, 0.0)
+	var raised := aiming or cooldown > 0.0
+	var basis := body * Basis(Vector3.RIGHT, player.camera_pitch if raised else deg_to_rad(-30.0 if long else -65.0))
+	if raised or long:
+		var target := shoulder + basis * (Vector3(-0.035, -0.11 if raised else -0.25, -0.18) if long else Vector3(0.025, -0.16, -0.39))
+		player.human.place_hand("R", target, shoulder + body * Vector3(0.32, -0.45, 0.03))
+		player.human.close_weapon_hand("R")
+		grip = _bone_position("MiddleHand.R")
+		if long:
+			var support: Array = definition().get("support_grip", [-0.035, 0.025, -0.23])
+			var support_target := grip + basis * Vector3(float(support[0]), float(support[1]), float(support[2]))
+			var elbow := shoulder + body * Vector3(-0.5, -0.5, -0.1)
+			player.human.place_hand("L", support_target, elbow)
+			player.human.close_weapon_hand("L")
+			var hand_offset := _bone_position("MiddleHand.L") - _bone_position("Palm.L")
+			player.human.place_hand("L", support_target - hand_offset, elbow)
+			player.human.close_weapon_hand("L")
+	else:
+		# Closing the carrying hand requires the skeleton even before the first aim.
+		if player.human.grip_skeleton == null:
+			player.human.grip_skeleton = _skeleton
+		player.human.close_weapon_hand("R")
+		grip = _bone_position("MiddleHand.R")
+	gun_holder.global_transform = Transform3D(basis, grip)
 
 
-var _hand_bone := -2
+func muzzle_position() -> Vector3:
+	var socket: Array = definition().get("muzzle", [0.0, 0.08, -0.25])
+	return gun_holder.to_global(Vector3(float(socket[0]), float(socket[1]), float(socket[2])))
+
+
 var _skeleton: Skeleton3D
 
 
-func _hand_position() -> Vector3:
-	if _hand_bone == -2:
+func _bone_position(bone: String) -> Vector3:
+	if not is_instance_valid(_skeleton):
 		var skeletons := player.human.find_children("*", "Skeleton3D", true, false)
-		_hand_bone = -1
-		if not skeletons.is_empty():
-			_skeleton = skeletons[0] as Skeleton3D
-			_hand_bone = _skeleton.find_bone("Palm.R")
-	if _hand_bone < 0 or _skeleton == null:
+		if skeletons.is_empty():
+			return Vector3.INF
+		_skeleton = skeletons[0] as Skeleton3D
+	var index := _skeleton.find_bone(bone)
+	if index < 0:
 		return Vector3.INF
-	return (_skeleton.global_transform * _skeleton.get_bone_global_pose(_hand_bone)).origin
+	return (_skeleton.global_transform * _skeleton.get_bone_global_pose(index)).origin
 
 
 func _impact(at: Vector3, color: Color, amount: int) -> void:
+	if active_impacts >= MAX_IMPACT_EFFECTS or player.global_position.distance_squared_to(at) > 80.0 * 80.0:
+		return
+	active_impacts += 1
 	var puff := CPUParticles3D.new()
 	puff.one_shot = true
 	puff.amount = amount
@@ -204,21 +256,43 @@ func _impact(at: Vector3, color: Color, amount: int) -> void:
 	puff.gravity = Vector3(0, -9.0, 0)
 	puff.scale_amount_min = 0.05
 	puff.scale_amount_max = 0.1
-	var dot := SphereMesh.new()
-	dot.radius = 0.5
-	dot.height = 1.0
-	dot.radial_segments = 4
-	dot.rings = 2
-	puff.mesh = dot
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	puff.material_override = mat
+	if impact_mesh == null:
+		impact_mesh = SphereMesh.new()
+		impact_mesh.radius = 0.5
+		impact_mesh.height = 1.0
+		impact_mesh.radial_segments = 4
+		impact_mesh.rings = 2
+	var glass := color == Color("bbdfed")
+	if glass and glass_shard_mesh == null:
+		glass_shard_mesh = ArrayMesh.new()
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-0.5, -0.4, 0), Vector3(0.5, -0.4, 0), Vector3(0.2, 0.6, 0)])
+		arrays[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK])
+		glass_shard_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	puff.mesh = glass_shard_mesh if glass else impact_mesh
+	if glass:
+		puff.lifetime = 0.65
+		puff.scale_amount_min = 0.1
+		puff.scale_amount_max = 0.22
+		puff.angular_velocity_min = -240.0
+		puff.angular_velocity_max = 240.0
+	if not impact_materials.has(color):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		impact_materials[color] = mat
+	puff.material_override = impact_materials[color]
+	puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	puff.visibility_range_end = 80.0
 	puff.top_level = true
 	add_child(puff)
 	puff.global_position = at
 	puff.emitting = true
-	get_tree().create_timer(1.0, false).timeout.connect(puff.queue_free)
+	get_tree().create_timer(1.0, false).timeout.connect(func() -> void:
+		active_impacts -= 1
+		puff.queue_free())
 
 
 func definition() -> Dictionary:
@@ -321,8 +395,6 @@ func _process(delta: float) -> void:
 	aiming = can_aim and InputMap.has_action("aim") and Input.is_action_pressed("aim")
 	player.aiming = aiming
 	_pose_gun(delta)
-	if aiming:
-		player.human.hold_pose("punch", 0.42)
 	if is_gun() and bool(definition().get("auto", false)) and InputMap.has_action("attack") and Input.is_action_pressed("attack") and player.driving_vehicle == null:
 		fire()
 	_update_pickups(delta)
@@ -348,29 +420,34 @@ func fire() -> Object:
 	var reach := float(spec.get("range", 100.0))
 	var target: Object = null
 	var end := Vector3.ZERO
+	_pose_gun(0.0)
+	var muzzle := muzzle_position()
+	var body_origin := player.global_position + Vector3.UP * 1.3
+	var barrel_query := PhysicsRayQueryParameters3D.create(body_origin, muzzle, Ballistics.SHOT_MASK, [player.get_rid()])
+	var barrel_blocked := not player.get_world_3d().direct_space_state.intersect_ray(barrel_query).is_empty()
 	for pellet in range(int(spec.get("pellets", 1))):
 		var direction := (-camera.global_transform.basis.z).rotated(camera.global_transform.basis.x, rng.randf_range(-spread, spread)).rotated(Vector3.UP, rng.randf_range(-spread, spread)).normalized()
 		var origin := camera.global_position
 		# Start the ray at the player's depth so walls between camera and player don't block it.
 		origin += direction * maxf(0.0, (player.global_position - origin).dot(direction))
-		var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * reach)
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * reach, Ballistics.SHOT_MASK)
 		query.exclude = [player.get_rid()]
 		var hit := player.get_world_3d().direct_space_state.intersect_ray(query)
-		end = origin + direction * reach
-		if not hit.is_empty():
-			end = hit["position"]
-			var struck: Object = hit["collider"]
-			if target == null or struck is Pedestrian or struck is DriveableVehicle:
-				target = struck
-			_apply_hit(struck, spec, end)
-			var tint := Color(0.55, 0.05, 0.05) if struck is Pedestrian else (Color(1.0, 0.8, 0.35) if struck is DriveableVehicle else Color(0.62, 0.58, 0.52))
-			_impact(end, tint, 8 if pellet == 0 else 3)
-	var muzzle := player.global_position + Vector3(0, 1.35, 0) + (-camera.global_transform.basis.z) * 0.6 + camera.global_transform.basis.x * 0.25
+		var aim_point: Vector3 = hit["position"] if not hit.is_empty() else origin + direction * reach
+		# The camera selects the aim point; only the muzzle's path can inflict damage.
+		var shot_origin := body_origin if barrel_blocked else muzzle
+		var shot_direction := (muzzle - body_origin).normalized() if barrel_blocked else (aim_point - muzzle).normalized()
+		var shot_reach := body_origin.distance_to(muzzle) if barrel_blocked else reach
+		var shot := ballistics.shoot(shot_origin, shot_direction, shot_reach,
+			float(spec.get("damage", 30.0)), float(spec.get("vehicle_damage", 50.0)), player)
+		end = shot["position"]
+		var struck: Object = shot["collider"]
+		if target == null or struck is Pedestrian or struck is DriveableVehicle:
+			target = struck
 	_tracer(muzzle, end)
 	flash.global_position = muzzle
 	flash_timer = 0.05
 	_play(str(spec.get("sound", "pistol_shot")))
-	player.human.hold_pose("punch", 0.42)
 	player.camera_pitch = clampf(player.camera_pitch + 0.012, -1.1, 0.55)
 	_scare(player.global_position, 45.0)
 	wanted.report_crime("disparos", player.global_position)
@@ -379,16 +456,26 @@ func fire() -> Object:
 	return target
 
 
-func _apply_hit(target: Object, spec: Dictionary, at: Vector3) -> void:
-	if target is Pedestrian:
-		var person := target as Pedestrian
-		if not person.mission_contact:
-			person.take_damage(float(spec.get("damage", 30.0)), player.global_position)
-			wanted.report_crime("agresión armada", person.global_position)
-	elif target is DriveableVehicle:
-		(target as DriveableVehicle).apply_damage(float(spec.get("vehicle_damage", 50.0)))
-		if wanted.police_cars.has(target):
-			wanted.report_police_attack((target as Node3D).global_position)
+## NPC shots use the same collision/damage path, including misses striking cover.
+func fire_remote(shooter: Pedestrian, target: Vector3, damage: float, vehicle_damage: float,
+		spread: float, shot_rng: RandomNumberGenerator, source: String) -> Dictionary:
+	var origin := shooter.global_position + Vector3.UP * 1.5
+	if shooter.firearm != null:
+		shooter.firearm.pose()
+		origin = shooter.firearm.muzzle_position()
+	var body_origin := shooter.global_position + Vector3.UP * 1.3
+	var barrel_probe := PhysicsRayQueryParameters3D.create(body_origin, origin, Ballistics.SHOT_MASK, [shooter.get_rid()])
+	if not shooter.get_world_3d().direct_space_state.intersect_ray(barrel_probe).is_empty():
+		var obstruction := ballistics.shoot(body_origin, (origin - body_origin).normalized(), body_origin.distance_to(origin), damage, vehicle_damage, shooter, source)
+		play_remote_shot(body_origin)
+		return obstruction
+	var direction := (target - origin).normalized()
+	direction = direction.rotated(Vector3.UP, shot_rng.randf_range(-spread, spread))
+	direction = direction.rotated(shooter.global_basis.x, shot_rng.randf_range(-spread, spread))
+	var shot := ballistics.shoot(origin, direction, 65.0, damage, vehicle_damage, shooter, source)
+	_tracer(origin, shot["position"])
+	play_remote_shot(origin)
+	return shot
 
 
 ## Bat swing: hits the first person or car in front after the wind-up.
@@ -416,6 +503,8 @@ func _land_swing() -> void:
 		var offset := person.global_position - player.global_position
 		offset.y = 0.0
 		if offset.length() < reach and offset.normalized().dot(forward) > 0.3:
+			if not _melee_clear(person):
+				continue
 			person.provoked_by_player = true
 			person.take_damage(float(spec.get("damage", 45.0)), player.global_position)
 			_play("bat_hit")
@@ -424,9 +513,19 @@ func _land_swing() -> void:
 	for node in get_tree().get_nodes_in_group("vehicles"):
 		var car := node as DriveableVehicle
 		if car != null and car.global_position.distance_to(player.global_position) < reach + 1.4 and (car.global_position - player.global_position).normalized().dot(forward) > 0.2:
+			if not _melee_clear(car):
+				continue
 			car.apply_damage(float(spec.get("vehicle_damage", 60.0)))
 			_play("bat_hit")
 			return
+
+
+func _melee_clear(target: Node3D) -> bool:
+	var query := PhysicsRayQueryParameters3D.create(player.global_position + Vector3.UP,
+		target.global_position + Vector3.UP)
+	query.exclude = [player.get_rid()]
+	var hit := player.get_world_3d().direct_space_state.intersect_ray(query)
+	return hit.is_empty() or hit.get("collider") == target
 
 
 func _tracer(from: Vector3, to: Vector3) -> void:
@@ -442,15 +541,16 @@ func _tracer(from: Vector3, to: Vector3) -> void:
 func _scare(at: Vector3, radius: float) -> void:
 	for node in get_tree().get_nodes_in_group("pedestrians"):
 		var person := node as Pedestrian
-		if person != null and not person.mission_contact and not person.enemy and person.global_position.distance_to(at) < radius:
+		if person != null and not person.mission_contact and not person.enemy and person.global_position.distance_squared_to(at) < radius * radius:
 			person.flee_from(at)
 
 
 ## Someone else's gunshot (gunmen): a sound at their position and a scared crowd.
 func play_remote_shot(at: Vector3) -> void:
 	_scare(at, 35.0)
-	if DisplayServer.get_name() == "headless" or not sounds.has("pistol_shot"):
+	if DisplayServer.get_name() == "headless" or not sounds.has("pistol_shot") or remote_sounds >= MAX_REMOTE_SOUNDS:
 		return
+	remote_sounds += 1
 	var shot := AudioStreamPlayer3D.new()
 	shot.stream = (sounds["pistol_shot"] as AudioStreamPlayer3D).stream
 	shot.bus = "SFX"
@@ -459,7 +559,9 @@ func play_remote_shot(at: Vector3) -> void:
 	shot.top_level = true
 	add_child(shot)
 	shot.global_position = at
-	shot.finished.connect(shot.queue_free)
+	shot.finished.connect(func() -> void:
+		remote_sounds -= 1
+		shot.queue_free())
 	shot.play()
 
 

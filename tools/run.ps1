@@ -1,12 +1,16 @@
 [CmdletBinding()]
-param([switch]$ImportOnly)
+param([switch]$ImportOnly, [string]$GodotPath)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $gamePath = Join-Path $root 'game'
-$godot = Join-Path $root '.tools/godot/godot.exe'
+$godot = if ($GodotPath) { $GodotPath } elseif ($env:GODOT_EXE) { $env:GODOT_EXE } else { Join-Path $root '.tools/godot/godot.exe' }
 $logs = Join-Path $root 'generated/validation'
-if (-not (Test-Path -LiteralPath $godot)) { throw "Godot executable missing: $godot" }
+if (-not (Test-Path -LiteralPath $godot)) {
+    $taskGodotCommand = Get-Command godot -ErrorAction SilentlyContinue
+    if ($taskGodotCommand) { $godot = $taskGodotCommand.Source }
+    else { throw 'Instala Godot y usa -GodotPath C:\ruta\Godot.exe, GODOT_EXE, o .tools/godot/godot.exe. Consulta README.md.' }
+}
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 
 # Refresh Godot's global GDScript class registry after scripts are added or moved.
@@ -19,4 +23,4 @@ if ($import.ExitCode -ne 0 -or $errors -match '(?m)^(SCRIPT ERROR:|ERROR:)') {
 }
 
 if ($ImportOnly) { Write-Host 'GODOT IMPORT PASS'; return }
-Start-Process -FilePath $godot -ArgumentList @('--path', ('"' + $gamePath + '"'))
+Start-Process -FilePath $godot -ArgumentList @('--path', ('"' + $gamePath + '"')) -WindowStyle Hidden

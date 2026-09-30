@@ -13,11 +13,13 @@ var extra_info: Dictionary = {}
 var frames: Dictionary = {}  # context -> PackedFloat32Array of frame ms
 var draw_calls: Dictionary = {}  # context -> [sum, max]
 var primitives: Dictionary = {}  # context -> [sum, max]
+var cpu_times: Dictionary = {}  # context -> process/physics sums and maxima (ms)
 var elapsed := 0.0
 var overlay: Label
 var overlay_timer := 0.0
 var recent_ms := PackedFloat32Array()
 var window_seconds: Dictionary = {}
+var framebuffer_size := Vector2i.ZERO
 
 
 func _ready() -> void:
@@ -32,6 +34,22 @@ func _ready() -> void:
 	overlay.add_theme_constant_override("outline_size", 4)
 	overlay.visible = false
 	add_child(overlay)
+	if DisplayServer.get_name() != "headless":
+		get_viewport().size_changed.connect(_schedule_framebuffer_sample)
+		_schedule_framebuffer_sample()
+
+
+func _schedule_framebuffer_sample() -> void:
+	call_deferred("_sample_framebuffer")
+
+
+## ViewportTexture.get_size() includes the canvas stretch transform on Window.
+## Read the actual GPU image once on startup/resize, outside the per-frame monitor.
+func _sample_framebuffer() -> void:
+	await RenderingServer.frame_post_draw
+	var image := get_viewport().get_texture().get_image()
+	if not image.is_empty():
+		framebuffer_size = image.get_size()
 
 
 func toggle_overlay() -> void:
@@ -55,10 +73,17 @@ func _process(delta: float) -> void:
 		frames[context] = PackedFloat32Array()
 		draw_calls[context] = [0.0, 0.0]
 		primitives[context] = [0.0, 0.0]
+		cpu_times[context] = [0.0,0.0,0.0,0.0]
 	var bucket: PackedFloat32Array = frames[context]
 	if bucket.size() < MAX_FRAMES_PER_CONTEXT:
 		bucket.append(ms)
 		frames[context] = bucket
+		var process_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+		var physics_ms := Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+		cpu_times[context][0] += process_ms
+		cpu_times[context][1] += physics_ms
+		cpu_times[context][2] = maxf(cpu_times[context][2],process_ms)
+		cpu_times[context][3] = maxf(cpu_times[context][3],physics_ms)
 		var calls := float(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
 		var prims := float(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))
 		draw_calls[context] = [draw_calls[context][0] + calls, maxf(draw_calls[context][1], calls)]
@@ -113,6 +138,10 @@ func summary() -> Dictionary:
 			stats["max_draw_calls"] = draw_calls[context][1]
 			stats["average_primitives"] = snappedf(primitives[context][0] / bucket.size(), 1.0)
 			stats["max_primitives"] = primitives[context][1]
+			stats["cpu_process_average_ms"] = snappedf(cpu_times[context][0] / bucket.size(),0.01)
+			stats["cpu_physics_average_ms"] = snappedf(cpu_times[context][1] / bucket.size(),0.01)
+			stats["cpu_process_max_ms"] = snappedf(cpu_times[context][2],0.01)
+			stats["cpu_physics_max_ms"] = snappedf(cpu_times[context][3],0.01)
 		contexts[context] = stats
 		all.append_array(bucket)
 	var windows := {}
@@ -125,7 +154,7 @@ func environment_info() -> Dictionary:
 	var logical := get_viewport().get_visible_rect().size
 	var headless := DisplayServer.get_name() == "headless"
 	var window: Vector2i = DisplayServer.window_get_size() if not headless else Vector2i.ZERO
-	var render: Vector2 = get_viewport().get_texture().get_size() if not headless else Vector2.ZERO
+	var render := framebuffer_size if not headless else Vector2i.ZERO
 	var info := {
 		"godot": Engine.get_version_info().get("string", ""),
 		"os": OS.get_name() + " " + OS.get_version(),
@@ -138,6 +167,7 @@ func environment_info() -> Dictionary:
 		"logical_viewport": [int(logical.x), int(logical.y)],
 		"window_size": [window.x, window.y],
 		"render_size": [int(render.x), int(render.y)],
+		"texture_reported_size": get_viewport().get_texture().get_size() if not headless else Vector2.ZERO,
 		"screen_size": [DisplayServer.screen_get_size().x, DisplayServer.screen_get_size().y] if not headless else [0, 0],
 		"window_mode": DisplayServer.window_get_mode() if not headless else -1,
 		"vsync_mode": DisplayServer.window_get_vsync_mode() if not headless else -1,

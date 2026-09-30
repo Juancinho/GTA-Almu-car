@@ -45,12 +45,19 @@ var diving := false
 var breath := MAX_BREATH
 var aiming := false  # set by WeaponSystem: over-the-shoulder camera, body faces the aim
 var weapons: Node  # WeaponSystem; fists fall back to punch()
+var interior_camera := false
+var interior_probe_timer := 0.0
+var swim_phase := 0.0
+var underwater_view: UnderwaterView
 
 
 func _ready() -> void:
 	add_to_group("player")
 	_build_body()
 	_build_camera()
+	underwater_view = UnderwaterView.new()
+	underwater_view.player = self
+	add_child(underwater_view)
 	step_audio = AudioStreamPlayer3D.new()
 	step_audio.stream = load("res://assets/audio/footstep.wav") as AudioStream
 	step_audio.bus = "SFX"
@@ -114,6 +121,14 @@ func _update_camera_orientation() -> void:
 
 
 func _process(delta: float) -> void:
+	interior_probe_timer -= delta
+	if interior_probe_timer <= 0.0:
+		interior_probe_timer = 0.2
+		interior_camera = false
+		for interior in get_tree().get_nodes_in_group("interiors"):
+			if interior.has_method("contains_player") and bool(interior.call("contains_player", global_position)):
+				interior_camera = true
+				break
 	var look := Input.get_vector("look_left", "look_right", "look_up", "look_down") if InputMap.has_action("look_left") else Vector2.ZERO
 	if look.length_squared() > 0.01:
 		camera_yaw -= look.x * GAMEPAD_LOOK_SPEED * delta
@@ -121,7 +136,10 @@ func _process(delta: float) -> void:
 		look_idle_time = 0.0
 	else:
 		look_idle_time += delta
-	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else (2.1 if aiming else FOOT_CAMERA_DISTANCE)
+	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else (2.1 if aiming else 2.4 if interior_camera else FOOT_CAMERA_DISTANCE)
+	if diving:
+		target_length = 2.4
+	camera_pivot.position.y = move_toward(camera_pivot.position.y, 0.6 if diving else 1.55, 4.0 * delta)
 	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, (14.0 if aiming else 6.0) * delta)
 	camera_arm.position.x = move_toward(camera_arm.position.x, 0.62 if aiming else 0.0, 4.0 * delta)
 	camera.fov = move_toward(camera.fov, 58.0 if aiming else 75.0, 60.0 * delta)
@@ -151,9 +169,7 @@ func _physics_process(delta: float) -> void:
 		_swim(delta)
 		return
 	if swimming:
-		swimming = false
-		diving = false
-		breath = MAX_BREATH
+		reset_swimming()
 		global_position.y = maxf(global_position.y, sector_data.height_at(global_position.x, global_position.z) + 0.1)
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
@@ -173,8 +189,17 @@ func _physics_process(delta: float) -> void:
 		visual.rotation.y = lerp_angle(visual.rotation.y, camera_yaw, minf(1.0, 20.0 * delta))
 	elif direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 12.0 * delta))
+	if is_on_wall():
+		CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.42)
 	move_and_slide()
 	human.update_motion(Vector2(velocity.x, velocity.z).length(), is_on_floor())
+	for index in range(get_slide_collision_count()):
+		var hit := get_slide_collision(index)
+		if hit.get_collider() is InteractiveProp:
+			var prop := hit.get_collider() as InteractiveProp
+			if prop.linear_velocity.length() < 3.0:
+				prop.freeze = false
+				prop.apply_central_impulse(Vector3(velocity.x, 0, velocity.z).normalized() * 0.6)
 	step_timer -= delta
 	if is_on_floor() and direction.length_squared() > 0.01 and step_timer <= 0.0:
 		if DisplayServer.get_name() != "headless":
@@ -184,7 +209,8 @@ func _physics_process(delta: float) -> void:
 
 func _swim(delta: float) -> void:
 	swimming = true
-	diving = Input.is_action_pressed("dive")
+	# Surfacing must win even while the dive key is held.
+	diving = Input.is_action_pressed("dive") and not Input.is_action_pressed("jump")
 	var axis := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var forward := -camera.global_transform.basis.z
 	var right := camera.global_transform.basis.x
@@ -202,13 +228,27 @@ func _swim(delta: float) -> void:
 	move_and_slide()
 	if direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 6.0 * delta))
-	human.update_motion(direction.length() * 2.0, false)
+	swim_phase += delta * (5.0 if direction.length_squared() > 0.01 else 2.4)
+	visual.rotation.x = move_toward(visual.rotation.x, -1.1 if diving or direction.length_squared() > 0.01 else -0.25, 3.0 * delta)
+	# Keep shoulders/head above the rendered surface when the rig leans forward.
+	var swim_offset := 0.0 if diving else 0.4 if direction.length_squared() > 0.01 else -0.35
+	visual.position.y = move_toward(visual.position.y, swim_offset, 2.0 * delta)
+	human.update_swim(swim_phase, direction.length(), diving)
 	if global_position.y < -1.1:
 		breath = maxf(0.0, breath - delta)
 		if breath <= 0.0:
 			take_damage(18.0 * delta, "drowning")
 	else:
 		breath = minf(MAX_BREATH, breath + 3.0 * delta)
+
+
+func reset_swimming() -> void:
+	swimming = false
+	diving = false
+	breath = MAX_BREATH
+	visual.rotation.x = 0.0
+	visual.position.y = 0.0
+	human.clear_swim_pose()
 
 
 func _interact() -> void:
@@ -261,6 +301,7 @@ func _interact() -> void:
 
 ## Put the player in the driver seat (used by interaction and save loading).
 func board_vehicle(car: DriveableVehicle) -> void:
+	reset_swimming()
 	if car.traffic or car.occupant_name != "":
 		var ejected := car.eject_occupant()
 		vehicle_jacked.emit(car, ejected)
@@ -288,6 +329,7 @@ func take_damage(amount: float, source: String = "") -> void:
 
 
 func heal_full() -> void:
+	reset_swimming()
 	health = MAX_HEALTH
 	dead = false
 	human.action_timer = 0.0
@@ -323,9 +365,21 @@ func _land_punch() -> void:
 		var offset := person.global_position - global_position
 		offset.y = 0.0
 		if offset.length() < PUNCH_RANGE and offset.normalized().dot(forward) > 0.35:
+			var probe := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP, person.global_position + Vector3.UP)
+			probe.exclude = [get_rid()]
+			var hit := get_world_3d().direct_space_state.intersect_ray(probe)
+			if not hit.is_empty() and hit.get("collider") != person:
+				continue
 			person.provoked_by_player = true
 			person.take_hit(global_position, 4.0)
 			assaulted.emit(person)
+			var defenders := 0
+			for witness in get_tree().get_nodes_in_group("pedestrians"):
+				if witness != person and not witness.mission_contact and not witness.dead and witness.state != Pedestrian.State.DOWN and witness.temperament > 0.85 and witness.global_position.distance_squared_to(person.global_position) < 36.0:
+					witness.start_fight(12.0)
+					defenders += 1
+					if defenders >= 2:
+						break
 			return
 
 

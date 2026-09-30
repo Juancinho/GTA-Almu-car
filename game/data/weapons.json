@@ -37,7 +37,22 @@
       "model": "res://assets/third_party/quaternius/weapons/pistol.fbx",
       "model_scale": 0.03,
       "model_yaw": 90,
-      "long": false
+      "long": false,
+      "grip_from_trigger": [
+        0,
+        -0.04,
+        0.035
+      ],
+      "support_grip": [
+        -0.03,
+        0,
+        -0.1
+      ],
+      "muzzle": [
+        0,
+        0.085,
+        -0.22
+      ]
     },
     "smg": {
       "name": "Subfusil",
@@ -55,7 +70,22 @@
       "model": "res://assets/third_party/quaternius/weapons/smg_p90.fbx",
       "model_scale": 0.058,
       "model_yaw": 0,
-      "long": true
+      "long": true,
+      "grip_from_trigger": [
+        0,
+        -0.04,
+        0.035
+      ],
+      "support_grip": [
+        -0.035,
+        0.025,
+        -0.2
+      ],
+      "muzzle": [
+        0,
+        0.08,
+        -0.4
+      ]
     },
     "shotgun": {
       "name": "Escopeta",
@@ -74,7 +104,22 @@
       "model": "res://assets/third_party/quaternius/weapons/shotgun.fbx",
       "model_scale": 0.135,
       "model_yaw": 0,
-      "long": true
+      "long": true,
+      "grip_from_trigger": [
+        0,
+        -0.04,
+        0.035
+      ],
+      "support_grip": [
+        -0.035,
+        0.015,
+        -0.23
+      ],
+      "muzzle": [
+        0,
+        0.07,
+        -0.83
+      ]
     },
     "rifle": {
       "name": "Fusil",
@@ -92,7 +137,22 @@
       "model": "res://assets/third_party/quaternius/weapons/rifle.fbx",
       "model_scale": 0.125,
       "model_yaw": 0,
-      "long": true
+      "long": true,
+      "grip_from_trigger": [
+        0,
+        -0.04,
+        0.035
+      ],
+      "support_grip": [
+        -0.035,
+        0.015,
+        -0.23
+      ],
+      "muzzle": [
+        0,
+        0.07,
+        -0.8
+      ]
     }
   },
   "pickups": [

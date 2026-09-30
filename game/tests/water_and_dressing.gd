@@ -55,22 +55,24 @@ func _run() -> void:
 		await physics_frame
 	if not player.swimming or player.diving or player.breath < PlayerController.MAX_BREATH - 0.1:
 		return _fail("surface swim did not stabilize")
+	if player.human.current == "jump" or not player.human.swim_pose_active:
+		return _fail("surface swim still used an airborne animation")
 	Input.action_press("dive")
 	for i in range(100):
 		await physics_frame
-	Input.action_release("dive")
 	if not player.diving or player.global_position.y >= -1.1 or player.breath >= PlayerController.MAX_BREATH - 0.5:
 		return _fail("diving did not consume breath")
 	Input.action_press("jump")
 	for i in range(80):
 		await physics_frame
 	Input.action_release("jump")
-	if player.breath <= 0.0:
+	Input.action_release("dive")
+	if player.diving or player.global_position.y < -0.4 or player.breath <= 0.0:
 		return _fail("player could not surface for air")
 	player.global_position = world.anchor("player_spawn") + Vector3(0, 0.3, 0)
 	for i in range(4):
 		await physics_frame
-	if player.swimming:
+	if player.swimming or player.human.swim_pose_active or not is_zero_approx(player.visual.rotation.x):
 		return _fail("player could not leave the water")
 	print("WATER AND DRESSING PASS: %d palms clear of roads, car boundary, swim, dive, shore exit" % (planned["palms"] as Array).size())
 	root.queue_free()

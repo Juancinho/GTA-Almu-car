@@ -1,0 +1,345 @@
+**********************
+PowerShell transcript start
+Start time: 20260930153117
+Username: JOAO-PC\tj14o
+RunAs User: JOAO-PC\tj14o
+Configuration Name:
+Machine: JOAO-PC (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -File tools/validate.ps1
+Process ID: 5008
+PSVersion: 7.6.6
+PSEdition: Core
+GitCommitId: 7.6.6
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.4
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+
+Dependency             Required                   Detected                                                                                                                Status Action
+----------             --------                   --------                                                                                                                ------ ------
+Git                    available                  git version 2.45.2.windows.1 [C:\Program Files\Git\cmd\git.exe]                                                         OK     -
+Git LFS                available                  git-lfs/3.5.1 (GitHub; windows amd64; go 1.21.7; git e237bb3a) [C:\Program Files\Git\cmd\git-lfs.exe]                   OK     -
+Python                 3.11+                      Python 3.13.7 [C:\WINDOWS\py.exe]                                                                                       OK     -
+World builder packages numpy 2.2.6, shapely 2.1.2 2.2.6 2.1.2                                                                                                             OK     -
+uv                     available                  uv 0.10.9 (f675560f3 2026-03-06) [C:\Users\tj14o\AppData\Local\Programs\Python\Python313\Scripts\uv.exe]                OK     -
+Godot                  4.7.x stable               4.7.2.stable.official.ed1daf0bf [D:\Proyectos\GTA Almuñecar\.tools\godot\godot.exe]                                     OK     -
+Blender                5.2.x LTS                  Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04) [D:\Proyectos\GTA Almuñecar\.tools\blender\blender.exe] OK     -
+Environment ready for Godot import and Blender generation.
+
+
+
+
+
+
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+[   0% ] first_scan_filesystem | Started Project initialization (5 steps)
+[   0% ] first_scan_filesystem | Scanning file structure...
+[  16% ] first_scan_filesystem | Loading global class names...
+[  33% ] first_scan_filesystem | Verifying GDExtensions...
+[  50% ] first_scan_filesystem | Creating autoload scripts...
+[  66% ] first_scan_filesystem | Initializing plugins...
+[  83% ] first_scan_filesystem | Starting file scan...
+[ DONE ] first_scan_filesystem
+
+[   0% ] update_scripts_classes | Started Registering global classes... (6 steps)
+[   0% ] update_scripts_classes | HumanModel
+[  14% ] update_scripts_classes |
+[  28% ] update_scripts_classes | VenueInterior
+[  42% ] update_scripts_classes | WeaponSystem
+[  57% ] update_scripts_classes |
+[  71% ] update_scripts_classes |
+[ DONE ] update_scripts_classes
+
+[   0% ] loading_editor_layout | Started Loading editor (5 steps)
+[   0% ] loading_editor_layout | Loading editor layout...
+[  16% ] loading_editor_layout | Loading docks...
+[ DONE ] loading_editor_layout
+
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7393 ms
+SMOKE PASS: 1252 buildings, 50910 façade details; walking, car, traffic, carjacking, mission, police, arrest, road graph, safe exit, save/load, pause
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7750 ms
+DAMAGE PASS: three-punch knockdown, knockdown recovery, run-over report, crash damage, explosion, wasted respawn (money 50)
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7899 ms
+JAIME MISSION PASS: venue, contact, objectives, reward, save/load
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7478 ms
+MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), Pescadores (boats, sea chase), Emboscada, La copia, Poniente (bank, boat escape, credits), rewards, save/load, map + waypoint
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6939 ms
+WEAPONS PASS: pickup, aim camera, shop holdup, 3-shot kill, ammo/reload, vehicle damage, bat, save/load (wanted 0)
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6521 ms
+WEAPON GRIPS PASS: four weapons, raised/lowered grips, three aim pitches, preserved arm lengths, support-hand reach and clean unequip
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6465 ms
+POLICE PASS: 3-star reinforcements, officers deploy and shoot, officer kill -> 4+ stars, respray clears
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6483 ms
+DAY NIGHT PASS: east morning, south noon, night sky/lamps (6 lights), window glow, car lamps, saved clock
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6709 ms
+ACTIVITIES PASS: taxi pickup/drop-off/pay/next fare/quit, race start/checkpoints/par pay, best time saved
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SLOPE BUILDINGS PASS: 75089 details, 239 steep edges; lowest clearance -0.00 m
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6435 ms
+WATER AND DRESSING PASS: 418 palms clear of roads, car boundary, swim, dive, shore exit
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7332 ms
+CIVILIAN LIFE PASS: 68 pedestrians, varied dialogue, provocation and retaliation
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 8649 ms
+WORKSHOP PASS: enter, solid furnished room, paid repair, exit
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7344 ms
+VENUES PASS: twelve physical interiors (casino roulette, gun shop, nightclub, seafood), cafe breakfast, La Palmera dining, five beach bars, bank transfers and all jewellery loot restored/hidden
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 7648 ms
+CASINO ROUTE PASS: contact, wrong-floor rejection, physical stair ascent/descent, hidden archive and saved discovery, office interaction, upper-floor save/load, exit, reward once and mission resume
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6555 ms
+TRAFFIC SOAK: cars=16 jammed=0 max_off_road_m=4.4 max_air_m=0.4 Traffic_00:537m/0 Traffic_01:553m/0 Traffic_02:598m/0 Traffic_03:650m/0 Traffic_04:505m/0 Traffic_05:518m/0 Traffic_06:601m/0 Traffic_07:485m/0 Traffic_08:443m/0 Traffic_09:626m/0 Traffic_10:483m/0 Traffic_11:627m/0 Traffic_12:643m/0 Traffic_13:610m/1 Traffic_14:531m/0 Traffic_15:513m/1
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6475 ms
+ROUTE step=0 pos=(-49.2, 6.0, 14.1) speed=0.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-55.1, 6.0, 16.2) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-69.3, 6.2, 21.8) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-85.9, 6.7, 31.1) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-99.4, 7.8, 44.5) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-106.1, 8.6, 51.1) speed=12.3 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-120.8, 11.2, 68.5) speed=12.3 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-132.6, 13.9, 90.2) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-139.5, 14.3, 105.8) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-145.7, 13.3, 119.3) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-151.9, 12.5, 127.5) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-159.7, 13.5, 136.2) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-171.5, 14.1, 143.7) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-186.4, 11.5, 152.4) speed=12.3 hp=1000 wanted=0/clear police=[]
+ROUTE step=120 pos=(-210.8, 9.0, 163.5) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-212.6, 9.0, 164.2) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-229.2, 7.3, 172.5) speed=12.2 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-245.5, 5.7, 181.2) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-258.7, 4.0, 191.1) speed=12.3 hp=1000 wanted=0/clear police=[]
+ROUTE step=120 pos=(-279.8, 1.7, 209.3) speed=11.9 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-285.0, 1.4, 214.6) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-295.7, 1.1, 226.1) speed=11.9 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-306.4, 1.2, 232.8) speed=12.1 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-315.1, 1.4, 236.1) speed=11.5 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-324.8, 1.8, 238.4) speed=12.2 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-329.7, 2.3, 238.2) speed=12.2 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-336.2, 2.7, 234.2) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-344.5, 3.1, 228.5) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-349.4, 3.3, 222.4) speed=12.0 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-352.4, 3.5, 214.3) speed=12.2 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-353.8, 4.0, 200.3) speed=12.2 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-363.2, 4.6, 180.0) speed=11.9 hp=1000 wanted=0/clear police=[]
+ROUTE step=0 pos=(-369.1, 4.8, 172.7) speed=12.4 hp=1000 wanted=0/clear police=[]
+ROUTE step=120 pos=(-386.3, 5.4, 155.0) speed=14.3 hp=838 wanted=0/clear police=[]
+ROUTE step=0 pos=(-399.7, 5.6, 143.1) speed=12.3 hp=838 wanted=0/clear police=[]
+ROUTE step=0 pos=(-404.5, 5.7, 139.3) speed=12.3 hp=838 wanted=0/clear police=[]
+ROUTE step=0 pos=(-409.2, 5.6, 135.5) speed=12.3 hp=838 wanted=0/clear police=[]
+ROUTE step=120 pos=(-430.9, 5.5, 117.1) speed=15.0 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-445.5, 5.5, 103.3) speed=12.0 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-452.2, 5.5, 95.8) speed=12.3 hp=835 wanted=0/clear police=[]
+ROUTE step=120 pos=(-477.3, 5.5, 79.5) speed=15.0 hp=835 wanted=0/clear police=[]
+ROUTE step=240 pos=(-498.9, 5.4, 64.3) speed=12.0 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-499.2, 5.4, 64.0) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-508.9, 5.4, 56.5) speed=12.4 hp=835 wanted=0/clear police=[]
+ROUTE step=120 pos=(-530.6, 5.3, 41.7) speed=12.1 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-531.0, 5.3, 41.5) speed=12.0 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-546.1, 5.3, 32.6) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-550.3, 5.3, 29.8) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-553.0, 5.3, 28.0) speed=11.0 hp=835 wanted=0/clear police=[]
+ROUTE step=120 pos=(-545.6, 5.9, 7.7) speed=15.0 hp=835 wanted=0/clear police=[]
+ROUTE step=240 pos=(-530.0, 6.7, -15.3) speed=12.0 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-527.3, 6.8, -20.0) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=120 pos=(-513.3, 7.7, -44.9) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=0 pos=(-507.7, 8.0, -53.3) speed=12.2 hp=835 wanted=0/clear police=[]
+ROUTE step=120 pos=(-505.2, 8.0, -52.1) speed=6.1 hp=681 wanted=0/clear police=[]
+ROUTE step=240 pos=(-492.1, 8.7, -74.7) speed=14.7 hp=681 wanted=0/clear police=[]
+ROUTE step=0 pos=(-482.1, 9.3, -91.3) speed=12.3 hp=681 wanted=0/clear police=[]
+ROUTE step=120 pos=(-468.7, 10.2, -114.9) speed=11.9 hp=681 wanted=0/clear police=[]
+ROUTE step=0 pos=(-466.2, 10.4, -118.6) speed=12.5 hp=681 wanted=0/clear police=[]
+ROUTE step=120 pos=(-452.0, 11.2, -138.7) speed=12.1 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-448.4, 11.5, -144.5) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-445.8, 11.6, -148.8) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-432.2, 12.7, -171.7) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-430.9, 12.8, -173.5) speed=12.4 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-416.4, 13.9, -197.5) speed=12.1 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-412.9, 14.2, -204.3) speed=12.1 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-408.7, 14.7, -213.4) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-399.2, 15.8, -236.1) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-388.0, 17.2, -262.8) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-384.0, 17.7, -272.2) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-371.0, 19.2, -297.3) speed=12.1 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-366.8, 19.5, -304.0) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-359.3, 20.2, -316.0) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-345.9, 21.5, -340.1) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-343.3, 21.8, -344.9) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-329.1, 23.3, -369.0) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-324.9, 23.8, -375.9) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-318.8, 24.5, -385.4) speed=12.5 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-302.1, 26.5, -410.2) speed=15.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-288.4, 28.1, -427.7) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-269.1, 30.4, -450.3) speed=14.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-258.6, 32.0, -464.6) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-253.7, 32.6, -469.9) speed=10.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-247.2, 33.1, -471.1) speed=12.3 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-220.0, 34.5, -462.9) speed=12.0 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-210.8, 35.0, -460.6) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-205.3, 35.3, -459.5) speed=12.0 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-181.3, 36.3, -445.9) speed=12.0 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-174.6, 36.6, -442.5) speed=12.2 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-171.4, 36.9, -441.0) speed=12.0 hp=632 wanted=0/clear police=[]
+ROUTE step=0 pos=(-165.0, 37.1, -437.9) speed=12.3 hp=632 wanted=0/clear police=[]
+ROUTE step=120 pos=(-138.4, 38.4, -424.2) speed=15.0 hp=632 wanted=0/clear police=[]
+ROUTE step=240 pos=(-118.3, 39.3, -412.5) speed=12.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-116.0, 39.4, -410.9) speed=12.2 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-112.3, 39.6, -408.3) speed=10.6 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-109.1, 39.8, -407.1) speed=9.2 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-104.9, 40.0, -409.7) speed=9.0 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-91.9, 41.5, -432.8) speed=12.0 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-89.4, 41.7, -437.2) speed=12.0 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-85.0, 42.2, -445.2) speed=10.2 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-80.3, 42.4, -447.7) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-69.4, 42.6, -444.8) speed=12.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-62.3, 42.9, -446.5) speed=12.5 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-43.6, 44.3, -469.2) speed=13.2 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-34.5, 45.0, -479.1) speed=12.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-28.4, 45.4, -485.1) speed=12.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-23.8, 45.6, -488.1) speed=12.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-15.2, 45.7, -490.8) speed=11.7 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-11.2, 45.8, -491.4) speed=10.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-7.0, 45.4, -485.4) speed=7.8 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-12.2, 44.4, -470.9) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-12.9, 44.3, -469.0) speed=7.5 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-15.4, 43.5, -457.5) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-23.0, 42.7, -443.2) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=240 pos=(-30.5, 42.1, -428.8) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=360 pos=(-37.5, 41.6, -414.2) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-39.6, 41.4, -408.7) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-29.0, 40.8, -399.0) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=240 pos=(-14.4, 40.0, -391.8) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-7.1, 39.5, -387.6) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-3.2, 39.2, -385.0) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-6.8, 38.5, -371.3) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-10.4, 38.4, -365.7) speed=8.0 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-18.8, 38.0, -351.8) speed=8.0 hp=549 wanted=0/clear police=[]
+ROUTE step=240 pos=(-27.2, 37.5, -337.9) speed=8.0 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-27.3, 37.5, -337.8) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-35.8, 36.9, -323.9) speed=8.3 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-42.5, 36.4, -314.2) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=0 pos=(-43.7, 36.4, -312.6) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=120 pos=(-53.2, 35.4, -299.5) speed=8.1 hp=549 wanted=0/clear police=[]
+ROUTE step=240 pos=(-62.2, 34.4, -285.9) speed=8.1 hp=549 wanted=1/pursuit police=["Policia_1(-38,-322 d=43 v=17.3)"]
+ROUTE step=0 pos=(-65.1, 34.0, -280.7) speed=8.2 hp=549 wanted=1/pursuit police=["Policia_1(-44,-313 d=39 v=5.3)"]
+ROUTE step=120 pos=(-65.7, 34.0, -280.9) speed=-0.2 hp=546 wanted=1/pursuit police=["Policia_1(-56,-291 d=14 v=0.0)"]
+ROUTE step=240 pos=(-68.4, 33.4, -274.8) speed=-1.4 hp=541 wanted=1/pursuit police=["Policia_1(-53,-295 d=26 v=-0.1)"]
+ROUTE step=360 pos=(-61.4, 34.4, -286.5) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-53,-296 d=13 v=0.0)"]
+ROUTE step=480 pos=(-53.3, 35.5, -299.9) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-53,-293 d=6 v=-3.2)"]
+ROUTE step=0 pos=(-48.7, 35.8, -305.7) speed=8.1 hp=541 wanted=1/pursuit police=["Policia_1(-52,-296 d=11 v=7.5)"]
+ROUTE step=0 pos=(-47.6, 36.0, -307.3) speed=8.1 hp=541 wanted=1/pursuit police=["Policia_1(-51,-297 d=11 v=8.0)"]
+ROUTE step=120 pos=(-38.4, 36.8, -320.6) speed=8.1 hp=541 wanted=1/pursuit police=["Policia_1(-44,-312 d=10 v=4.9)"]
+ROUTE step=0 pos=(-31.7, 37.2, -330.4) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-38,-322 d=11 v=5.1)"]
+ROUTE step=120 pos=(-22.6, 37.8, -343.7) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-38,-326 d=23 v=-3.0)"]
+ROUTE step=240 pos=(-14.2, 38.2, -357.6) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-35,-328 d=36 v=7.2)"]
+ROUTE step=0 pos=(-14.1, 38.2, -357.9) speed=8.0 hp=541 wanted=1/pursuit police=["Policia_1(-35,-328 d=37 v=7.7)"]
+ROUTE step=120 pos=(-6.5, 38.6, -372.2) speed=8.0 hp=541 wanted=1/responding police=["Policia_1(-36,-332 d=50 v=-5.0)"]
+ROUTE step=0 pos=(-2.4, 38.7, -378.9) speed=8.2 hp=541 wanted=1/responding police=["Policia_1(-38,-331 d=60 v=3.1)"]
+ROUTE step=0 pos=(4.9, 38.4, -379.5) speed=8.2 hp=541 wanted=1/pursuit police=["Policia_1(-30,-336 d=56 v=13.8)"]
+ROUTE step=120 pos=(17.6, 37.0, -369.6) speed=8.2 hp=541 wanted=1/responding police=["Policia_1(-20,-346 d=45 v=0.0)"]
+ROUTE step=0 pos=(24.5, 36.1, -364.3) speed=8.2 hp=541 wanted=1/responding police=["Policia_1(-24,-345 d=53 v=-5.0)"]
+ROUTE step=0 pos=(32.7, 35.7, -368.9) speed=8.0 hp=541 wanted=1/responding police=["Policia_1(-23,-345 d=61 v=0.0)"]
+ROUTE step=0 pos=(37.8, 36.1, -381.7) speed=8.2 hp=541 wanted=1/search police=["Policia_1(-24,-348 d=70 v=-3.5)"]
+ROUTE step=120 pos=(44.0, 36.7, -396.6) speed=8.2 hp=541 wanted=1/search police=["Policia_1(-27,-338 d=92 v=8.9)"]
+ROUTE step=0 pos=(45.3, 36.8, -400.1) speed=8.0 hp=541 wanted=1/search police=["Policia_1(-26,-337 d=95 v=0.0)"]
+ROUTE step=120 pos=(50.7, 37.5, -415.3) speed=8.0 hp=541 wanted=1/search police=["Policia_1(-30,-334 d=115 v=-3.8)"]
+ROUTE step=0 pos=(54.9, 37.9, -425.0) speed=8.2 hp=541 wanted=1/search police=["Policia_1(-28,-337 d=121 v=9.2)"]
+ROUTE step=0 pos=(57.0, 38.0, -427.4) speed=8.2 hp=541 wanted=1/search police=["Policia_1(-26,-341 d=120 v=13.2)"]
+ROUTE step=0 pos=(58.6, 38.0, -429.0) speed=8.1 hp=541 wanted=1/search police=["Policia_1(-24,-344 d=118 v=13.4)"]
+ROUTE step=0 pos=(60.7, 38.0, -430.5) speed=8.2 hp=541 wanted=1/search police=["Policia_1(-21,-346 d=117 v=8.3)"]
+ROUTE step=0 pos=(64.7, 37.1, -420.1) speed=12.0 hp=541 wanted=1/search police=["Policia_1(-21,-347 d=113 v=-5.0)"]
+ROUTE step=0 pos=(62.4, 36.1, -406.0) speed=12.3 hp=541 wanted=1/search police=["Policia_1(-21,-351 d=100 v=0.8)"]
+ROUTE step=0 pos=(59.6, 34.9, -387.5) speed=12.8 hp=541 wanted=0/clear police=[]
+ROUTE step=120 pos=(61.7, 34.4, -379.7) speed=3.4 hp=531 wanted=0/clear police=[]
+ROUTE step=0 pos=(61.9, 35.5, -397.5) speed=10.1 hp=531 wanted=0/clear police=[]
+ROUTE step=120 pos=(62.4, 35.5, -396.7) speed=2.6 hp=529 wanted=0/clear police=[]
+ROUTE step=240 pos=(63.4, 35.5, -397.0) speed=-5.4 hp=529 wanted=0/clear police=[]
+ROUTE step=360 pos=(58.6, 35.6, -400.0) speed=0.1 hp=527 wanted=0/clear police=[]
+ROUTE step=480 pos=(58.3, 35.6, -398.7) speed=0.1 hp=527 wanted=0/clear police=[]
+ROUTE step=600 pos=(59.1, 35.2, -392.9) speed=14.6 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(56.6, 34.1, -375.0) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(55.0, 33.5, -365.7) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(41.8, 32.7, -341.6) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(39.0, 32.5, -336.0) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(39.0, 31.8, -323.9) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(41.0, 31.0, -316.8) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(46.9, 29.5, -306.0) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(49.0, 28.9, -302.1) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(62.8, 25.5, -277.8) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(66.8, 24.7, -272.0) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(75.9, 22.8, -258.7) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(78.0, 22.3, -254.5) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(83.7, 21.0, -243.6) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(89.4, 19.7, -233.7) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(93.0, 19.0, -227.3) speed=12.4 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(107.4, 16.5, -204.1) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(109.9, 16.1, -200.7) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(120.4, 14.7, -186.6) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(123.7, 14.3, -181.0) speed=12.4 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(137.5, 12.4, -156.3) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(141.7, 11.9, -149.4) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(144.2, 11.7, -146.0) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(152.4, 10.6, -127.8) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(156.8, 10.1, -118.3) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(158.2, 9.5, -105.1) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(158.2, 8.900001, -92.8) speed=12.5 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(159.6, 7.8, -66.4) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(159.6, 7.8, -66.2) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(159.5, 7.6, -60.4) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(157.8, 7.4, -55.8) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(134.0, 7.1, -47.2) speed=12.4 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(106.5, 6.9, -37.2) speed=12.8 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(95.0, 6.8, -34.0) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(87.7, 6.9, -35.2) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(64.4, 6.9, -30.4) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(49.5, 6.8, -26.1) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=120 pos=(20.9, 6.6, -16.9) speed=15.2 hp=527 wanted=0/clear police=[]
+ROUTE step=240 pos=(-7.1, 6.4, -6.9) speed=13.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-20.5, 6.2, -1.0) speed=12.1 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-36.6, 6.2, 5.5) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-45.6, 6.0, 11.9) speed=12.0 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-55.2, 6.0, 15.9) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-69.4, 6.2, 21.8) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-86.1, 6.7, 31.1) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE step=0 pos=(-99.4, 7.8, 44.5) speed=12.2 hp=527 wanted=0/clear police=[]
+ROUTE TRIAL: walk=[true, true] drive=[true, true] incident=true pursuit_s=22.2 police_min_m=3.6 escaped=true escape_s=40.0 busted=false health=527 car=(-107.7, 8.8, 52.8) mission_completed=true
+VALIDATION PASS
+**********************
+PowerShell transcript end
+End time: 20260930153756
+**********************

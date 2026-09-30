@@ -28,11 +28,12 @@ var perf_monitor: PerfMonitor
 var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
 var ui_audio: AudioStreamPlayer
-var quality_level := 2
+var quality_level := 1
 var volume_level := 2
 var money := 0
 var bank_balance := 0
 var jewellery_robbed := false
+var discoveries: Dictionary = {}
 var _warm_resources: Array = []  # scenes loaded up front: no hitch when police or weapons first appear
 
 
@@ -107,6 +108,7 @@ func _ready() -> void:
 		(venue as VenueInterior).purchase_requested.connect(_on_venue_purchase)
 		(venue as VenueInterior).bank_transaction_requested.connect(_on_bank_transaction)
 		(venue as VenueInterior).robbery_requested.connect(_on_jewellery_robbery)
+		(venue as VenueInterior).interior_event_requested.connect(_on_interior_event)
 	for bar in world.beach_bars:
 		bar.meal_requested.connect(func() -> void: _on_venue_purchase("restaurant"))
 	wanted.crime_reported.connect(func(kind: String, witnessed: bool) -> void: playtest_log.record("crime", {"kind": kind, "witnessed": witnessed}))
@@ -251,7 +253,81 @@ func _on_workshop_repair() -> void:
 		mission._show_dialogue("Mecánico: listo. Ya puedes volver a la carretera.")
 
 
+const GUN_PRICES := [["pistol", 300], ["shotgun", 800], ["smg", 1200], ["rifle", 1500]]
+
+
+func _on_interior_event(event: String) -> void:
+	if event == "casino_stash":
+		if not discoveries.has(event):
+			discoveries[event] = true
+			add_money(125)
+			(world.venues["casino"] as VenueInterior).restore_discoveries(discoveries)
+			hud.show_banner("SECRETO ENCONTRADO · 125 €", Color("f2d36b"))
+			playtest_log.record("discovery", {"id": event})
+		return
+	var previous_stage := mission.stage
+	mission.notify_event(event)
+	if previous_stage == mission.stage:
+		mission._show_dialogue("El libro registra pagos a sociedades del puerto. Inés podría saber qué buscar.")
+
+
 func _on_venue_purchase(kind: String) -> void:
+	if bool(VenueInterior.SPECS.get(kind, {}).get("residential", false)):
+		if wanted.level > 0:
+			mission._show_dialogue("No puedes descansar mientras te busca la policía.")
+		else:
+			player.heal_full()
+			mission._show_dialogue("Descansas en el apartamento. Salud y aire recuperados.")
+		return
+	if kind in ["barber", "clothing"]:
+		var price := int(VenueInterior.SPECS[kind]["price"])
+		if money < price:
+			mission._show_dialogue("Necesitas %d € para cambiar de estilo." % price)
+		else:
+			add_money(-price)
+			var styles := ["male_casual", "male_longsleeve", "male_shirt", "male_suit"]
+			player.human.change_model(styles[(styles.find(player.human.model_name) + 1) % styles.size()])
+			mission._show_dialogue("Estrenas un nuevo estilo. Se conservará al guardar la partida.")
+		return
+	if kind == "record_shop":
+		var station := world.venues[kind].room.get_node("ListeningStation") as AudioStreamPlayer3D
+		if station.playing:
+			station.stop()
+		else:
+			station.play()
+		mission._show_dialogue("Surco Sur: sesión original de Brisa de Poniente.")
+		return
+	match kind:
+		"casino":
+			_gamble(100, 0.46, 2, true)
+			return
+		"casino_secondary":
+			_gamble(20, 0.22, 4, false)
+			return
+		"gun_shop":
+			if not weapons.is_gun():
+				mission._show_dialogue("Armero: primero necesitas un arma. Mira la vitrina de la derecha.")
+			elif money < 100:
+				mission._show_dialogue("Armero: la munición son 100 €.")
+			else:
+				add_money(-100)
+				var clip_size := int(weapons.definition().get("clip", 10))
+				weapons.reserve[weapons.current] = int(weapons.reserve.get(weapons.current, 0)) + clip_size * 3
+				weapons.inventory_changed.emit()
+				mission._show_dialogue("Armero: tres cargadores de %s. No me digas para qué." % weapons.display_name().to_lower())
+			return
+		"gun_shop_secondary":
+			for pair in GUN_PRICES:
+				if not weapons.owned.has(pair[0]):
+					if money < int(pair[1]):
+						mission._show_dialogue("Armero: %s cuesta %d €. Vuelve con el dinero." % [str(weapons.defs[pair[0]]["name"]), int(pair[1])])
+					else:
+						add_money(-int(pair[1]))
+						weapons.give(str(pair[0]), int(weapons.defs[pair[0]].get("clip", 10)) * 3)
+						mission._show_dialogue("Armero: %s, con tres cargadores. Usa la cabeza." % str(weapons.defs[pair[0]]["name"]))
+					return
+			mission._show_dialogue("Armero: ya tienes todo lo que vendo.")
+			return
 	if kind == "church":
 		player.heal(20.0)
 		mission._show_dialogue("Un momento de calma en la Encarnación. Recuperas fuerzas.")
@@ -266,6 +342,27 @@ func _on_venue_purchase(kind: String) -> void:
 		add_money(-price)
 		player.heal(float(spec.get("heal", 30.0 if kind == "supermarket" or kind == "mall" else PlayerController.MAX_HEALTH)))
 		mission._show_dialogue("Camarera: café recién hecho y tostada. ¡Que aproveche!" if kind == "cafe" else "Dependiente: aquí tienes. Que te aproveche." if kind == "supermarket" or kind == "mall" else "Camarero: el menú de hoy te sentará bien.")
+
+
+var gamble_rng := RandomNumberGenerator.new()
+
+
+func _gamble(stake: int, chance: float, multiplier: int, roulette: bool) -> void:
+	if money < stake:
+		mission._show_dialogue("Necesitas %d € para jugar." % stake)
+		return
+	add_money(-stake)
+	var number := gamble_rng.randi_range(0, 36) if roulette else -1
+	var red_numbers := [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+	var won := red_numbers.has(number) if roulette else gamble_rng.randf() < chance
+	if won:
+		add_money(stake * multiplier)
+		hud.show_banner("+%d €" % (stake * multiplier), Color("f2d36b"))
+	if roulette:
+		mission._show_dialogue("Crupier: %d, %s. %s" % [number, "rojo" if won else "verde" if number == 0 else "negro", "Cobras 200 € (incluye tu apuesta)." if won else "La banca gana."])
+	else:
+		mission._show_dialogue("Tragaperras: %s" % ("¡tres limones, premio!" if won else "nada esta vez."))
+	playtest_log.record("gamble", {"stake": stake, "won": won})
 
 
 func _on_bank_transaction(action: String) -> void:
@@ -506,8 +603,10 @@ func _add_joy_button(action: StringName, button: JoyButton) -> void:
 
 func _apply_settings() -> void:
 	world.apply_quality(quality_level)
+	get_viewport().scaling_3d_scale = [0.67, 0.85, 1.0][quality_level]
 	if perf_monitor != null:
 		perf_monitor.extra_info["quality_level"] = quality_level
+		perf_monitor.extra_info["render_scale_3d"] = get_viewport().scaling_3d_scale
 	AudioServer.set_bus_volume_db(0, [-16.0, -6.0, 0.0][volume_level])
 	hud.update_settings(quality_level, volume_level)
 
@@ -517,6 +616,7 @@ func _save_game() -> void:
 	var data := {
 		"version": 1,
 		"player_position": [player.global_position.x, player.global_position.y, player.global_position.z],
+		"player_model": player.human.model_name,
 		"camera_yaw": player.camera_yaw,
 		"mission_stage": mission.stage,
 		"mission_id": mission.mission_id,
@@ -530,7 +630,9 @@ func _save_game() -> void:
 		"money": money,
 		"bank_balance": bank_balance,
 		"jewellery_robbed": jewellery_robbed,
+		"discoveries": discoveries,
 		"weapons": weapons.to_save(),
+		"broken_glass": weapons.ballistics.glass_to_save(),
 		"hours": day_night.hours,
 		"best_race": activities.best_race,
 		"health": player.health,
@@ -561,6 +663,7 @@ func _load_game() -> void:
 		player._interact()
 	wanted.clear_wanted()
 	var point := data.get("player_position", []) as Array
+	player.human.change_model(str(data.get("player_model", "male_casual")))
 	if point.size() != 3:
 		push_error("Invalid player position in save_v1.json")
 		return
@@ -583,7 +686,11 @@ func _load_game() -> void:
 	money = maxi(0, int(data.get("money", money)))
 	bank_balance = maxi(0, int(data.get("bank_balance", 0)))
 	jewellery_robbed = bool(data.get("jewellery_robbed", false))
+	discoveries = data.get("discoveries", {}) if data.get("discoveries", {}) is Dictionary else {}
+	for venue in world.venues.values():
+		(venue as VenueInterior).restore_discoveries(discoveries)
 	weapons.from_save(data.get("weapons", {}))
+	weapons.ballistics.glass_from_save(data.get("broken_glass", []) if data.get("broken_glass", []) is Array else [])
 	day_night.hours = float(data.get("hours", day_night.hours))
 	activities.best_race = float(data.get("best_race", activities.best_race))
 	activities.stop("")
@@ -592,7 +699,7 @@ func _load_game() -> void:
 	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)
 	player.breath = clampf(float(data.get("breath", PlayerController.MAX_BREATH)), 0.0, PlayerController.MAX_BREATH)
 	player.health_changed.emit(player.health)
-	quality_level = clampi(int(data.get("quality_level", 2)), 0, 2)
+	quality_level = clampi(int(data.get("quality_level", 1)), 0, 2)
 	volume_level = clampi(int(data.get("volume_level", 2)), 0, 2)
 	_apply_settings()
 	var vehicle_name := str(data.get("vehicle_name", ""))

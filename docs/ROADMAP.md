@@ -44,3 +44,17 @@ A human fresh-launch playthrough on the GTX 1650 PC completed El Recado in 92.8 
 ## Migration review (2026-09-30)
 
 The in-progress 1:1 central-sector replacement contains 1,252 generated buildings after removing footprints that overlapped driveable roads. Import, smoke, damage, traffic, water, clearance and the automated El Recado route pass. The Jaime chiringuito mission, Taller Poniente, Mercado Azul, La Brisa, Caja Poniente and Joyería Faro now have playable interactions. The venues are first-pass furnished rooms; façades, water, interiors and the overall street scene still fall short of the requested high-quality visual target. PROD-001 remains open until human traversal and visual review confirm the sector.
+
+## Continuation handoff (2026-09-30)
+
+Weapon grips, the four inherited new venues, the casino upper floor and Inés's **Cuentas pendientes** now have automated and screenshot evidence in `docs/evidence/continuation_2026-09-30.md`. A hidden archive rewards exploration and persists its discovery. The casino traversal test walks up/down the stairs and saves inside the office; it is part of the standard validator.
+
+Next production priorities remain: profile exterior frame-time spikes (the current 1080p stationary sample is 67.9 average / 39.1 FPS 1% low); human review of the new interior and aiming in motion; final authored interior/character art and sound; then expand walkable residential buildings, original fictional backstreets and side missions in measured slices. Do not close D-017, INT-006 or QA-004 on the basis of these additions.
+
+The combat/water continuation adds shared physical hits for every shooter, saved breakable venue glass, procedural swimming and measured AI braking. It preserves chapter-one progression and casino traversal. Evidence and remaining scope are in `docs/evidence/combat_water_2026-09-30.md`; stable-60 acceptance for the expanded district is now tracked explicitly as PERF-002. Next combat work includes vehicle glazing, visible NPC firearms/aim poses, cover and reaction polish; traffic needs junction priority and lateral clearance. Complete these with worst-case performance and human checks before increasing district/population density or expanding the campaign.
+
+## Neighbourhood and contact priority (2026-09-30)
+
+The next slice supplies visible street collision, limited static step climbing, separate chassis/rounded tyre support and seated-driver correction. Six service shops and three residential buildings add 21 total enterable venues with six upstairs apartments. Nearby skaters/workers/dancers and adult beach residents broaden life without claiming full schedules. Physical NPC firearms, blue underwater fog, 32 movable chairs and wrapping HUD panels complete connected interactions.
+
+Follow `docs/evidence/neighborhood_2026-09-30.md` for validation and measured limits. Do not close M11/M12 or D-017: campaign chapters two/three, final art, full suspension, vehicle glazing, crowded-room navigation, apartment ownership/activities, release export and stable frame-time acceptance remain. Prioritize those gaps and human traversal over more footprint filler. Every next expansion needs a measured GPU/AI budget and a complete playable route.

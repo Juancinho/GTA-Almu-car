@@ -111,10 +111,22 @@ func _build_visuals() -> void:
 	boat_max_speed = float(spec.get("max_speed", 12.0))
 	var collider := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(2.0, 1.1, 4.8) if boat else Vector3(1.9, 1.2, 4.1)
+	shape.size = Vector3(2.0, 1.1, 4.8) if boat else Vector3(1.9, 0.88, 4.1)
 	collider.shape = shape
-	collider.position.y = 0.65
+	collider.position.y = 0.65 if boat else 0.76
 	add_child(collider)
+	if not boat:
+		# Rounded tyre support rolls over small road lips; the chassis retains its
+		# own solid volume above the tyres rather than scraping along the asphalt.
+		var tyre := SphereShape3D.new()
+		tyre.radius = 0.32
+		for x in [-0.78, 0.78]:
+			for z in [-1.25, 1.25]:
+				var wheel := CollisionShape3D.new()
+				wheel.name = "TyreSupport"
+				wheel.shape = tyre
+				wheel.position = Vector3(x,0.32,z)
+				add_child(wheel)
 	_build_model()
 
 
@@ -132,6 +144,15 @@ func _build_model() -> void:
 	model.rotation.y = model_yaw
 	model.scale = Vector3.ONE * float(spec.get("scale", 1.0))
 	add_child(model)
+	if not boat:
+		# Imported variants have different wheel datums; normalise once at build.
+		var bottom := INF
+		for item in model.find_children("*", "MeshInstance3D", true, false):
+			var mesh_item := item as MeshInstance3D
+			var bounds: AABB = (global_transform.affine_inverse() * mesh_item.global_transform) * mesh_item.mesh.get_aabb()
+			bottom = minf(bottom, bounds.position.y)
+		if is_finite(bottom):
+			model.position.y -= bottom
 	var paint: Dictionary = spec.get("paint", {})
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
@@ -178,12 +199,12 @@ func set_occupant(model_name: String) -> void:
 			occupant.queue_free()
 		occupant = HumanModel.new(model_name)
 		occupant.name = "Occupant"
-		# FBX sitting animation retains a tall root offset. Keep the seated model
-		# under the roof line while the on-foot player body is hidden.
-		occupant.position = Vector3(-0.38, -0.45, 0.15)
+		var seat: Dictionary = variant_spec(variant).get("driver", {})
+		occupant.position = Vector3(-0.38, float(seat.get("height", 0.09)), 0.15)
+		occupant.scale = Vector3.ONE * float(seat.get("scale", 0.78))
 		add_child(occupant)
 	occupant.visible = true
-	occupant.play_state("sitting")
+	occupant.hold_pose("sitting", 0.8)
 
 
 ## Carjacking: the NPC driver gets out on the far side and runs away.
@@ -321,6 +342,8 @@ func _physics_process(delta: float) -> void:
 	velocity.y = maxf(velocity.y - 16.0 * delta, -18.0) if not is_on_floor() else -0.2
 	var speed_before := absf(speed)
 	recent_speed = maxf(speed_before, recent_speed - 25.0 * delta)
+	if is_on_wall():
+		CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.20)
 	move_and_slide()
 	if not _deep_water(global_position) and is_on_floor():
 		last_dry_transform = global_transform
@@ -464,7 +487,9 @@ func _resolve_contacts(speed_before: float) -> void:
 		return
 	for i in range(get_slide_collision_count()):
 		var other := get_slide_collision(i).get_collider()
-		if other is Pedestrian and (other as Pedestrian).state != Pedestrian.State.DOWN:
+		if other is InteractiveProp:
+			(other as InteractiveProp).bullet_push(-global_transform.basis.z * signf(speed), get_slide_collision(i).get_position(), speed_before * 5.0)
+		elif other is Pedestrian and (other as Pedestrian).state != Pedestrian.State.DOWN:
 			(other as Pedestrian).knock_down(global_position, speed_before)
 			if speed_before > 9.0:  # a fast car can kill
 				(other as Pedestrian).take_damage((speed_before - 6.0) * 6.0, global_position)
@@ -629,14 +654,16 @@ func _follow_target(delta: float, target: Vector3, cruise_speed: float) -> void:
 	if absf(turn) > 0.9 and not pursuing:
 		cruise_speed = minf(cruise_speed, 5.0)
 	var look_ahead := -global_transform.basis.z
-	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.0, global_position + look_ahead * 7.0 + Vector3.UP * 1.0)
+	# Reaction margin plus braking distance: fast patrols need more than 7 metres.
+	var probe_length := clampf(2.5 + absf(speed) * 0.35 + speed * speed / (2.0 * BRAKE_DECELERATION), 7.0, 32.0)
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.0, global_position + look_ahead * probe_length + Vector3.UP * 1.0, 1)
 	query.exclude = _ray_exclusions()
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	var blocked := not hit.is_empty()
 	ai_blocker = hit.get("collider") if blocked else null
 	var target_speed := 0.0 if blocked else cruise_speed
 	var acceleration := 10.0 if pursuing else 6.0
-	speed = move_toward(speed, target_speed, (16.0 if blocked or speed > target_speed else acceleration) * delta)
+	speed = move_toward(speed, target_speed, (BRAKE_DECELERATION if blocked else 16.0 if speed > target_speed else acceleration) * delta)
 	_update_stuck(delta, blocked, cruise_speed)
 
 

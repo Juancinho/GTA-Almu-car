@@ -1,6 +1,6 @@
 # Performance budget
 
-Target 1920×1080 at stable 60 FPS on a mid-range Windows gaming PC, with GTX 1650 as the detected local test GPU. Frame budget: 16.7 ms total. Sustained gameplay performance still needs a visible-window playtest.
+Target 1920×1080 at stable 60 FPS on a mid-range Windows gaming PC, with GTX 1650 as the detected local test GPU. Frame budget: 16.7 ms total. Automated visible routes are measured below; human traversal, worst-case combat/night and release export acceptance remain open.
 
 | Area | Initial budget / rule | Verification |
 |------|-----------------------|--------------|
@@ -77,3 +77,51 @@ A human session at 1280×720 (quality 2) measured 70 FPS average and 45.6 FPS 1 
 
 Vehicle and character scenes are loaded at start-up so the first police car no longer stalls the frame. Re-measure on Windows with `validate.ps1 -Perf`.
 
+### Weapons and casino continuation (2026-09-30, Windows)
+
+Isolated sequential samples after the functional regressions finished: local Godot 4.7.2, Compatibility / NVIDIA GTX 1650 driver 592.27, 1920×1080 SubViewport, 90 warmup frames and 240 measured frames, default quality. Existing CC0 texture assets were reused; no higher-resolution textures were imported.
+
+| View | Average FPS | 1% low FPS | Average / p99 ms | Average draw calls | Texture MiB |
+|------|-------------|------------|------------------|--------------------|-------------|
+| Exterior spawn | 67.9 | 39.1 | 14.73 / 25.60 | 1124.4 | 106.6 |
+| Casino lobby | 85.2 | 70.5 | 11.74 / 14.18 | 706.7 | 106.5 |
+
+Commands: `godot.exe --path game --script res://tests/performance.gd` and the same with `-- --view casino`. Raw results are preserved in `docs/evidence/continuation_2026-09-30/performance_outside.txt` and `performance_casino.txt`. The counters report Godot texture allocation, not total resident GPU VRAM. No new visible-window human route was measured. These stationary samples do **not** establish stable 60 FPS; the exterior 1% low misses that target. Further population/district density should wait for profiling of that exterior bottleneck. The indoor camera, shared emissive materials and distance-gated rooms remain enabled in these samples.
+
+### Ballistics and swimming continuation (2026-09-30)
+
+New combat rendering is bounded: 12 simultaneous impact emitters, 48 reused bullet marks and 8 remote shot sounds. Particle meshes/materials are shared, particles and marks cast no shadows, marks cull at 60 m and emitters stop being created beyond 80 m. Glass shards use particles instead of rigid-body simulation. Runtime asset textures were unchanged.
+
+Sequential, isolated 1920×1080 SubViewport samples on the same GTX 1650 / driver 592.27, Godot 4.7.2 Compatibility, default quality 2, 90 warmup and 240 measured frames:
+
+| Sample | Average FPS | 1% low FPS | Average / p99 ms | Average draw calls | Texture MiB |
+|--------|-------------|------------|------------------|--------------------|-------------|
+| Exterior | 57.8 | 29.1 | 17.29 / 34.36 | 1124.2 | 106.6 |
+| Exterior + synthetic combat effects | 59.2 | 32.1 | 16.88 / 31.20 | 1177.8 | 106.6 |
+
+The combat sample (`performance.gd -- --combat`) repeatedly fills the bounded effects/marks in the same view; it does not simulate a complete firefight. These short runs were on a 60 Hz display, unlike the earlier 120 Hz measurements. Their noise and cap prevent an FPS-improvement claim. The extra effects add about 54 draw calls with no texture-allocation growth at the reported 0.1 MiB precision; both samples still miss the stable-60 target. Logs: `docs/evidence/combat_water_2026-09-30/performance_outside.txt` and `performance_combat.txt`.
+
+A visible fullscreen El Recado route with vsync completes at 59.8 average FPS overall (343.8 s). On foot: 59.7 average / 55.4 FPS 1% low; driving: 59.8 / 60.0; pursuit: 59.9 / 60.0. Maximum frame: 80.49 ms; up to 1493 draw calls and 2.40 million primitives. This demonstrates a completed playable route at the 60 Hz cap for most frames, with spikes still requiring work. It is an automated route, not a human session. The first uncapped route fails its escape while reporting pursuit 75.6 average / 51.9 FPS 1% low; that failed run is retained as evidence, not accepted as a completed route.
+
+Framebuffer verification: the fullscreen GPU image is **1920×1080**. The old monitor's `ViewportTexture.get_size()` reports 2880×1620 because it includes the canvas stretch transform; this is not an actual oversized framebuffer. The monitor now reads the real image size once on startup/resize. `framebuffer.txt` preserves the side-by-side check. PERF-002 remains open for worst-case streets/combat/night, reduced spikes and human acceptance.
+
+### Neighbourhood and physical street contacts (2026-09-30)
+
+21 venues, physical staff/dancers, six beach residents, four skaters, bounded 32 movable chairs and mesh-matched road/curb collision are integrated. Medium is the new default: 85% 3D resolution, 65 m shadow range, 28 m interior visibility. Low/High use 67%/100% 3D; UI remains native. Hidden ambient poses/worker simulation are gated. Physics step sweeps now run only after a wall contact; normal floor movement avoids their additional queries. Shared firearm materials also fix police-despawn renderer errors.
+
+The initial expanded-sector fullscreen route passes gameplay but averages 57.2 FPS, with pursuit 50.4 average / 21.0 1% low and maximum frame 86.86 ms. After the step guard, isolated sequential fullscreen routes on the same GTX 1650/592.27, Ryzen 5600H, Godot 4.7.2 Compatibility and 60 Hz screen produce:
+
+| Mode / context | Avg FPS | 1% low FPS | Average / p99 ms | Max frame ms |
+|---|---|---|---|---|
+| Vsync · foot | 60.0 | 60.0 | 16.67 / 16.67 | 18.06 |
+| Vsync · driving | 59.7 | 55.4 | 16.75 / 18.06 | 33.33 |
+| Vsync · pursuit | 56.9 | 34.3 | 17.59 / 29.17 | 37.03 |
+| Uncapped · foot | 102.9 | 81.6 | 9.72 / 12.25 | 18.38 |
+| Uncapped · driving | 97.0 | 50.2 | 10.31 / 19.93 | 31.50 |
+| Uncapped · pursuit | 87.9 | 37.5 | 11.38 / 26.67 | 33.33 |
+
+Both routes complete El Recado with witnessed incident, actual police chase/escape and delivery, at 981/980 vehicle health. Output is verified 1920×1080, quality 1, 85% 3D. Vsync overall: 59.3 average / 40.0 1% low, worst 37.03 ms; uncapped: 96.4 / 45.4, worst 33.33 ms. Maximum visible draw calls 1486; maximum primitives 2.12 million slightly exceeds the initial geometry target. Engine physics monitor means in the capped run: 4.41 ms foot, 6.01 driving, 8.16 pursuit; pursuit max 14.63 ms. These engine monitors can overlap/update at lower cadence, so do not subtract them to infer GPU cost. The routes differ slightly in timing and police behaviour; this is indicative profiling, not identical-frame A/B testing.
+
+Stationary uncapped 1920×1080 diagnostics (90 warmup/240 frames) report High 64.7 average / 43.0 1% low, Medium 65.6 / 42.8, Medium + synthetic combat 62.7 / 41.7. Texture allocation is 106.3 MiB High, 117.8 MiB Medium/combat; render-target allocation changes with scaling and this counter is not total resident VRAM. Render-only CPU/GPU means are 4.48/5.11 ms, 4.45/5.00 ms and 4.72/5.09 ms. The diagnostic uses [Godot viewport render timing](https://docs.godotengine.org/en/stable/classes/class_renderingserver.html#class-renderingserver-method-viewport-get-measured-render-time-gpu); those render times exclude gameplay scripts and should not be equated with total frame time. The short runs and small profile difference do not prove a performance improvement or stable 60 FPS.
+
+Four real F11 transitions between 1280×720 and 1920×1080 pass render-size, mode, quality and HUD checks (`window_modes.gd`). Remaining PERF-002 work: reduce pursuit tail spikes and physics/AI cost, test worst-case armed combat/night/interior transitions and human traversal, then measure a Windows export. Export templates are not installed; current runs use the editor executable. Evidence and raw reports: `docs/evidence/neighborhood_2026-09-30.md` and its data directory.

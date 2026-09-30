@@ -98,6 +98,27 @@ def reload_sound(rng: random.Random) -> list[float]:
     return result
 
 
+def coastal_session() -> list[float]:
+    """Original 16-second instrumental phrase, no sampled or borrowed recording."""
+    result: list[float] = []
+    progression = ((57, 60, 64), (53, 57, 60), (55, 59, 62), (52, 55, 59))
+    for index in range(16 * SAMPLE_RATE):
+        t = index / SAMPLE_RATE
+        chord = progression[int(t / 4) % 4]
+        step = int(t * 4)
+        note = chord[step % 3] + 12
+        phase = t % 0.25
+        hz = 440 * 2 ** ((note - 69) / 12)
+        lead = math.sin(math.tau * hz * t) * math.exp(-phase * 17) * 0.16
+        bass_hz = 440 * 2 ** ((chord[0] - 12 - 69) / 12)
+        bass = math.sin(math.tau * bass_hz * t) * 0.12
+        beat = t % 0.5
+        kick = math.sin(math.tau * (52 * beat + 5 * (1 - math.exp(-beat * 20)))) * math.exp(-beat * 35) * 0.22
+        fade = min(1.0, t / 0.1, (16 - t) / 0.25)
+        result.append((lead + bass + kick) * fade)
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("game/assets/audio"))
@@ -111,7 +132,8 @@ def main() -> None:
                write_wav(args.out / "smg_shot.wav", gunshot(rng, 0.16, 150.0, 0.75)),
                write_wav(args.out / "bat_hit.wav", bat_hit(rng)),
                write_wav(args.out / "dry_click.wav", dry_click()),
-               write_wav(args.out / "reload.wav", reload_sound(rng))]
+               write_wav(args.out / "reload.wav", reload_sound(rng)),
+               write_wav(args.out / "coastal_session.wav", coastal_session())]
     report = {"generator": "tools/audio/generate.py", "sample_rate": SAMPLE_RATE,
               "seed": 7401, "license": "original project-generated", "placeholder": True,
               "files": reports}

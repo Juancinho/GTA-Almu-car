@@ -12,8 +12,8 @@ func _run() -> void:
 	var world := root.get_node("District_Altillo") as SectorWorld
 	var player := root.get_node("Player") as PlayerController
 	var wanted := root.get_node("WantedSystem") as WantedSystem
-	if world.venues.size() != 8:
-		return _fail("expected eight physical venues")
+	if world.venues.size() != VenueInterior.SPECS.size():
+		return _fail("venue catalog and physical venues differ")
 	if int(world.build_stats.get("businesses", 0)) < 10 or int(world.build_stats.get("beach_bars", 0)) != 5:
 		return _fail("promenade businesses or walk-in beach bars missing")
 	if world.beach_bars.size() != 5:
@@ -188,7 +188,71 @@ func _run() -> void:
 	if root.money != 5 or player.health != PlayerController.MAX_HEALTH:
 		return _fail("beach bar meal did not heal and charge once")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(root.save_path))
-	print("VENUES PASS: eight physical interiors, cafe breakfast, La Palmera dining, five beach bars, bank transfers and all jewellery loot restored/hidden")
+	# Casino, gun shop, nightclub and seafood restaurant.
+	for kind in ["casino", "gun_shop", "nightclub", "seafood"]:
+		var venue := world.venues[kind] as VenueInterior
+		if not _room_fits(venue, world):
+			return _fail(kind + " room extends beyond its building")
+		for x in range(-6, 7, 3):
+			for z in range(-8, 9, 2):
+				var at := venue.room.to_global(VenueInterior.SPECS[kind]["origin"] + Vector3(x, 0, z))
+				if world.height_at(at.x, at.z) > at.y:
+					return _fail(kind + " terrain protrudes through the floor")
+		if not DressingBuilder._clear_of_driveable(venue.exterior_entry, world.road_network, 0.0):
+			return _fail(kind + " doorway inside a driveable lane")
+		player.global_position = venue.exterior_entry
+		player._interact()
+		for i in range(40):
+			await physics_frame
+		if not venue.contains_player(player.global_position) or player.global_position.y < venue.inside_entry.y - 0.5:
+			return _fail("could not stand inside " + kind)
+		if not player.interior_camera or player.camera_arm.spring_length > 3.0:
+			return _fail(kind + " camera did not adapt to the room")
+		root.money = 2000
+		player.health = 50.0
+		player.global_position = venue.service_point
+		player._interact()
+		await physics_frame
+		if kind == "casino" and int(root.money) == 2000:
+			return _fail("roulette did not take or pay the stake")
+		if kind == "casino":
+			root.money = 2000
+			root.gamble_rng.seed = 9917
+			var expected_rng := RandomNumberGenerator.new()
+			expected_rng.seed = 9917
+			for spin in range(12):
+				var number := expected_rng.randi_range(0, 36)
+				var red := number in [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+				var before: int = root.money
+				player._interact()
+				if root.money != before + (100 if red else -100) or not root.mission.dialogue.begins_with("Crupier: %d," % number):
+					return _fail("roulette number, colour and payout disagree")
+			root.money = 0
+			player._interact()
+			if root.money != 0:
+				return _fail("roulette accepted an unaffordable bet")
+			player.global_position = venue.secondary_service_point
+			root.money = 20
+			player._interact()
+			if root.money not in [0, 80]:
+				return _fail("slot-machine stake or payout wrong")
+		if kind in ["nightclub", "seafood"] and player.health <= 50.0:
+			return _fail(kind + " did not serve")
+		if kind == "gun_shop":
+			player.global_position = venue.secondary_service_point
+			player._interact()
+			var weapons := root.get_node("Weapons") as WeaponSystem
+			if not weapons.owned.has("pistol") or int(root.money) != 1700:
+				return _fail("gun shop did not sell a pistol (money %d)" % int(root.money))
+			var ammo_before := int(weapons.reserve["pistol"])
+			player.global_position = venue.service_point
+			player._interact()
+			if root.money != 1600 or int(weapons.reserve["pistol"]) != ammo_before + 36:
+				return _fail("ammunition purchase did not supply three magazines")
+		player.global_position = venue.inside_entry
+		player._interact()
+		await physics_frame
+	print("VENUES PASS: physical interiors (casino roulette, gun shop, nightclub, seafood), cafe breakfast, La Palmera dining, five beach bars, bank transfers and all jewellery loot restored/hidden")
 	root.queue_free()
 	await process_frame
 	quit(0)

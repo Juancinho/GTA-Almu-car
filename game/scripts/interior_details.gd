@@ -23,7 +23,7 @@ static func optimize(room: Node3D) -> void:
 			continue
 		visual.visibility_range_end = DETAIL_DISTANCE
 		# Robbery changes these objects individually; preserve their identities.
-		if label.begins_with("Gemstone") or label.begins_with("GoldSetting") or label.begins_with("GoldDisplay"):
+		if label == "SecretEnvelope" or label.begins_with("Gemstone") or label.begins_with("GoldSetting") or label.begins_with("GoldDisplay"):
 			continue
 		var material := visual.material_override as StandardMaterial3D
 		if material == null or material.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:

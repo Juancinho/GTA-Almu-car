@@ -1,0 +1,5 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 592.27 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce GTX 1650
+
+SECTOR BUILT: 1252 buildings, 50631 façade details, 8660 ms
+PERFORMANCE SAMPLE: view=outside framebuffer=(1920.0, 1080.0) frames=240 average_fps=62.7 1pct_low_fps=41.7 average_ms=15.94 p99_ms=23.98 average_draw_calls=1093.7 texture_mib=117.8 render_cpu_ms=4.72 render_gpu_ms=5.09 diagnostic_flags=["--quality", "1", "--uncapped", "--combat"]

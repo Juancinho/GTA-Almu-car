@@ -20,6 +20,8 @@ func _ready() -> void:
 	model_name = "male_suit"
 	display_name = "Policía"
 	super._ready()
+	armed = true
+	equip_firearm()
 	add_to_group("police_officers")
 	aim_rng.seed = get_instance_id()
 	shot_audio = AudioStreamPlayer3D.new()
@@ -85,6 +87,8 @@ func _physics_process(delta: float) -> void:
 	if distance > stop_at:
 		var direction := offset / maxf(distance, 0.01)
 		velocity = Vector3(direction.x * RUN, -3.0, direction.z * RUN)
+		if is_on_wall():
+			CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.42)
 		move_and_slide()
 		human.update_motion(RUN)
 	else:
@@ -98,22 +102,17 @@ func _physics_process(delta: float) -> void:
 		return
 	shoot_timer = aim_rng.randf_range(0.9, 1.5)
 	human.hold_pose("punch", 0.26)
-	if DisplayServer.get_name() != "headless":
-		shot_audio.play()
 	var moving := wanted.player_speed()
-	var chance := clampf(0.8 - distance / 70.0 - moving * 0.035, 0.12, 0.8)
-	if aim_rng.randf() < chance:
-		if player.driving_vehicle != null:
-			player.driving_vehicle.apply_damage(35.0)
-		else:
-			player.take_damage(7.0 + wanted.level, "police")
+	get_tree().call_group("weapon_system", "fire_remote", self, target + Vector3.UP * 1.1,
+		7.0 + wanted.level, 35.0, 0.006 + distance * 0.0004 + moving * 0.001, aim_rng, "police")
 
 
 func _clear_line(target: Vector3) -> bool:
-	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, target + Vector3.UP * 1.1)
+	# Glass is penetrable; masonry and vehicles still block the officer's view.
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, target + Vector3.UP * 1.1, 1)
 	query.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	return hit.is_empty() or hit.get("collider") == player or hit.get("collider") == player.driving_vehicle
+	return hit.is_empty() or hit.get("collider") is BreakableGlass or hit.get("collider") == player or hit.get("collider") == player.driving_vehicle
 
 
 ## Officers never flee: a hit only knocks them down for a moment.
@@ -121,9 +120,9 @@ func flee_from(_location: Vector3) -> void:
 	pass
 
 
-func take_damage(amount: float, from: Vector3) -> void:
-	super.take_damage(amount, from)
-	if wanted != null:
+func take_damage(amount: float, from: Vector3, by_player: bool = true) -> void:
+	super.take_damage(amount, from, by_player)
+	if wanted != null and by_player:
 		wanted.report_police_attack(global_position)
 
 

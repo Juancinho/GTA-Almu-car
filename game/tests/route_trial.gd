@@ -12,9 +12,11 @@ var pursuit_seconds := 0.0
 var police_min_distance := INF
 var stats_car: DriveableVehicle
 var roads: RoadNetwork
+var mission: MissionController
 
 
 func _initialize() -> void:
+	seed(7401)
 	call_deferred("_run")
 
 
@@ -33,7 +35,7 @@ func _run() -> void:
 	var network: RoadNetwork = world.road_network
 	roads = network
 	var player := root.get_node("Player") as PlayerController
-	var mission := root.get_node("Mission") as MissionController
+	mission = root.get_node("Mission") as MissionController
 	wanted = root.get_node("WantedSystem") as WantedSystem
 	wanted.player_busted.connect(func() -> void: busted = true)
 	var alba := world.get_node("Alba") as Pedestrian
@@ -104,11 +106,11 @@ func _drive_path(car: DriveableVehicle, path: PackedVector3Array, limit: int, st
 		while i + 1 < path.size() and Vector2(path[i].x - car.global_position.x, path[i].z - car.global_position.z).length() < 4.0:
 			i += 1
 		var next := path[i + 1] if i + 1 < path.size() else Vector3.INF
-		var result := await _drive_to(car, path[i], limit - used, stop_when_clear, next)
+		var result := await _drive_to(car, path[i], limit - used, stop_when_clear, next, stop_on_incident)
 		used += int(result["frames"])
 		if busted or (stop_when_clear and wanted.level == 0):
 			return not busted
-		if stop_on_incident and wanted.level > 0 and i >= path.size() - 1:
+		if stop_on_incident and wanted.level > 0 and mission.stage == 3:
 			return true
 		if not bool(result["reached"]):
 			print("DRIVE STALLED at ", car.global_position, " waypoint ", i, "/", path.size(), " -> ", path[i])
@@ -118,9 +120,13 @@ func _drive_path(car: DriveableVehicle, path: PackedVector3Array, limit: int, st
 
 
 ## Steer with simulated keys toward target; brake for sharp turns at the next waypoint.
-func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_clear: bool = false, next: Vector3 = Vector3.INF) -> Dictionary:
+func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_clear: bool = false, next: Vector3 = Vector3.INF, stop_on_incident: bool = false) -> Dictionary:
 	var stalled := 0
 	for i in range(limit):
+		# Start evasion when the actual mission objective advances, without an extra
+		# drive to a graph endpoint after the witnessed incident has already happened.
+		if stop_on_incident and wanted.level > 0 and mission.stage == 3:
+			return {"reached": true, "frames": i}
 		if stalled > 50:
 			# Like a human driver: wedged against traffic, back up with opposite lock.
 			stalled = 0
@@ -158,8 +164,10 @@ func _drive_to(car: DriveableVehicle, target: Vector3, limit: int, stop_when_cle
 			Input.action_press("brake")
 		else:
 			Input.action_release("brake")
+		var previous_position := car.global_position
 		await physics_frame
-		stalled = stalled + 1 if absf(car.speed) < 1.0 else 0
+		# Wheel speed can remain positive while a car slides against a wall.
+		stalled = stalled + 1 if Vector2(car.global_position.x - previous_position.x, car.global_position.z - previous_position.z).length() < 0.015 else 0
 		_track_police(1.0 / Engine.physics_ticks_per_second)
 		if i % 120 == 0:
 			var units := []
@@ -215,6 +223,10 @@ func _walk_to(player: PlayerController, target: Vector3, limit: int) -> bool:
 		await physics_frame
 	_release_controls()
 	print("WALK FAILED at ", player.global_position, " target ", target)
+	print("WALK CONTACT floor=",player.is_on_floor(), " velocity=",player.velocity)
+	for index in player.get_slide_collision_count():
+		var contact := player.get_slide_collision(index)
+		print("CONTACT ", contact.get_collider().name, " normal=",contact.get_normal(), " position=",contact.get_position())
 	return false
 
 

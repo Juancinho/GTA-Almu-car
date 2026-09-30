@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6623 ms
+CASINO ROUTE PASS: contact, wrong-floor rejection, physical stair ascent/descent, hidden archive and saved discovery, office interaction, upper-floor save/load, exit, reward once and mission resume

@@ -1,0 +1,48 @@
+{
+  "id": "cuentas_pendientes",
+  "title": "Cuentas pendientes",
+  "reward": 650,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Inés: La copia sigue en el despacho. Entra por el vestíbulo y sube las escaleras de la derecha.",
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Ines",
+      "text": "Habla con Inés junto al Casino Costa Tropical (I)",
+      "dialogue": ["Inés: Llevaba las cuentas del casino. Me despidieron cuando pregunté por unos pagos al puerto.", "Inés: El libro original sigue arriba. Entra en el vestíbulo, sube por la derecha y busca el despacho. Necesito una copia, sin hacer daño a nadie."]
+    },
+    {
+      "type": "reach_area",
+      "text": "Entra en el casino y sube las escaleras hasta la planta 1",
+      "marker_venue": "casino",
+      "venue_point": "landing",
+      "radius": 1.7,
+      "height_tolerance": 0.8,
+      "requires_on_foot": true,
+      "dialogue": "Administración está al fondo, tras la puerta del pasillo."
+    },
+    {
+      "type": "event",
+      "event": "casino_ledger",
+      "text": "Examina el libro de cuentas en el despacho (E)",
+      "marker_venue": "casino",
+      "venue_point": "ledger",
+      "radius": 1.5,
+      "dialogue": ["Fotografías varias páginas: las mismas sociedades aparecen en los pagos del puerto y del casino.", "Inés: Eso es. Baja por donde has venido y tráeme la copia."]
+    },
+    {
+      "type": "reach_area",
+      "text": "Baja al vestíbulo y sal del casino",
+      "marker_venue": "casino",
+      "radius": 2.0,
+      "requires_on_foot": true,
+      "requires_no_wanted": true
+    },
+    {
+      "type": "talk_to",
+      "target": "Ines",
+      "text": "Entrega a Inés la copia de las cuentas",
+      "dialogue": "Inés: Aquí están los nombres. Guarda tu parte; yo guardaré una segunda copia. Esta vez no van a borrar las pruebas."
+    }
+  ]
+}

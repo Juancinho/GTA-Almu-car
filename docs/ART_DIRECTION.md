@@ -54,3 +54,11 @@ For close interiors and hero props, author 2 K PBR sets by default and use 4 K o
 ## Review and acceptance
 
 Each landmark and sector is accepted only with: side-by-side screenshots against its reference board at matching viewpoints, a day and a night capture, LOD/draw-call numbers from `validate.ps1 -Perf`, and a human review note in `TASKS.md`.
+
+### Neighbourhood integration (2026-09-30)
+
+New furniture reuses the pinned CC0 plaster, paving/stone and wood/roof texture library. The residential/shop layouts are textured procedural prototypes; readable bread/clothing/equipment silhouettes, detailed cabinets, trim/decal scale, original signs and human day/night review still require authoring before final-art acceptance. Do not accept uniform rectangular shop stock as finished hero props.
+
+Adult beach clothing derives from the existing CC0 Quaternius female rig with `game/shaders/swimwear.gdshader`, original striped fabric and skin regions; no new external textures/models were fetched. Inline boots/wheels and work/dance poses are original procedural integration, pending anatomically believable fit and authored motion. `tools/audio/generate.py` authors the original record-shop instrumental; it is a placeholder composition, not licensed commercial music.
+
+Sierra silhouettes use deterministic continuous profiles (seed phase 7406), smoothed normals and the existing pinned rock material. This is a provisional original backdrop; CNIG MDT05 and matched geographic day/night references remain required. Underwater fog also applies to the range so it cannot show through a submerged camera's blue environment.

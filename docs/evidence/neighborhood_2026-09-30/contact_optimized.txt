@@ -1,0 +1,8 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50631 façade details, 7526 ms
+STEP CASE 0 crossed=true at=(1000.05, 80.29276, 1000.0)
+STEP CASE 1 crossed=false at=(999.65, 80.00013, 1000.0)
+STEP CASE 2 crossed=false at=(999.65, 79.99972, 1000.0)
+TYRE CURB at=(1002.451, 80.13094, 1000.0) health=1000.0
+SURFACE CONTACTS PASS: real road support, low steps without wall/ceiling traversal, nine grounded vehicle variants/seated occupants, bounded furniture/bullet impulse, submerged-camera fog cleanup and long HUD text containment

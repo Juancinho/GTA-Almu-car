@@ -80,6 +80,20 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 		instance.material_override = {"asphalt": asphalt, "paving": paving, "steps": steps, "curb": curb, "paint": paint}[kind]
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(instance)
+		if kind in ["asphalt", "paving", "steps", "curb"]:
+			# Use exactly the rendered triangles: the heightmap lies 11–16 cm below
+			# the road and cannot support feet or tyres on its visible surface.
+			var body := StaticBody3D.new()
+			body.name = "RoadSurface_" + str(key).replace("|", "_")
+			body.add_to_group("terrain")
+			body.add_to_group("road_surfaces")
+			var shape := ConcavePolygonShape3D.new()
+			shape.set_faces(mesh.get_faces())
+			shape.backface_collision = true
+			var collision := CollisionShape3D.new()
+			collision.shape = shape
+			body.add_child(collision)
+			parent.add_child(body)
 	var dash_mesh := QuadMesh.new()
 	dash_mesh.size = Vector2(0.14, 2.6)
 	dash_mesh.orientation = PlaneMesh.FACE_Y

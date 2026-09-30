@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50910 façade details, 6639 ms
+WEAPONS PASS: pickup, aim camera, shop holdup, 3-shot kill, ammo/reload, vehicle damage, bat, save/load (wanted 0)

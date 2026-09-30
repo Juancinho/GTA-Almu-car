@@ -18,6 +18,7 @@ const SHOPS := [
 	[1388940275, "ALMUÑÉCAR TAPAS", "bar"],
 	[1388943443, "ESTANCO DEL PASEO", "estanco"],
 ]
+static var chair_mesh: ArrayMesh
 
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
@@ -97,7 +98,50 @@ static func _box(parent: Node3D, label: String, at: Vector3, size: Vector3, yaw:
 	var mesh := BoxMesh.new()
 	mesh.size = size
 	instance.mesh = mesh
+	if label == "Chair":
+		if chair_mesh == null:
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			st.append_from(mesh, 0, Transform3D.IDENTITY)
+			for x in [-0.19, 0.19]:
+				for z in [-0.19, 0.19]:
+					var leg := BoxMesh.new()
+					leg.size = Vector3(0.055, 0.4, 0.055)
+					st.append_from(leg, 0, Transform3D(Basis.IDENTITY, Vector3(x, -0.26, z)))
+			var back := BoxMesh.new()
+			back.size = Vector3(0.46, 0.5, 0.06)
+			st.append_from(back, 0, Transform3D(Basis.IDENTITY, Vector3(0, 0.3, 0.2)))
+			chair_mesh = st.commit()
+		instance.mesh = chair_mesh
 	instance.material_override = material
 	instance.position = at
 	instance.rotation.y = yaw
-	parent.add_child(instance)
+	if label == "Chair" and parent.get_tree().get_nodes_in_group("interactive_props").size() < 32:
+		var body := InteractiveProp.new()
+		body.name = "MovableChair"
+		body.position = at
+		body.rotation.y = yaw
+		parent.add_child(body)
+		instance.position = Vector3.ZERO
+		instance.rotation = Vector3.ZERO
+		body.add_child(instance)
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(size.x, 1.05, size.z)
+		collision.shape = shape
+		collision.position.y = 0.065
+		body.add_child(collision)
+	elif label in ["Chair", "TerraceTable"]:
+		parent.add_child(instance)
+		var body := StaticBody3D.new()
+		body.position = at
+		body.rotation.y = yaw
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(size.x, 1.05 if label == "Chair" else 0.8, size.z)
+		collision.shape = shape
+		collision.position.y = 0.065 if label == "Chair" else -0.35
+		body.add_child(collision)
+		parent.add_child(body)
+	else:
+		parent.add_child(instance)

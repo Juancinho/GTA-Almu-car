@@ -2,10 +2,12 @@ class_name VenueInterior
 extends Node3D
 
 const DetailBatcher = preload("res://scripts/interior_details.gd")
+const UpperFloor = preload("res://scripts/venue_upper_floor.gd")
 
 signal purchase_requested(kind: String)
 signal bank_transaction_requested(action: String)
 signal robbery_requested
+signal interior_event_requested(event: String)
 
 const SPECS = preload("res://scripts/venue_catalog.gd").SPECS
 
@@ -17,6 +19,43 @@ var service_point := Vector3.ZERO
 var secondary_service_point := Vector3.ZERO
 var source_building_id := 0
 var room: Node3D
+var mission_points: Dictionary = {}
+var stash_collected := false
+var glow_materials: Dictionary = {}
+var visibility_distance := 28.0
+
+
+func restore_discoveries(discoveries: Dictionary) -> void:
+	stash_collected = bool(discoveries.get("casino_stash", false)) if kind == "casino" else false
+	if kind == "casino":
+		var envelope := room.get_node_or_null("SecretEnvelope") as Node3D
+		if envelope != null:
+			envelope.visible = not stash_collected
+
+
+func point_position(id: String) -> Vector3:
+	return room.to_global(SPECS[kind]["origin"] + mission_points[id]) if mission_points.has(id) else Vector3.INF
+
+
+func floor_number(at: Vector3) -> int:
+	return maxi(0, floori((room.to_local(at).y + 0.15) / 4.5))
+
+
+func mission_prompt(at: Vector3) -> String:
+	if _near_bed(at):
+		return "E · Descansar en el apartamento"
+	if mission_points.has("stash") and at.distance_to(point_position("stash")) < 1.3:
+		return "Sobre vacío" if stash_collected else "E · Recoger el sobre escondido"
+	if mission_points.has("ledger") and at.distance_to(point_position("ledger")) < 1.5:
+		return "E · Examinar el libro de cuentas"
+	return ""
+
+
+func _near_bed(at: Vector3) -> bool:
+	for id in ["bed", "bed_two"]:
+		if mission_points.has(id) and at.distance_to(point_position(id)) < 1.6:
+			return true
+	return false
 
 
 func configure(value: String, data: SectorData, mats: SectorMaterials) -> bool:
@@ -48,12 +87,23 @@ func configure(value: String, data: SectorData, mats: SectorMaterials) -> bool:
 		var angle := atan2(exterior_normal.x, exterior_normal.z)
 		var rotation_basis := Basis(Vector3.UP, angle)
 		var physical_center := Vector3(mid.x, data.height_at(mid.x, mid.y) + 0.12, mid.y) - exterior_normal * (9.0 * scale_xz)
+		if int(spec.get("floors", 1)) > 1 or kind in ["gun_shop", "nightclub", "seafood", "bakery", "pharmacy", "barber", "gym", "record_shop", "clothing"]:
+			# A level floor must sit above the hillside across the entire plan.
+			# Portal entry handles the difference from the street's ground datum.
+			for x in range(-7, 8, 2):
+				for z in range(-9, 10, 2):
+					var sample := physical_center + rotation_basis * Vector3(x * scale_xz, 0, z * scale_xz)
+					physical_center.y = maxf(physical_center.y, data.height_at(sample.x, sample.z) + 0.12)
 		room.rotation.y = angle
 		room.scale = Vector3(scale_xz, 1.0, scale_xz)
 		for person in room.get_children():
-			if person is HumanModel:
+			if person is HumanModel or person is Pedestrian:
 				person.scale = Vector3(1.0 / scale_xz, 1.0, 1.0 / scale_xz)
 		room.position = physical_center - rotation_basis * Vector3(origin.x * scale_xz, origin.y, origin.z * scale_xz)
+		for person in room.get_children():
+			if person is Pedestrian:
+				person.home = person.global_position
+				person.destination = person.global_position
 		inside_entry = room.to_global(origin + Vector3(0, 0.2, 3.0))
 		service_point = room.to_global(origin + Vector3(4.0, 0.2, -5.1))
 		secondary_service_point = room.to_global(origin + Vector3(-4.8, 0.2, -5.1))
@@ -66,16 +116,30 @@ func configure(value: String, data: SectorData, mats: SectorMaterials) -> bool:
 func try_interact(player: PlayerController) -> bool:
 	if player.driving_vehicle != null:
 		return false
+	if contains_player(player.global_position) and mission_prompt(player.global_position) != "":
+		if _near_bed(player.global_position):
+			purchase_requested.emit(kind)
+		elif mission_points.has("stash") and player.global_position.distance_to(point_position("stash")) < 1.3:
+			if not stash_collected:
+				interior_event_requested.emit("casino_stash")
+		else:
+			interior_event_requested.emit("casino_ledger")
+		return true
 	if not contains_player(player.global_position) and player.global_position.distance_to(exterior_entry) < 3.0:
 		player.global_position = inside_entry
 		player.velocity = Vector3.ZERO
+		player.camera_yaw = room.rotation.y
+		player.camera_pitch = -0.12
+		player._update_camera_orientation()
 		room.visible = true
 		return true
 	if contains_player(player.global_position) and player.global_position.distance_to(inside_entry) < 2.7:
+		if kind == "record_shop":
+			(room.get_node("ListeningStation") as AudioStreamPlayer3D).stop()
 		player.global_position = exterior_entry + exterior_normal * 0.35
 		player.velocity = Vector3.ZERO
 		return true
-	if contains_player(player.global_position) and player.global_position.distance_to(service_point) < 2.7:
+	if not bool(SPECS[kind].get("residential", false)) and contains_player(player.global_position) and player.global_position.distance_to(service_point) < 2.7:
 		if kind == "bank":
 			bank_transaction_requested.emit("deposit")
 		elif kind == "jewellery":
@@ -85,6 +149,9 @@ func try_interact(player: PlayerController) -> bool:
 		return true
 	if kind == "bank" and contains_player(player.global_position) and player.global_position.distance_to(secondary_service_point) < 2.7:
 		bank_transaction_requested.emit("withdraw")
+		return true
+	if SPECS[kind].has("secondary") and contains_player(player.global_position) and player.global_position.distance_to(secondary_service_point) < 2.7:
+		purchase_requested.emit(kind + "_secondary")
 		return true
 	return false
 
@@ -106,7 +173,8 @@ func _process(delta: float) -> void:
 
 
 func update_room_visibility(at: Vector3) -> void:
-	room.visible = contains_player(at) or at.distance_to(inside_entry) < 45.0 or at.distance_to(exterior_entry) < 45.0
+	var radius_squared := visibility_distance * visibility_distance
+	room.visible = contains_player(at) or at.distance_squared_to(inside_entry) < radius_squared or at.distance_squared_to(exterior_entry) < radius_squared
 
 
 func contains_player(at: Vector3) -> bool:
@@ -114,7 +182,7 @@ func contains_player(at: Vector3) -> bool:
 		return false
 	var local := room.to_local(at)
 	var origin: Vector3 = SPECS[kind]["origin"]
-	return absf(local.x - origin.x) < 6.9 and absf(local.z - origin.z) < 8.9 and local.y > -0.5 and local.y < 4.8
+	return absf(local.x - origin.x) < 6.9 and absf(local.z - origin.z) < 8.9 and local.y > -0.5 and local.y < 4.5 * int(SPECS[kind].get("floors", 1)) + 0.3
 
 
 func set_robbed(value: bool) -> void:
@@ -145,7 +213,7 @@ func _make_sign(mid: Vector2, data: SectorData, mats: SectorMaterials, title: St
 	letters.pixel_size = 0.0063
 	letters.outline_size = 6
 	letters.modulate = Color("514332") if kind == "church" else Color("f4eee1")
-	letters.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	letters.rotation.y = atan2(exterior_normal.x, exterior_normal.z)
 	letters.position = at + exterior_normal * 0.14
 	add_child(letters)
 
@@ -155,12 +223,17 @@ func _make_room(origin: Vector3, mats: SectorMaterials, spec: Dictionary) -> voi
 	room.name = "Room"
 	add_child(room)
 	var floor_mat := mats.textured("venue_floor_" + kind, "tiles040" if kind != "restaurant" else "pavingstones046", Color("d7d4ca") if kind != "restaurant" else Color("c2a184"), 1.6, 0.83)
-	var wall_mat := mats.textured("venue_wall_" + kind, "plaster003", Color("d9dfda") if kind == "jewellery" else Color("e0e6e4") if kind == "bank" else Color("ebe7de") if kind == "supermarket" else Color("e6d3bd"), 2.4, 0.9)
+	var wall_mat := mats.textured("venue_wall_" + kind, "plaster003", Color("4a2b33") if kind == "casino" else Color("1a1a22") if kind == "nightclub" else Color("9b917d") if kind == "gun_shop" else Color("d9dfda") if kind == "jewellery" else Color("e0e6e4") if kind == "bank" else Color("ebe7de") if kind == "supermarket" else Color("e6d3bd"), 2.4, 0.9)
 	var wood := mats.textured("venue_wood_" + kind, "roofingtiles006", Color("776d62") if kind == "bank" else Color("565f5d") if kind == "jewellery" else Color("857058") if kind == "supermarket" else Color("72523d"), 1.0, 0.8)
 	var metal := mats.textured("venue_metal_" + kind, "asphalt010", Color("657579"), 0.8, 0.6)
 	var accent := mats.textured("venue_accent_" + kind, "tiles040", Color("3d7180") if kind == "bank" else Color("536d67") if kind == "jewellery" else Color("507d83") if kind == "supermarket" else Color("945a3a"), 1.2, 0.7)
 	_box("Floor", Vector3(14, 0.4, 18), origin + Vector3(0, -0.2, 0), floor_mat, true)
-	_box("Ceiling", Vector3(14, 0.35, 18), origin + Vector3(0, 4.5, 0), wall_mat, true)
+	if bool(spec.get("residential", false)):
+		preload("res://scripts/venue_neighborhood.gd").residential(self, origin, floor_mat, wall_mat, wood, metal, mats)
+	elif int(spec.get("floors", 1)) > 1:
+		UpperFloor.build(self, origin, floor_mat, wall_mat, wood, metal, mats)
+	else:
+		_box("Ceiling", Vector3(14, 0.35, 18), origin + Vector3(0, 4.5, 0), wall_mat, true)
 	_box("LeftWall", Vector3(0.35, 4.5, 18), origin + Vector3(-7, 2.25, 0), wall_mat, true)
 	_box("RightWall", Vector3(0.35, 4.5, 18), origin + Vector3(7, 2.25, 0), wall_mat, true)
 	_box("BackWall", Vector3(14, 4.5, 0.35), origin + Vector3(0, 2.25, -9), wall_mat, true)
@@ -205,7 +278,21 @@ func _make_room(origin: Vector3, mats: SectorMaterials, spec: Dictionary) -> voi
 		_make_church(origin, wood, accent, mats)
 	elif kind == "mall":
 		_make_mall(origin, wood, metal, accent, mats)
-	var clerk := HumanModel.new("male_suit" if kind == "bank" else "female_dress" if kind == "jewellery" else "female_casual" if kind == "supermarket" else "male_casual")
+	elif kind == "casino":
+		_make_casino(origin, wood, metal, mats)
+	elif kind == "gun_shop":
+		_make_gun_shop(origin, wood, metal, accent, mats)
+	elif kind == "nightclub":
+		_make_nightclub(origin, metal, mats)
+	elif kind == "seafood":
+		_make_restaurant(origin, wood, metal, accent, mats)
+		_wall_label("SeafoodBoard", "ESPETOS  ·  FRITURA  ·  GAMBAS", origin + Vector3(0, 3.6, -8.6), Color("f4e6c8"))
+	elif not bool(spec.get("residential", false)):
+		preload("res://scripts/venue_neighborhood.gd").build(self, origin, wood, metal, accent, mats)
+	var clerk := Pedestrian.new()
+	clerk.model_name = "male_suit" if kind == "bank" else "female_dress" if kind == "jewellery" else "female_casual" if kind == "supermarket" else "male_casual"
+	clerk.activity = "work"
+	clerk.display_name = "Dependiente"
 	clerk.name = "VenueStaff"
 	clerk.position = origin + Vector3(4.0, 0, -6.7)
 	clerk.rotation.y = PI
@@ -234,6 +321,18 @@ func _make_room(origin: Vector3, mats: SectorMaterials, spec: Dictionary) -> voi
 	service_label.outline_size = 6
 	service_label.position = origin + Vector3(4.0, 2.0, -4.55)
 	room.add_child(service_label)
+	if bool(spec.get("residential", false)):
+		clerk.queue_free()
+		service_label.queue_free()
+	if spec.has("secondary"):
+		var second := Label3D.new()
+		second.name = "SecondaryLabel"
+		second.text = str(spec["secondary"]) + "  ·  E"
+		second.font_size = 50
+		second.pixel_size = 0.009
+		second.outline_size = 6
+		second.position = origin + Vector3(-4.8, 2.4, -4.55)
+		room.add_child(second)
 	if kind == "bank":
 		var atm_label := Label3D.new()
 		atm_label.name = "AtmLabel"
@@ -316,7 +415,7 @@ func _make_restaurant(origin: Vector3, wood: Material, metal: Material, accent: 
 		for branch in range(5):
 			_sphere("PlantLeaf", 0.28, origin + Vector3(corner + sin(float(branch) * TAU / 5.0) * 0.3, 1.35 + (branch % 2) * 0.17, 5.2 + cos(float(branch) * TAU / 5.0) * 0.3), leaf)
 	_box("MenuBoard", Vector3(3.0, 1.45, 0.09), origin + Vector3(-2.3, 2.0, -8.7), dark)
-	_wall_label("MenuText", "LA BRISA\nPESCAÍTO  ·  ARROZ\nMENÚ DEL DÍA", origin + Vector3(-2.3, 2.05, -8.62), Color("f4e8c6"))
+	_wall_label("MenuText", ("EL ESPIGÓN" if kind == "seafood" else "LA BRISA") + "\nPESCAÍTO  ·  ARROZ\nMENÚ DEL DÍA", origin + Vector3(-2.3, 2.05, -8.62), Color("f4e8c6"))
 	for wall_x in [-6.8, 6.8]:
 		_box("WallPicture", Vector3(0.09, 1.3, 1.7), origin + Vector3(wall_x, 2.2, 1.2), dark)
 		_box("WallPictureInset", Vector3(0.1, 1.05, 1.45), origin + Vector3(wall_x + (0.06 if wall_x < 0 else -0.06), 2.2, 1.2), accent)
@@ -540,6 +639,109 @@ func _make_mall(origin: Vector3, wood: Material, metal: Material, accent: Materi
 	_wall_label("MallGuide", "MODA  ·  LIBROS  ·  CAFÉ", origin + Vector3(0, 3.7, -8.6), Color("e4f0ec"))
 
 
+func _glow(key: String, color: Color, energy: float = 1.6) -> StandardMaterial3D:
+	if glow_materials.has(key):
+		return glow_materials[key] as StandardMaterial3D
+	var mat := StandardMaterial3D.new()
+	mat.resource_name = key
+	mat.albedo_color = color.darkened(0.3)
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = energy
+	glow_materials[key] = mat
+	return mat
+
+
+## Casino: two roulette tables, a card table, a row of slot machines, a bar and
+## a warm, dim light. Roulette at the counter, slots at the secondary point.
+func _make_casino(origin: Vector3, wood: Material, metal: Material, mats: SectorMaterials) -> void:
+	var felt := mats.textured("casino_felt", "plaster003", Color("1f5a3a"), 0.15, 0.95)
+	var red := mats.textured("casino_red", "plaster003", Color("7a1f24"), 0.3, 0.8)
+	var gold := mats.plain("casino_gold", Color("c9a44a"), 0.35, 0.8)
+	_box("CasinoCarpet", Vector3(13.6, 0.02, 17.6), origin + Vector3(0, 0.01, 0), red)
+	for table in range(2):
+		var at := origin + Vector3(-3.5, 0, -3.8 + table * 5.0)
+		_box("RouletteTable", Vector3(3.4, 0.85, 1.8), at + Vector3(0, 0.43, 0), wood, true)
+		_box("RouletteFelt", Vector3(3.2, 0.03, 1.6), at + Vector3(0, 0.87, 0), felt)
+		_cylinder("RouletteWheel", 0.42, 0.12, at + Vector3(-1.1, 0.95, 0), gold)
+		_cylinder("RouletteCentre", 0.12, 0.2, at + Vector3(-1.1, 1.02, 0), wood)
+		for chip in range(5):
+			_cylinder("Chips", 0.05, 0.06 + chip * 0.02, at + Vector3(0.2 + chip * 0.22, 0.92, 0.3), red if chip % 2 == 0 else gold)
+	_box("CardTable", Vector3(2.4, 0.8, 1.4), origin + Vector3(1.0, 0.4, 1.8), wood, true)
+	_box("CardFelt", Vector3(2.2, 0.03, 1.2), origin + Vector3(1.0, 0.82, 1.8), felt)
+	for slot in range(5):
+		var at := origin + Vector3(-6.3, 0, -6.5 + slot * 1.3)
+		_box("SlotMachine", Vector3(0.9, 1.7, 0.8), at + Vector3(0, 0.85, 0), metal, true)
+		_box("SlotScreen", Vector3(0.05, 0.55, 0.6), at + Vector3(0.46, 1.25, 0), _glow("casino_slot_%d" % (slot % 3), [Color("ff4f6a"), Color("ffd24a"), Color("4ad8ff")][slot % 3]))
+		_box("SlotTopper", Vector3(0.9, 0.25, 0.8), at + Vector3(0, 1.85, 0), gold)
+	_box("CasinoBar", Vector3(4.5, 1.1, 0.9), origin + Vector3(4.0, 0.55, -5.5), wood, true)
+	_box("CasinoBarTop", Vector3(4.6, 0.1, 1.0), origin + Vector3(4.0, 1.13, -5.5), gold)
+	_box("CasinoNeon", Vector3(8.0, 0.35, 0.06), origin + Vector3(0, 3.7, -8.7), _glow("casino_neon", Color("ff5c8a"), 2.4))
+	_wall_label("CasinoTitle", "CASINO COSTA TROPICAL", origin + Vector3(0, 3.1, -8.6), Color("ffe2a0"))
+
+
+## Gun shop: counter, wall racks with the real weapon models, ammo crates.
+func _make_gun_shop(origin: Vector3, wood: Material, metal: Material, accent: Material, mats: SectorMaterials) -> void:
+	_box("GunCounter", Vector3(6.0, 1.05, 0.9), origin + Vector3(3.0, 0.53, -5.5), wood, true)
+	_box("GunCounterGlass", Vector3(5.8, 0.06, 0.8), origin + Vector3(3.0, 1.08, -5.5), accent)
+	_box("GunRack", Vector3(12.0, 2.6, 0.2), origin + Vector3(0, 1.9, -8.7), wood)
+	var models := ["pistol", "smg_p90", "shotgun", "rifle", "revolver"]
+	var scales := [0.03, 0.058, 0.135, 0.125, 0.045]
+	for i in range(models.size()):
+		var scene := load("res://assets/third_party/quaternius/weapons/%s.fbx" % models[i]) as PackedScene
+		if scene == null:
+			continue
+		var gun := scene.instantiate() as Node3D
+		gun.scale = Vector3.ONE * float(scales[i])
+		gun.rotation.y = PI * 0.5 if models[i] in ["pistol", "revolver"] else 0.0
+		var holder := Node3D.new()
+		holder.name = "RackGun"
+		holder.position = origin + Vector3(-4.8 + i * 2.3, 1.4 + (i % 2) * 0.9, -8.45)
+		holder.rotation.y = -PI * 0.5
+		holder.add_child(gun)
+		room.add_child(holder)
+		for node in gun.find_children("*", "MeshInstance3D", true, false):
+			(node as MeshInstance3D).material_override = mats.plain("rack_gun_metal", Color("2e3033"), 0.4, 0.6)
+	for crate in range(4):
+		_box("AmmoCrate", Vector3(0.8, 0.45, 0.55), origin + Vector3(-5.8, 0.23 + (crate % 2) * 0.46, -2.0 + int(crate / 2) * 0.7), mats.plain("ammo_crate", Color("4d5a3a"), 0.8))
+	_box("TargetBoard", Vector3(0.1, 1.6, 1.2), origin + Vector3(-6.7, 1.6, 2.5), mats.plain("target_paper", Color("e8e2d2"), 0.9))
+	_wall_label("GunShopRules", "LICENCIA OBLIGATORIA  ·  NO SE ADMITEN DEVOLUCIONES", origin + Vector3(0, 3.8, -8.6), Color("e8e2d2"))
+
+
+## Nightclub: dark room, lit dance floor tiles, DJ booth, coloured lights, bar.
+func _make_nightclub(origin: Vector3, metal: Material, mats: SectorMaterials) -> void:
+	var black := mats.plain("club_black", Color("121216"), 0.6)
+	_box("ClubFloor", Vector3(13.6, 0.02, 17.6), origin + Vector3(0, 0.01, 0), black)
+	var colors := [Color("ff3fa4"), Color("3fd2ff"), Color("ffd23f"), Color("7a3fff")]
+	for x in range(4):
+		for z in range(4):
+			_box("DanceTile", Vector3(1.1, 0.03, 1.1), origin + Vector3(-3.6 + x * 1.2, 0.03, -2.0 + z * 1.2), _glow("club_tile_%d" % ((x + z) % 4), colors[(x + z) % 4], 1.2))
+	_box("DJBooth", Vector3(3.2, 1.2, 1.0), origin + Vector3(-1.8, 0.6, -7.3), metal, true)
+	_box("DJDecks", Vector3(2.4, 0.08, 0.6), origin + Vector3(-1.8, 1.24, -7.3), _glow("club_decks", Color("3fd2ff"), 0.8))
+	for speaker in [-5.2, 1.6]:
+		_box("Speaker", Vector3(1.0, 2.2, 0.9), origin + Vector3(speaker, 1.1, -7.8), black, true)
+	_box("ClubBar", Vector3(4.5, 1.1, 0.9), origin + Vector3(4.0, 0.55, -5.5), metal, true)
+	_box("ClubBarGlow", Vector3(4.5, 0.08, 0.95), origin + Vector3(4.0, 1.12, -5.5), _glow("club_bar", Color("ff3fa4"), 1.8))
+	for i in range(3):
+		var light := OmniLight3D.new()
+		light.name = "ClubLight"
+		light.position = origin + Vector3(-3.0 + i * 2.5, 3.6, -1.0)
+		light.light_color = colors[i]
+		light.light_energy = 2.5
+		light.omni_range = 7.0
+		room.add_child(light)
+	_wall_label("ClubName", "LEVANTE", origin + Vector3(0, 3.4, -8.6), Color("ff8fd0"))
+	for dancer in range(4):
+		var person := Pedestrian.new()
+		person.model_name = HumanModel.MODELS[(dancer * 3) % HumanModel.MODELS.size()]
+		person.activity = "dance"
+		person.activity_phase = dancer * 1.4
+		person.name = "Dancer"
+		person.position = origin + Vector3(-3.4 + dancer * 1.3, 0, -1.2 + (dancer % 2) * 1.5)
+		person.rotation.y = dancer * 1.3
+		room.add_child(person)
+
+
 func _box(label: String, size: Vector3, at: Vector3, material: Material, solid: bool = false) -> void:
 	var visual := MeshInstance3D.new()
 	visual.name = label
@@ -550,9 +752,15 @@ func _box(label: String, size: Vector3, at: Vector3, material: Material, solid: 
 	visual.position = at
 	visual.material_override = material
 	room.add_child(visual)
+	if label in ["ShopWindow", "GlassDoor", "StainedWindow", "ChurchDoor", "DisplayGlass", "BoutiqueFront"]:
+		var pane := BreakableGlass.new()
+		pane.name = label + "Shots"
+		pane.configure(visual, size)
+		room.add_child(pane, true)
 	if solid:
 		var body := StaticBody3D.new()
 		body.name = label + "Collision"
+		body.set_meta("detail_kind", label)
 		body.position = at
 		var collision := CollisionShape3D.new()
 		var box := BoxShape3D.new()

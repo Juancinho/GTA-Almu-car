@@ -120,7 +120,9 @@ func _create_environment() -> void:
 
 func apply_quality(level: int) -> void:
 	sun_light.shadow_enabled = level >= 1
-	sun_light.directional_shadow_max_distance = [0.0, 90.0, 150.0][level]
+	sun_light.directional_shadow_max_distance = [0.0, 65.0, 120.0][level]
+	for venue in venues.values():
+		venue.visibility_distance = [20.0, 28.0, 45.0][level]
 	for node in find_children("Facade_*", "MultiMeshInstance3D", false, false):
 		(node as GeometryInstance3D).visibility_range_end = [140.0, 230.0, 320.0][level]
 
@@ -225,11 +227,30 @@ func _create_people() -> void:
 				if placed < 4 and Vector2(p.x - center.x, p.z - center.z).length() < float(zone["radius"]) * 0.8 and spots.all(func(o: Vector3) -> bool: return o.distance_to(p) > 8.0):
 					spots.append(p)
 					placed += 1
+	var closest_spots := spots.duplicate()
+	closest_spots.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(anchor("player_spawn")) < b.distance_squared_to(anchor("player_spawn")))
 	for i in range(spots.size()):
 		var person := PedestrianScript.new()
 		person.name = "Paseante_%02d" % i
 		person.position = spots[i] + Vector3(0, 0.1, 0)
+		if closest_spots.find(spots[i]) < 4:
+			person.activity = "skate"
+			person.display_name = "Patinador" if i % 2 == 0 else "Patinadora"
 		add_child(person)
+	var beach_count := 0
+	for z in range(48, 140, 12):
+		for x in range(-48, 120, 24):
+			if beach_count >= 6 or data.surface_at(x, z) != "beach" or data.height_at(x, z) < 0.3:
+				continue
+			var person := PedestrianScript.new()
+			person.name = "BeachResident_%d" % beach_count
+			person.display_name = "Bañista adulta"
+			person.model_name = "female_tanktop"
+			person.outfit = "adult_swimwear"
+			person.position = Vector3(x, data.height_at(x, z) + 0.1, z)
+			add_child(person)
+			beach_count += 1
+	build_stats["beach_residents"] = beach_count
 
 
 ## Traffic starts on random graph edges in the right-hand lane.

@@ -33,6 +33,11 @@ var armed := false  # mission gunmen keep their distance and shoot
 var gun_timer := 1.5
 var air_speed := 0.0  # vertical speed while thrown by a car or an explosion
 var dead := false
+var activity := ""
+var outfit := ""
+var activity_phase := 0.0
+var firearm: NpcFirearm
+const AmbientPose = preload("res://scripts/ambient_pose.gd")
 
 
 func _ready() -> void:
@@ -57,8 +62,12 @@ func _build_visual() -> void:
 	if model_name == "":
 		model_name = HumanModel.model_for_seed(rng.seed)
 	human = HumanModel.new(model_name)
+	human.outfit = outfit
 	human.name = "Human"
 	add_child(human)
+	if activity == "skate":
+		AmbientPose.skates(human)
+		human.position.y = 0.09
 
 
 func _physics_process(delta: float) -> void:
@@ -67,9 +76,14 @@ func _physics_process(delta: float) -> void:
 		if not people.is_empty():
 			player = people[0] as PlayerController
 	var far := player != null and global_position.distance_squared_to(player.global_position) > HumanModel.ANIMATION_RANGE * HumanModel.ANIMATION_RANGE
-	human.set_animation_active(not far)
+	var visible_nearby := not far and is_visible_in_tree()
+	human.set_animation_active(visible_nearby)
+	if activity in ["work", "dance"] and state in [State.IDLE, State.WANDER] and not visible_nearby:
+		return
 	if player != null and global_position.distance_squared_to(player.global_position) > 90.0 * 90.0:
 		return
+	if armed and firearm == null:
+		equip_firearm()
 	if state == State.DOWN:
 		_update_down(delta)
 		return
@@ -81,7 +95,16 @@ func _physics_process(delta: float) -> void:
 	if conversation_timer <= 0.0:
 		conversation_count = 0
 	if state == State.FIGHT:
+		human.clear_swim_pose()
 		_fight(delta)
+		return
+	if state == State.FLEE or state == State.DOWN:
+		human.clear_swim_pose()
+	elif activity in ["work", "dance"]:
+		velocity = Vector3(0, -3.0, 0)
+		move_and_slide()
+		activity_phase += delta * (4.0 if activity == "dance" else 1.6)
+		AmbientPose.update(human, activity, activity_phase)
 		return
 	think_timer -= delta
 	if think_timer <= 0.0:
@@ -94,15 +117,32 @@ func _physics_process(delta: float) -> void:
 	offset.y = 0
 	if offset.length() > 0.7:
 		var direction := offset.normalized()
-		velocity.x = direction.x * (5.0 if state == State.FLEE else 1.3)
-		velocity.z = direction.z * (5.0 if state == State.FLEE else 1.3)
+		var pace := 5.0 if state == State.FLEE else 3.2 if activity == "skate" else 1.3
+		velocity.x = direction.x * pace
+		velocity.z = direction.z * pace
 		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 6.0 * delta))
 	else:
 		velocity.x = 0
 		velocity.z = 0
 	velocity.y = -3.0
+	if is_on_wall():
+		CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.42)
 	move_and_slide()
 	human.update_motion(Vector2(velocity.x, velocity.z).length())
+	if activity == "skate":
+		if state != State.FLEE:
+			activity_phase += delta * 3.0
+			AmbientPose.update(human, activity, activity_phase)
+		AmbientPose.place_skates(human)
+
+
+func equip_firearm() -> void:
+	if firearm != null:
+		return
+	firearm = NpcFirearm.new()
+	firearm.name = "HeldFirearm"
+	firearm.actor = self
+	add_child(firearm)
 
 
 func flee_from(location: Vector3) -> void:
@@ -165,29 +205,29 @@ func _armed_fight(delta: float) -> void:
 	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, target + Vector3.UP * 1.1)
 	query.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if not (hit.is_empty() or hit.get("collider") == player or hit.get("collider") == player.driving_vehicle):
+	if not (hit.is_empty() or hit.get("collider") is BreakableGlass or hit.get("collider") == player or hit.get("collider") == player.driving_vehicle):
 		return
-	get_tree().call_group("weapon_system", "play_remote_shot", global_position)
 	var moving := Vector2(player.velocity.x, player.velocity.z).length() if player.driving_vehicle == null else absf(player.driving_vehicle.speed)
-	if rng.randf() < clampf(0.7 - distance / 60.0 - moving * 0.035, 0.1, 0.7):
-		if player.driving_vehicle != null:
-			player.driving_vehicle.apply_damage(30.0)
-		else:
-			player.take_damage(6.0, "gunman")
+	get_tree().call_group("weapon_system", "fire_remote", self, target + Vector3.UP * 1.1,
+		6.0, 30.0, 0.008 + distance * 0.0005 + moving * 0.001, rng, "gunman")
 
 
 ## Weapon damage. Heavy hits knock people down; at zero health they stay down.
-func take_damage(amount: float, from: Vector3) -> void:
+func take_damage(amount: float, from: Vector3, by_player: bool = true) -> void:
 	if mission_contact or dead:
 		return
 	health -= amount
-	provoked_by_player = true
+	provoked_by_player = by_player
 	if health <= 0.0:
 		die(from)
 	elif amount >= 40.0 or (enemy and not armed):
 		if state == State.DOWN:
 			return
 		knock_down(from, 3.0)
+	elif armed and enemy:
+		start_fight(18.0)
+	elif by_player and temperament > 0.78 and amount < 30.0:
+		start_fight(18.0)
 	else:
 		flee_from(from)
 
@@ -281,13 +321,19 @@ func _fight(delta: float) -> void:
 		var direction := offset.normalized()
 		velocity = Vector3(direction.x * 3.2, -3.0, direction.z * 3.2)
 		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 8.0 * delta))
+		if is_on_wall():
+			CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.42)
 		move_and_slide()
 		human.update_motion(3.2)
 	elif strike_timer <= 0.0:
 		velocity = Vector3.ZERO
 		strike_timer = 1.4
 		human.play_action("punch", 0.55)
-		player.take_damage(7.0, "civilian_fight")
+		var probe := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP, player.global_position + Vector3.UP)
+		probe.exclude = [get_rid()]
+		var hit := get_world_3d().direct_space_state.intersect_ray(probe)
+		if hit.is_empty() or hit.get("collider") == player:
+			player.take_damage(7.0, "civilian_fight")
 
 
 ## Hit by a car or punched: slide back, lie on the ground, then get up and flee.

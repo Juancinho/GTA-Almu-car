@@ -292,8 +292,6 @@ static func _multimesh(parent: Node3D, label: String, mesh: Mesh, transforms: Ar
 ## Terraced Sierra backdrop north of the sector: three rolling ridgelines of
 ## subtropical orchards (dark olive/avocado greens), lower near town, darker far away.
 static func _sierra(parent: Node3D, mats: SectorMaterials) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7406
 	var columns := 140
 	var rings := [[650.0, 25.0, 45.0], [1000.0, 90.0, 150.0], [1500.0, 190.0, 330.0], [2300.0, 260.0, 520.0]]
 	var profile: Array = []
@@ -302,18 +300,21 @@ static func _sierra(parent: Node3D, mats: SectorMaterials) -> void:
 		for i in range(columns + 1):
 			var angle := lerpf(PI * 0.96, TAU * 1.04, float(i) / columns)
 			var ridge: float = lerpf(rings[r][1], rings[r][2], 0.5 + 0.5 * sin(i * 0.37 + r * 1.3) * cos(i * 0.11 + r))
-			ridge += rng.randf_range(-12.0, 12.0) * (r + 1)
-			var radius: float = rings[r][0] + rng.randf_range(-40.0, 40.0)
+			# Continuous seeded harmonics preserve valleys without independent
+			# per-vertex jitter producing sawtooth peaks along the skyline.
+			ridge += (sin(i * 0.13 + 7406.0) * 8.0 + sin(i * 0.047 + r) * 10.0) * (r + 1)
+			var radius: float = rings[r][0] + sin(i * 0.09 + r * 0.7 + 7406.0) * 40.0
 			row.append(Vector3(cos(angle) * radius, ridge, sin(angle) * radius - 150.0))
 		profile.append(row)
 	# Orchard-green lower slopes fading to hazy blue-grey ridges. Colours vary smoothly
 	# along the range and normals are smoothed, so the backdrop reads as mountains
 	# instead of radial stripes (a stretched ground texture did exactly that).
 	var tints := [Color("4f6034"), Color("5d6c43"), Color("74827a"), Color("93a3aa")]
-	var shade := StandardMaterial3D.new()
-	shade.vertex_color_use_as_albedo = true
-	shade.roughness = 1.0
-	shade.disable_fog = true  # depth fog washed the range out to white; haze is in the colours
+	var shade := mats.textured("sierra_rock", "rock020", Color.WHITE, 4.0, 1.0, true)
+	# A ground-sized normal pattern magnified over distant slopes made bright
+	# parallel ripples. Keep mipmapped colour detail and the actual smooth normals.
+	shade.normal_enabled = false
+	shade.disable_fog = false  # underwater visibility must also attenuate the backdrop
 	var colors: Array = []
 	for r in range(rings.size()):
 		var row: Array[Color] = []

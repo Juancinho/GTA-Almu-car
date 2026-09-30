@@ -1,0 +1,190 @@
+{
+  "duration_s": 200.7,
+  "events": [
+    {
+      "build": "Brisa de Poniente",
+      "event": "session_started",
+      "t": 0.0
+    },
+    {
+      "event": "mission_started",
+      "id": "el_recado",
+      "t": 3.59,
+      "title": "El Recado"
+    },
+    {
+      "event": "objective",
+      "stage": 1,
+      "t": 3.59,
+      "text": "Entra en el coche rojo"
+    },
+    {
+      "event": "objective",
+      "stage": 2,
+      "t": 16.08,
+      "text": "Sube al casco antiguo por la Plaza de la Constitución"
+    },
+    {
+      "event": "vehicle_entered",
+      "t": 16.08,
+      "vehicle": "FirstCar"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 172.79
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 172.79
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 172.79
+    },
+    {
+      "event": "objective",
+      "stage": 3,
+      "t": 173.06,
+      "text": "Pierde a la policía"
+    },
+    {
+      "event": "crime",
+      "kind": "atropello",
+      "t": 186.06,
+      "witnessed": false
+    },
+    {
+      "event": "wanted",
+      "level": 0,
+      "phase": "clear",
+      "t": 200.02
+    },
+    {
+      "event": "busted",
+      "position": [
+        -52.2250137329102,
+        -299.975677490234
+      ],
+      "stage": 3,
+      "t": 200.02
+    },
+    {
+      "event": "objective",
+      "stage": 1,
+      "t": 200.02,
+      "text": "Entra en el coche rojo"
+    },
+    {
+      "event": "mission_failed",
+      "reason": "Te han detenido (-100 €).",
+      "stage": 1,
+      "t": 200.02
+    },
+    {
+      "event": "report_written",
+      "reason": "automated_route_uncapped",
+      "t": 200.7
+    }
+  ],
+  "input_counts": {
+    "joypad_button": 0,
+    "joypad_motion": 0,
+    "key": 2,
+    "mouse_button": 0,
+    "mouse_motion": 264
+  },
+  "mode": "automated_route_uncapped",
+  "performance": {
+    "contexts": {
+      "driving": {
+        "average_draw_calls": 876.4,
+        "average_fps": 115.8,
+        "average_ms": 8.63,
+        "average_primitives": 835910.0,
+        "frames": 18150,
+        "max_draw_calls": 1354.0,
+        "max_ms": 35.33,
+        "max_primitives": 2042798.0,
+        "one_percent_low_fps": 69.9,
+        "p99_ms": 14.3,
+        "seconds": 156.71
+      },
+      "on_foot": {
+        "average_draw_calls": 1076.1,
+        "average_fps": 106.2,
+        "average_ms": 9.41,
+        "average_primitives": 1410236.0,
+        "frames": 1555,
+        "max_draw_calls": 1577.0,
+        "max_ms": 76.22,
+        "max_primitives": 1856059.0,
+        "one_percent_low_fps": 69.8,
+        "p99_ms": 14.32,
+        "seconds": 14.64
+      },
+      "pursuit": {
+        "average_draw_calls": 1184.7,
+        "average_fps": 75.6,
+        "average_ms": 13.23,
+        "average_primitives": 1820094.0,
+        "frames": 2057,
+        "max_draw_calls": 1489.0,
+        "max_ms": 32.13,
+        "max_primitives": 2494324.0,
+        "one_percent_low_fps": 51.9,
+        "p99_ms": 19.26,
+        "seconds": 27.22
+      }
+    },
+    "environment": {
+      "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "display_server": "Windows",
+      "godot": "4.7.2-stable (official)",
+      "gpu": "NVIDIA GeForce GTX 1650",
+      "gpu_vendor": "NVIDIA",
+      "graphics_api": "3.3.0 NVIDIA 592.27",
+      "logical_viewport": [
+        1280,
+        720
+      ],
+      "os": "Windows 10.0.26300",
+      "quality_level": 2,
+      "refresh_rate": 60.0,
+      "render_size": [
+        2880,
+        1620
+      ],
+      "renderer": "gl_compatibility",
+      "screen_size": [
+        1920,
+        1080
+      ],
+      "vsync_mode": 0,
+      "window_mode": 3,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "overall": {
+      "average_fps": 109.6,
+      "average_ms": 9.12,
+      "frames": 21762,
+      "max_ms": 76.22,
+      "one_percent_low_fps": 60.0,
+      "p99_ms": 16.67,
+      "seconds": 198.57
+    },
+    "window_seconds": {
+      "1920x1080": 198.6
+    }
+  },
+  "started": "2026-09-30T14:46:06",
+  "version": 1
+}

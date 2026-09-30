@@ -110,6 +110,16 @@ Create a cast bible before writing the second chapter: protagonist, Alba, allies
 
 Keyboard/mouse: WASD, mouse camera, Shift sprint, Space jump/handbrake, E interact/enter, F melee, right mouse aim, left mouse shoot, R reload (move restart to pause menu), Q/E wheel for weapon (hold Tab), G throw, H horn, C crouch, M map, phone ↑. Full gamepad parity.
 
+## Physical interaction and neighbourhood acceptance (2026-09-30)
+
+The requested production standard requires coherent consequences before further world expansion: feet and tyres must rest on the visible surface; wheels and chassis must not catch every painted/raised road edge; bullets and melee must respect solid cover; nearby people react to assault and police shots originate from visible firearms. Destruction is budgeted by material/object class, with saved breakable venue glazing as the first slice. Static architecture remains solid; dynamic chairs are limited to 32 nearby bodies. Vehicle glazing, full suspension, structural destruction and robust crowd navigation remain production work.
+
+The district now has 21 enterable venues/buildings, plus the workshop and five staffed beach bars. Six new shops provide distinct purchases or services. Three residential buildings each have a hall, physical stairs, upstairs corridor and two accessible flats; rest restores health and air only without a wanted level. Property purchase, rental, persistent storage, neighbours and apartment missions are planned, not implied by the current rest interaction. These interiors are original fictional layouts attached to surveyed footprints, not surveyed real interiors.
+
+Population includes adult beach residents in original swimwear, inline skaters, physical shop staff and nightclub dancers. Summer clothing is ordinary nonsexual world dressing; procedural movement and existing licensed rigs remain provisional pending authored animation and reference review. Schedule simulation and social response must be accepted in crowd/room traversal tests before adding large numbers of people.
+
+Fullscreen acceptance requires measured visible frame times on the target GTX 1650, including pursuit/combat, resize/toggle and interior transitions. Default Medium renders 3D at 85%, with native UI, short interior visibility and limited shadow range. This is a scalability control, not acceptance of a stable 60 FPS release. Keep the full three-chapter D-017 target and final art bar open.
+
 ## Content boundaries
 
 Stylised, not gratuitous violence; no sexual content; no real people, logos or police insignia; businesses are fictional except the user-requested Jaime Playa venue (D-018); drugs are implied plot (smuggling) not depicted use. Acceptance for any mission: a scripted-input test completes it and a human playthrough log records it.

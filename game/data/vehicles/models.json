@@ -6,51 +6,87 @@
       "paint": {
         "Blue": "#b8352a"
       },
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "police_local": {
       "scene": "res://assets/third_party/quaternius/cars/cop.fbx",
       "paint": {
         "Black": "#1f3c7a"
       },
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "sedan_teal": {
       "scene": "res://assets/third_party/quaternius/cars/normal_car_2.fbx",
       "paint": {},
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "suv_sand": {
       "scene": "res://assets/third_party/quaternius/cars/suv.fbx",
       "paint": {},
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.95
+      }
     },
     "taxi": {
       "scene": "res://assets/third_party/quaternius/cars/taxi.fbx",
       "paint": {},
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "sports_orange": {
       "scene": "res://assets/third_party/quaternius/cars/sports_car.fbx",
       "paint": {},
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "compact_generated": {
       "scene": "res://assets/procedural/compact_car.glb",
       "paint": {},
-      "yaw_degrees": 0
+      "yaw_degrees": 0,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.95
+      }
     },
     "police_suv": {
       "scene": "res://assets/third_party/quaternius/cars/cop_suv.fbx",
       "paint": {
         "Black": "#1f3c7a"
       },
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.95
+      }
     },
     "sports_white": {
       "scene": "res://assets/third_party/quaternius/cars/sports_car_2.fbx",
       "paint": {},
-      "yaw_degrees": 180
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.78
+      }
     },
     "fishing_boat": {
       "scene": "res://assets/third_party/quaternius/boats/boat.fbx",

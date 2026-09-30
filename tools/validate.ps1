@@ -44,6 +44,8 @@ Invoke-Godot 'damage' @('--headless', '--path', ('"' + $gamePath + '"'), '--scri
 Invoke-Godot 'jaime_mission' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/jaime_mission.gd')
 Invoke-Godot 'missions' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/missions.gd')
 Invoke-Godot 'weapons' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/weapons.gd')
+Invoke-Godot 'weapon_grips' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/weapon_grips.gd')
+Invoke-Godot 'ballistics' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/ballistics.gd')
 Invoke-Godot 'police' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/police.gd')
 Invoke-Godot 'day_night' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/day_night.gd')
 Invoke-Godot 'activities' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/activities.gd')
@@ -52,8 +54,15 @@ Invoke-Godot 'water_and_dressing' @('--headless', '--path', ('"' + $gamePath + '
 Invoke-Godot 'civilian_life' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/civilian_life.gd')
 Invoke-Godot 'workshop_interior' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/workshop_interior.gd')
 Invoke-Godot 'venues' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/venues.gd')
+Invoke-Godot 'neighborhood' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/neighborhood.gd')
+Invoke-Godot 'surface_contacts' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/surface_contacts.gd')
+Invoke-Godot 'casino_route' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/casino_route.gd')
 Invoke-Godot 'traffic' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_soak.gd')
+Invoke-Godot 'traffic_obstacles' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_obstacles.gd')
 Invoke-Godot 'route' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')
+if ($Capture -or $Perf) {
+    Invoke-Godot 'window_modes' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/window_modes.gd')
+}
 if ($Capture) {
     Invoke-Godot 'capture' @('--path', ('"' + $gamePath + '"'), '--script', 'res://tests/capture.gd')
 }

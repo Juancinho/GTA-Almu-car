@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+SECTOR BUILT: 1252 buildings, 50631 façade details, 7052 ms
+POLICE PASS: 3-star reinforcements, officers deploy and shoot, officer kill -> 4+ stars, respray clears

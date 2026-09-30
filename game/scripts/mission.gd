@@ -166,8 +166,12 @@ func _create_contacts() -> void:
 		person.display_name = str(spec.get("display", contact_name))
 		person.mission_contact = true
 		person.model_name = str(spec.get("model", "male_casual"))
-		var at: Array = spec["at"]
-		person.position = Vector3(float(at[0]), world.height_at(float(at[0]), float(at[1])) + 0.1, float(at[1]))
+		if spec.has("venue") and world.venues.has(str(spec["venue"])):
+			var venue := world.venues[str(spec["venue"])] as VenueInterior
+			person.position = venue.exterior_entry + venue.exterior_normal.cross(Vector3.UP) * 3.8
+		else:
+			var at: Array = spec["at"]
+			person.position = Vector3(float(at[0]), world.height_at(float(at[0]), float(at[1])) + 0.1, float(at[1]))
 		person.rotation.y = deg_to_rad(float(spec.get("yaw", 0.0)))
 		world.add_child(person)
 
@@ -266,7 +270,8 @@ func resolve_marker(objective: Dictionary) -> Vector3:
 		if person != null:
 			return person.global_position
 	if objective.has("marker_venue") and world != null and world.venues.has(str(objective["marker_venue"])):
-		return (world.venues[str(objective["marker_venue"])] as VenueInterior).exterior_entry
+		var venue := world.venues[str(objective["marker_venue"])] as VenueInterior
+		return venue.point_position(str(objective["venue_point"])) if objective.has("venue_point") else venue.exterior_entry
 	if objective.has("marker_workshop") and world != null:
 		return world.workshop.exterior_entry
 	if objective.has("marker_anchor") and anchors.has(str(objective["marker_anchor"])):
@@ -292,6 +297,10 @@ func marker_of(objective: Dictionary) -> Array:
 ## Where the GPS should lead: the objective, unless it is a person/vehicle chase
 ## right next to the player.
 func gps_target() -> Vector3:
+	if not completed and stage < objectives.size() and objectives[stage].has("venue_point"):
+		var venue := world.venues.get(str(objectives[stage].get("marker_venue", ""))) as VenueInterior
+		if venue != null and not venue.contains_player(player.global_position):
+			return venue.exterior_entry
 	return marker_position()
 
 
@@ -348,6 +357,8 @@ func _process(delta: float) -> void:
 				return
 			var player_pos := player.driving_vehicle.global_position if player.driving_vehicle != null else player.global_position
 			var distance := Vector2(player_pos.x - marker.x, player_pos.z - marker.z).length()
+			if objective.has("marker_venue") and absf(player_pos.y - marker.y) > float(objective.get("height_tolerance", 1.0)):
+				return
 			if distance < float(objective.get("radius", 10)):
 				if bool(objective.get("witnessed_incident", false)) and wanted.level == 0:
 					if not wanted.report_incident(player_pos, true):  # the dialogue's officer saw it
@@ -402,6 +413,8 @@ func notify_event(event_name: String) -> void:
 		return
 	var objective := objectives[stage]
 	if str(objective.get("type", "")) == "event" and str(objective.get("event", "")) == event_name:
+		if objective.has("venue_point") and player.global_position.distance_to(resolve_marker(objective)) > float(objective.get("radius", 1.5)):
+			return
 		_show_lines(objective.get("dialogue", ""))
 		_advance()
 

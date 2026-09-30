@@ -1,0 +1,207 @@
+{
+  "duration_s": 278.4,
+  "events": [
+    {
+      "build": "Brisa de Poniente",
+      "event": "session_started",
+      "t": 0.0
+    },
+    {
+      "event": "mission_started",
+      "id": "el_recado",
+      "t": 4.13,
+      "title": "El Recado"
+    },
+    {
+      "event": "objective",
+      "stage": 1,
+      "t": 4.13,
+      "text": "Entra en el coche rojo"
+    },
+    {
+      "event": "objective",
+      "stage": 2,
+      "t": 28.83,
+      "text": "Sube al casco antiguo por la Plaza de la Constitución"
+    },
+    {
+      "event": "vehicle_entered",
+      "t": 28.83,
+      "vehicle": "FirstCar"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 187.41
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 187.41
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 187.41
+    },
+    {
+      "event": "objective",
+      "stage": 3,
+      "t": 187.7,
+      "text": "Pierde a la policía"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 208.92
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "search",
+      "t": 210.56
+    },
+    {
+      "event": "wanted",
+      "level": 0,
+      "phase": "clear",
+      "t": 222.53
+    },
+    {
+      "event": "objective",
+      "stage": 4,
+      "t": 222.54,
+      "text": "Entrega el sobre bajo el castillo de San Miguel"
+    },
+    {
+      "event": "mission_completed",
+      "id": "el_recado",
+      "stage": 5,
+      "t": 276.61
+    },
+    {
+      "event": "objective",
+      "stage": 5,
+      "t": 276.61,
+      "text": "Nueva misión: habla con Paco en el Chiringuito Arenas (P)"
+    },
+    {
+      "event": "report_written",
+      "reason": "automated_route_uncapped",
+      "t": 278.43
+    }
+  ],
+  "input_counts": {
+    "joypad_button": 0,
+    "joypad_motion": 0,
+    "key": 0,
+    "mouse_button": 0,
+    "mouse_motion": 1
+  },
+  "mode": "automated_route_uncapped",
+  "performance": {
+    "contexts": {
+      "driving": {
+        "average_draw_calls": 904.8,
+        "average_fps": 97.0,
+        "average_ms": 10.31,
+        "average_primitives": 831230.0,
+        "cpu_physics_average_ms": 6.01,
+        "cpu_physics_max_ms": 13.75,
+        "cpu_process_average_ms": 15.16,
+        "cpu_process_max_ms": 26.94,
+        "frames": 20800,
+        "max_draw_calls": 1437.0,
+        "max_ms": 31.5,
+        "max_primitives": 2001105.0,
+        "one_percent_low_fps": 50.2,
+        "p99_ms": 19.93,
+        "seconds": 214.48
+      },
+      "on_foot": {
+        "average_draw_calls": 1030.1,
+        "average_fps": 102.9,
+        "average_ms": 9.72,
+        "average_primitives": 1419646.0,
+        "cpu_physics_average_ms": 3.64,
+        "cpu_physics_max_ms": 4.66,
+        "cpu_process_average_ms": 16.41,
+        "cpu_process_max_ms": 21.64,
+        "frames": 2694,
+        "max_draw_calls": 1091.0,
+        "max_ms": 18.38,
+        "max_primitives": 1719401.0,
+        "one_percent_low_fps": 81.6,
+        "p99_ms": 12.25,
+        "seconds": 26.18
+      },
+      "pursuit": {
+        "average_draw_calls": 806.3,
+        "average_fps": 87.9,
+        "average_ms": 11.38,
+        "average_primitives": 733288.0,
+        "cpu_physics_average_ms": 7.22,
+        "cpu_physics_max_ms": 11.39,
+        "cpu_process_average_ms": 15.07,
+        "cpu_process_max_ms": 17.3,
+        "frames": 3087,
+        "max_draw_calls": 1343.0,
+        "max_ms": 33.33,
+        "max_primitives": 2120881.0,
+        "one_percent_low_fps": 37.5,
+        "p99_ms": 26.67,
+        "seconds": 35.13
+      }
+    },
+    "environment": {
+      "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "display_server": "Windows",
+      "godot": "4.7.2-stable (official)",
+      "gpu": "NVIDIA GeForce GTX 1650",
+      "gpu_vendor": "NVIDIA",
+      "graphics_api": "3.3.0 NVIDIA 592.27",
+      "logical_viewport": [
+        1280,
+        720
+      ],
+      "os": "Windows 10.0.26300",
+      "quality_level": 1,
+      "refresh_rate": 60.0,
+      "render_scale_3d": 0.850000023841858,
+      "render_size": [
+        1920,
+        1080
+      ],
+      "renderer": "gl_compatibility",
+      "screen_size": [
+        1920,
+        1080
+      ],
+      "texture_reported_size": "(2880.0, 1620.0)",
+      "vsync_mode": 0,
+      "window_mode": 3,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "overall": {
+      "average_fps": 96.4,
+      "average_ms": 10.38,
+      "frames": 26581,
+      "max_ms": 33.33,
+      "one_percent_low_fps": 45.4,
+      "p99_ms": 22.01,
+      "seconds": 275.79
+    },
+    "window_seconds": {
+      "1920x1080": 275.8
+    }
+  },
+  "started": "2026-09-30T17:22:20",
+  "version": 1
+}

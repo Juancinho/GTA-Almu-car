@@ -1,0 +1,189 @@
+{
+  "duration_s": 279.1,
+  "events": [
+    {
+      "build": "Brisa de Poniente",
+      "event": "session_started",
+      "t": 0.0
+    },
+    {
+      "event": "mission_started",
+      "id": "el_recado",
+      "t": 3.72,
+      "title": "El Recado"
+    },
+    {
+      "event": "objective",
+      "stage": 1,
+      "t": 3.72,
+      "text": "Entra en el coche rojo"
+    },
+    {
+      "event": "objective",
+      "stage": 2,
+      "t": 18.71,
+      "text": "Sube al casco antiguo por la Plaza de la Constitución"
+    },
+    {
+      "event": "vehicle_entered",
+      "t": 18.71,
+      "vehicle": "FirstCar"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 176.33
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "responding",
+      "t": 176.34
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "pursuit",
+      "t": 176.34
+    },
+    {
+      "event": "objective",
+      "stage": 3,
+      "t": 176.63,
+      "text": "Pierde a la policía"
+    },
+    {
+      "event": "wanted",
+      "level": 1,
+      "phase": "search",
+      "t": 209.62
+    },
+    {
+      "event": "wanted",
+      "level": 0,
+      "phase": "clear",
+      "t": 221.6
+    },
+    {
+      "event": "objective",
+      "stage": 4,
+      "t": 221.6,
+      "text": "Entrega el sobre bajo el castillo de San Miguel"
+    },
+    {
+      "event": "mission_completed",
+      "id": "el_recado",
+      "stage": 5,
+      "t": 277.22
+    },
+    {
+      "event": "objective",
+      "stage": 5,
+      "t": 277.23,
+      "text": "Nueva misión: habla con Paco en el Chiringuito Arenas (P)"
+    },
+    {
+      "event": "report_written",
+      "reason": "automated_route_vsync",
+      "t": 279.06
+    }
+  ],
+  "input_counts": {
+    "joypad_button": 0,
+    "joypad_motion": 0,
+    "key": 0,
+    "mouse_button": 0,
+    "mouse_motion": 1
+  },
+  "mode": "automated_route_vsync",
+  "performance": {
+    "contexts": {
+      "driving": {
+        "average_draw_calls": 931.6,
+        "average_fps": 58.4,
+        "average_ms": 17.12,
+        "average_primitives": 886462.0,
+        "frames": 12564,
+        "max_draw_calls": 1486.0,
+        "max_ms": 86.86,
+        "max_primitives": 1913682.0,
+        "one_percent_low_fps": 34.8,
+        "p99_ms": 28.7,
+        "seconds": 215.05
+      },
+      "on_foot": {
+        "average_draw_calls": 1066.6,
+        "average_fps": 60.0,
+        "average_ms": 16.68,
+        "average_primitives": 1441915.0,
+        "frames": 987,
+        "max_draw_calls": 1164.0,
+        "max_ms": 23.92,
+        "max_primitives": 1717198.0,
+        "one_percent_low_fps": 60.0,
+        "p99_ms": 16.67,
+        "seconds": 16.46
+      },
+      "pursuit": {
+        "average_draw_calls": 858.7,
+        "average_fps": 50.4,
+        "average_ms": 19.85,
+        "average_primitives": 929939.0,
+        "frames": 2281,
+        "max_draw_calls": 1333.0,
+        "max_ms": 82.05,
+        "max_primitives": 2115450.0,
+        "one_percent_low_fps": 21.0,
+        "p99_ms": 47.62,
+        "seconds": 45.28
+      }
+    },
+    "environment": {
+      "cpu": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "display_server": "Windows",
+      "godot": "4.7.2-stable (official)",
+      "gpu": "NVIDIA GeForce GTX 1650",
+      "gpu_vendor": "NVIDIA",
+      "graphics_api": "3.3.0 NVIDIA 592.27",
+      "logical_viewport": [
+        1280,
+        720
+      ],
+      "os": "Windows 10.0.26300",
+      "quality_level": 1,
+      "refresh_rate": 60.0,
+      "render_scale_3d": 0.850000023841858,
+      "render_size": [
+        1920,
+        1080
+      ],
+      "renderer": "gl_compatibility",
+      "screen_size": [
+        1920,
+        1080
+      ],
+      "texture_reported_size": "(2880.0, 1620.0)",
+      "vsync_mode": 1,
+      "window_mode": 3,
+      "window_size": [
+        1920,
+        1080
+      ]
+    },
+    "overall": {
+      "average_fps": 57.2,
+      "average_ms": 17.48,
+      "frames": 15832,
+      "max_ms": 86.86,
+      "one_percent_low_fps": 30.0,
+      "p99_ms": 33.33,
+      "seconds": 276.8
+    },
+    "window_seconds": {
+      "1920x1080": 276.8
+    }
+  },
+  "started": "2026-09-30T17:04:28",
+  "version": 1
+}
