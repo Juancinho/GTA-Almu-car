@@ -351,6 +351,15 @@ func nearby_contact() -> Pedestrian:
 
 ## Pick the first free spot beside the car (driver side, passenger side, behind, front).
 func _safe_exit_position(car: DriveableVehicle) -> Vector3:
+	if car.boat and sector_data != null:
+		# Step onto the nearest dry ground within reach, else into the water beside the boat.
+		for radius: float in [3.0, 5.0, 7.0, 9.0]:
+			for k in range(12):
+				var dir := Vector3(cos(k * TAU / 12.0), 0, sin(k * TAU / 12.0))
+				var spot := car.global_position + dir * radius
+				if sector_data.surface_at(spot.x, spot.z) != "sea" or sector_data.height_at(spot.x, spot.z) > -0.3:
+					return Vector3(spot.x, maxf(sector_data.height_at(spot.x, spot.z), 0.0) + 0.3, spot.z)
+		return car.global_position + car.global_transform.basis.x * 2.6 + Vector3(0, 0.2, 0)
 	var car_basis := car.global_transform.basis
 	var candidates: Array[Vector3] = [car_basis.x * 2.4, -car_basis.x * 2.4, car_basis.z * 3.4, -car_basis.z * 3.4]
 	var shape := CapsuleShape3D.new()

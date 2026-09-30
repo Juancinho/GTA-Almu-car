@@ -1,13 +1,79 @@
 {
-  "description": "Vehicle visual variants. Models are CC0 Quaternius (assets/third_party). 'paint' recolours the named surfaces; 'yaw_degrees' aligns the model with gameplay forward (-Z).",
+  "description": "Vehicle visual variants. Models are CC0 Quaternius (assets/third_party). 'paint' recolours the named surfaces; 'yaw_degrees' aligns the model with gameplay forward (-Z). 'scale' resizes a model; 'boat' vehicles move only on deep water (see vehicle.gd).",
   "variants": {
-    "mission_red": {"scene": "res://assets/third_party/quaternius/cars/normal_car_1.fbx", "paint": {"Blue": "#b8352a"}, "yaw_degrees": 180},
-    "police_local": {"scene": "res://assets/third_party/quaternius/cars/cop.fbx", "paint": {"Black": "#1f3c7a"}, "yaw_degrees": 180},
-    "sedan_teal": {"scene": "res://assets/third_party/quaternius/cars/normal_car_2.fbx", "paint": {}, "yaw_degrees": 180},
-    "suv_sand": {"scene": "res://assets/third_party/quaternius/cars/suv.fbx", "paint": {}, "yaw_degrees": 180},
-    "taxi": {"scene": "res://assets/third_party/quaternius/cars/taxi.fbx", "paint": {}, "yaw_degrees": 180},
-    "sports_orange": {"scene": "res://assets/third_party/quaternius/cars/sports_car.fbx", "paint": {}, "yaw_degrees": 180},
-    "compact_generated": {"scene": "res://assets/procedural/compact_car.glb", "paint": {}, "yaw_degrees": 0}
+    "mission_red": {
+      "scene": "res://assets/third_party/quaternius/cars/normal_car_1.fbx",
+      "paint": {
+        "Blue": "#b8352a"
+      },
+      "yaw_degrees": 180
+    },
+    "police_local": {
+      "scene": "res://assets/third_party/quaternius/cars/cop.fbx",
+      "paint": {
+        "Black": "#1f3c7a"
+      },
+      "yaw_degrees": 180
+    },
+    "sedan_teal": {
+      "scene": "res://assets/third_party/quaternius/cars/normal_car_2.fbx",
+      "paint": {},
+      "yaw_degrees": 180
+    },
+    "suv_sand": {
+      "scene": "res://assets/third_party/quaternius/cars/suv.fbx",
+      "paint": {},
+      "yaw_degrees": 180
+    },
+    "taxi": {
+      "scene": "res://assets/third_party/quaternius/cars/taxi.fbx",
+      "paint": {},
+      "yaw_degrees": 180
+    },
+    "sports_orange": {
+      "scene": "res://assets/third_party/quaternius/cars/sports_car.fbx",
+      "paint": {},
+      "yaw_degrees": 180
+    },
+    "compact_generated": {
+      "scene": "res://assets/procedural/compact_car.glb",
+      "paint": {},
+      "yaw_degrees": 0
+    },
+    "police_suv": {
+      "scene": "res://assets/third_party/quaternius/cars/cop_suv.fbx",
+      "paint": {
+        "Black": "#1f3c7a"
+      },
+      "yaw_degrees": 180
+    },
+    "sports_white": {
+      "scene": "res://assets/third_party/quaternius/cars/sports_car_2.fbx",
+      "paint": {},
+      "yaw_degrees": 180
+    },
+    "fishing_boat": {
+      "scene": "res://assets/third_party/quaternius/boats/boat.fbx",
+      "paint": {},
+      "yaw_degrees": 0,
+      "scale": 7.2,
+      "boat": true,
+      "max_speed": 10.0
+    },
+    "rib": {
+      "scene": "res://assets/third_party/quaternius/boats/lifeboat.fbx",
+      "paint": {},
+      "yaw_degrees": 0,
+      "scale": 5.0,
+      "boat": true,
+      "max_speed": 19.0
+    }
   },
-  "traffic": ["sedan_teal", "suv_sand", "taxi", "sports_orange"]
+  "traffic": [
+    "sedan_teal",
+    "suv_sand",
+    "taxi",
+    "sports_orange",
+    "sports_white"
+  ]
 }

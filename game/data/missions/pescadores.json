@@ -1,0 +1,125 @@
+{
+  "id": "pescadores",
+  "title": "Pescadores",
+  "reward": 3000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Paco: La lancha de Rubén volverá a asomar por el Peñón. Otra vez.",
+  "spawns": [
+    {
+      "id": "paco_rib",
+      "kind": "vehicle",
+      "variant": "rib",
+      "at": [
+        60.0,
+        118.0
+      ],
+      "on_road": false,
+      "yaw": 180,
+      "when": "start"
+    },
+    {
+      "id": "smuggler",
+      "kind": "vehicle",
+      "variant": "rib",
+      "at": [
+        -220.0,
+        320.0
+      ],
+      "on_road": false,
+      "yaw": 90,
+      "occupant": "male_suit",
+      "health": 900,
+      "route": [
+        [
+          -220.0,
+          320.0
+        ],
+        [
+          -60.0,
+          380.0
+        ],
+        [
+          140.0,
+          360.0
+        ],
+        [
+          260.0,
+          300.0
+        ],
+        [
+          120.0,
+          260.0
+        ],
+        [
+          -100.0,
+          270.0
+        ]
+      ],
+      "speed": 13.0,
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Paco",
+      "text": "Habla con Paco en el Chiringuito Arenas",
+      "dialogue": [
+        "Paco: Los pescadores dicen que la lancha de Rubén trae esta noche el último alijo, rodeando el Peñón del Santo.",
+        "Paco: Sin ese dinero, Rubén no puede pagar a nadie. Mi lancha está en el agua, delante de la playa. Húndele la suya."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "paco_rib",
+      "text": "Nada hasta la lancha de Paco y súbete (E)",
+      "wrecked_text": "La lancha de Paco se ha hundido."
+    },
+    {
+      "type": "reach_area",
+      "vehicle": "paco_rib",
+      "requires_vehicle": true,
+      "marker": [
+        -150.0,
+        300.0
+      ],
+      "radius": 45,
+      "text": "Sal a mar abierto hacia el Peñón del Santo",
+      "wrecked_text": "La lancha de Paco se ha hundido.",
+      "dialogue": "Ahí está: la lancha negra de Rubén, cargada hasta arriba."
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "smuggler",
+      "health_below": 250,
+      "escape_distance": 420,
+      "spawn": [
+        "smuggler"
+      ],
+      "text": "Detén la lancha de Rubén: embístela o dispárale",
+      "escape_text": "La lancha se ha perdido mar adentro.",
+      "dialogue": "El piloto salta al agua. Los fardos quedan flotando."
+    },
+    {
+      "type": "reach_area",
+      "marker_target": "smuggler",
+      "radius": 9,
+      "text": "Recoge los fardos junto a la lancha",
+      "dialogue": "Fardos a bordo. Vuelve a la playa."
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -85.0,
+        108.0
+      ],
+      "radius": 16,
+      "requires_no_wanted": true,
+      "text": "Vuelve con los fardos a la playa del Chiringuito Arenas",
+      "dialogue": [
+        "Paco: ¡Lo has hecho! Sin alijo y sin dinero, Rubén está acabado.",
+        "Alba (teléfono): Ferrer ha llamado. Quiere vernos... y no parecía contento."
+      ]
+    }
+  ]
+}

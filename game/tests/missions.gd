@@ -195,12 +195,47 @@ func _run() -> void:
 	await _walk_to(player, world.workshop.exterior_entry)
 	if not mission.completed_missions.has("golpe_joyeria") or int(root.get("money")) != 5300 + 250 + 3500:
 		return _fail("the heist did not pay out (money %d)" % int(root.get("money")))
+	# --- Pescadores (boats) ------------------------------------------------------------
+	player.global_position = paco.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	if mission.mission_id != "pescadores" or mission.stage != 1:
+		return _fail("Pescadores did not start")
+	var rib := mission.spawned.get("paco_rib") as DriveableVehicle
+	if rib == null or not rib.boat or absf(rib.global_position.y - DriveableVehicle.WATER_Y) > 0.3:
+		return _fail("Paco's RIB missing or not afloat")
+	player.global_position = rib.global_position + Vector3(2.0, 0.0, 0)
+	player._interact()
+	await _frames(3)
+	if mission.stage != 2 or player.driving_vehicle != rib:
+		return _fail("boarding the RIB did not advance")
+	rib.global_position = mission.marker_position()
+	await _frames(4)
+	var smuggler := mission.spawned.get("smuggler") as DriveableVehicle
+	if mission.stage != 3 or smuggler == null or smuggler.boat_route.size() < 3:
+		return _fail("reaching open water did not bring the smuggler (stage %d)" % mission.stage)
+	var start_pos := smuggler.global_position
+	for i in range(60 * 3):
+		await physics_frame
+	if smuggler.global_position.distance_to(start_pos) < 10.0:
+		return _fail("the smuggler's boat is not moving")
+	smuggler.apply_damage(700.0)
+	await _frames(3)
+	if mission.stage != 4:
+		return _fail("stopping the smuggler did not advance")
+	rib.global_position = smuggler.global_position + Vector3(4, 0, 0)
+	await _frames(4)
+	if mission.stage != 5:
+		return _fail("collecting the bales did not advance")
+	player._interact()
+	await _walk_to(player, Vector3(-85.0, world.height_at(-85.0, 108.0), 108.0))
+	if not mission.completed_missions.has("pescadores"):
+		return _fail("Pescadores did not complete")
 	# --- Save/load and offers after the chapter --------------------------------
 	root.set("save_path", "user://test_missions_save.json")
 	root.call("_save_game")
 	mission.completed_missions.clear()
 	root.call("_load_game")
-	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria"]:
+	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria", "pescadores"]:
 		if not mission.completed_missions.has(id):
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":
@@ -221,7 +256,7 @@ func _run() -> void:
 	hud.minimap._update_gps()
 	if hud.minimap.waypoint != Vector3.INF:
 		return _fail("waypoint not cleared on arrival")
-	print("MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), rewards, save/load, map + waypoint")
+	print("MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), Pescadores (boats, sea chase), rewards, save/load, map + waypoint")
 	root.queue_free()
 	await process_frame
 	quit(0)

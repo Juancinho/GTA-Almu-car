@@ -51,6 +51,7 @@ func _ready() -> void:
 	_create_workshop()
 	_create_venues()
 	_create_vehicle()
+	_create_boats()
 	_create_people()
 	_create_traffic(TRAFFIC_COUNT)
 	build_stats["build_ms"] = Time.get_ticks_msec() - started
@@ -134,6 +135,21 @@ func _create_vehicle() -> void:
 	car.rotation.y = _road_heading(spot)
 	add_child(car)
 	vehicle_spawns[car.name] = car.transform
+
+
+## Boats moored just off the Puerta del Mar and Altillo beaches, bows to the sea.
+const MOORINGS := [[-80.0, 130.0, "rib"], [130.0, 128.0, "fishing_boat"], [190.0, 146.0, "fishing_boat"]]
+
+
+func _create_boats() -> void:
+	for i in range(MOORINGS.size()):
+		var spec: Array = MOORINGS[i]
+		var boat := VehicleScript.new() as DriveableVehicle
+		boat.name = "Barca_%d" % i
+		boat.variant = str(spec[2])
+		boat.position = Vector3(float(spec[0]), DriveableVehicle.WATER_Y, float(spec[1]))
+		boat.rotation.y = PI  # bow south, toward open water
+		add_child(boat)
 
 
 func _road_heading(at: Vector3) -> float:

@@ -21,7 +21,7 @@ func _run() -> void:
 	var player := root.get_node_or_null("Player") as PlayerController
 	if world == null or player == null:
 		return _fail("world or player missing")
-	var cars := get_nodes_in_group("vehicles")
+	var cars := get_nodes_in_group("vehicles").filter(func(v: Node) -> bool: return not (v as DriveableVehicle).boat)
 	if cars.size() != 1 + SectorWorld.TRAFFIC_COUNT:
 		return _fail("expected mission car + %d traffic cars, found %d" % [SectorWorld.TRAFFIC_COUNT, cars.size()])
 	if get_nodes_in_group("pedestrians").size() < 30:

@@ -1,5 +1,5 @@
 {
-  "manifest_sha256": "5ca23dd0956da5009698669ab0b0c6bb7f12f918314cb5c6cfc7bad0a7534bc0",
+  "manifest_sha256": "e3743d5ed807758627f305b547d5f120c154281c4a5a3be2d608fd4e6a265c71",
   "sources": {
     "quaternius_free": {
       "repo": "https://github.com/beep2bleep/FreeAssetsByKenneyNLandQuaternius.git",
@@ -136,6 +136,66 @@
       "source": "quaternius_free",
       "from": "FreeModels by Quaternius[Patreon]/Medieval/Medieval Weapons Pack - Sept 2018/FBX/Dagger.fbx",
       "sha256": "814db5370cab363f34abd0b54f902c0962cd9dd9cfdc48e88e2b817a9438bd06"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/cop_suv.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Cop_SUV.fbx",
+      "sha256": "7b848a556e6c6bef94f25c42f6ee54db9e6dd3b0126a0b142d278669044cbc94"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/sports_car_2.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SportsCar2.fbx",
+      "sha256": "f3805ea1fc8d65fb250b2a6db3c6454b28e1dad033ae77b364760070f8a89877"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/ambulance.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/Ambulance.fbx",
+      "sha256": "0cb78f9da4053734bd81baaec1e1c4300a05bbc7f582e626529cb36c843ee729"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/cars/bus.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/Bus.fbx",
+      "sha256": "c75cdf437172daa37ffa5a5745ce08bbc0501a80714b63c1f43c0ed0b68cb47d"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/boats/boat.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Ship pack - Feb 2018/FBX/Boat.fbx",
+      "sha256": "9021ff9137042149f130026f123730e53dd2c874cb4fdf05070071e0e217daa4"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/boats/lifeboat.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Ship pack - Feb 2018/FBX/Lifeboat.fbx",
+      "sha256": "441a01e71bdbeac8c7cf0f8a85b42d1681ca63bbac3b4f6a06f32997aed1f4b7"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/props/traffic_light.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficLight.fbx",
+      "sha256": "1bef425bff6c6ab9210252a7847701115c94283d5aec24e3d0af689a63bc2302"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/props/traffic_sign_1.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficSign1.fbx",
+      "sha256": "0f416bf694a2e3c2c1a9e430e96c897c9df69eedb780d181b8133d11348e2e00"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/props/traffic_sign_2.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficSign2.fbx",
+      "sha256": "8a6d790cd7fed931184730d2cae10a856b219d370835878408faf826b5e78cf3"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/props/traffic_cone.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficCone.fbx",
+      "sha256": "2cb880995f39f42d9dd5b23def43ea54e7647c058a08a569d1f3c5323fc2936c"
     },
     {
       "file": "game/assets/third_party/ambientcg/asphalt010_color.png",

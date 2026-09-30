@@ -66,6 +66,15 @@
       "requires": [
         "el_furgon"
       ]
+    },
+    {
+      "id": "pescadores",
+      "contact": "Paco",
+      "blip": "P",
+      "color": "f2c14e",
+      "requires": [
+        "golpe_joyeria"
+      ]
     }
   ],
   "contacts": {

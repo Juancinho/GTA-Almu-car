@@ -67,6 +67,14 @@ var ai_blocker: Object
 var sector_data: SectorData
 var last_dry_transform := Transform3D.IDENTITY
 var ram_cooldown := 0.0
+## Boats (variant "boat": true) float at sea level and cannot leave deep water.
+const WATER_Y := 0.05
+var boat := false
+var boat_max_speed := 12.0
+var boat_route := PackedVector3Array()  # AI boats loop through these points
+var boat_route_index := 0
+var boat_cruise := 12.0
+var bob_time := 0.0
 var model_yaw := 0.0
 var lamps: Node3D  # headlight/tail-light glow (+ a spotlight for the player's car)
 var headlight: SpotLight3D
@@ -98,9 +106,12 @@ func _ready() -> void:
 
 
 func _build_visuals() -> void:
+	var spec := variant_spec(variant)
+	boat = bool(spec.get("boat", false))
+	boat_max_speed = float(spec.get("max_speed", 12.0))
 	var collider := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(1.9, 1.2, 4.1)
+	shape.size = Vector3(2.0, 1.1, 4.8) if boat else Vector3(1.9, 1.2, 4.1)
 	collider.shape = shape
 	collider.position.y = 0.65
 	add_child(collider)
@@ -119,6 +130,7 @@ func _build_model() -> void:
 	model.name = "CarVisual"
 	model_yaw = deg_to_rad(float(spec.get("yaw_degrees", 0.0)))
 	model.rotation.y = model_yaw
+	model.scale = Vector3.ONE * float(spec.get("scale", 1.0))
 	add_child(model)
 	var paint: Dictionary = spec.get("paint", {})
 	for node in model.find_children("*", "MeshInstance3D", true, false):
@@ -270,6 +282,9 @@ func _material(color: Color) -> StandardMaterial3D:
 
 func _physics_process(delta: float) -> void:
 	ram_cooldown = maxf(0.0, ram_cooldown - delta)
+	if boat:
+		_boat_process(delta)
+		return
 	if _deep_water(global_position):
 		global_transform = last_dry_transform
 		speed = 0.0
@@ -320,6 +335,49 @@ func _physics_process(delta: float) -> void:
 		var impact := absf(forward.dot(get_wall_normal()))
 		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+## Water-only movement: throttle/steer from the driver or a waypoint route,
+## a gentle bob and roll, and a hard stop at the shoreline.
+func _boat_process(delta: float) -> void:
+	bob_time += delta
+	if destroyed:
+		speed = move_toward(speed, 0.0, 6.0 * delta)
+	elif driver != null:
+		var throttle := Input.get_axis("move_back", "move_forward")
+		speed = move_toward(speed, throttle * (boat_max_speed if throttle >= 0.0 else boat_max_speed * 0.35), (5.0 if absf(throttle) > 0.05 else 1.6) * delta)
+		steer_input = move_toward(steer_input, Input.get_axis("move_left", "move_right"), 3.0 * delta)
+		rotation.y -= steer_input * 0.9 * clampf(absf(speed) / 4.0, 0.25, 1.0) * signf(speed if absf(speed) > 0.1 else 1.0) * delta
+	elif boat_route.size() > 1:
+		var target := boat_route[boat_route_index]
+		var offset := Vector3(target.x - global_position.x, 0, target.z - global_position.z)
+		if offset.length() < 12.0:
+			boat_route_index = (boat_route_index + 1) % boat_route.size()
+		var turn := wrapf(atan2(-offset.x, -offset.z) - rotation.y, -PI, PI)
+		rotation.y += clampf(turn * 1.5, -0.8, 0.8) * delta
+		speed = move_toward(speed, boat_cruise * (0.5 if absf(turn) > 1.0 else 1.0), 4.0 * delta)
+	else:
+		speed = move_toward(speed, 0.0, 1.6 * delta)
+	var forward := -global_transform.basis.z
+	var ahead := global_position + forward * (speed * delta + signf(speed) * 2.6)
+	if absf(speed) > 0.1 and not _boat_water(ahead):
+		apply_damage(maxf(0.0, absf(speed) - 6.0) ** 2 * 2.0)
+		speed = -speed * 0.2  # grounding: bounce back off the beach
+	velocity = forward * speed
+	velocity.y = 0.0
+	move_and_slide()
+	recent_speed = absf(speed)
+	_resolve_contacts(absf(speed))
+	global_position.y = WATER_Y + sin(bob_time * 1.7) * 0.08
+	var model := get_node_or_null("CarVisual") as Node3D
+	if model != null:
+		model.rotation = Vector3(sin(bob_time * 1.3) * 0.03 - clampf(speed / 40.0, -0.1, 0.12), model_yaw, sin(bob_time * 1.1) * 0.04 + steer_input * 0.08)
+	if engine_audio != null:
+		engine_audio.pitch_scale = 0.7 + clampf(absf(speed) / boat_max_speed, 0.0, 1.0) * 0.6
+
+
+func _boat_water(at: Vector3) -> bool:
+	return sector_data == null or (sector_data.surface_at(at.x, at.z) == "sea" and sector_data.height_at(at.x, at.z) < -0.6)
 
 
 ## Night lighting: glowing head and tail lamps on every car, and a real

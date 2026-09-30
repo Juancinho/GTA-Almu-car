@@ -116,6 +116,56 @@
       "source": "quaternius_free",
       "path": "FreeModels by Quaternius[Patreon]/Medieval/Medieval Weapons Pack - Sept 2018/FBX/Dagger.fbx",
       "dest": "game/assets/third_party/quaternius/weapons/knife.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Cop_SUV.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/cop_suv.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SportsCar2.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/sports_car_2.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/Ambulance.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/ambulance.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/Bus.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/bus.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Ship pack - Feb 2018/FBX/Boat.fbx",
+      "dest": "game/assets/third_party/quaternius/boats/boat.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Ship pack - Feb 2018/FBX/Lifeboat.fbx",
+      "dest": "game/assets/third_party/quaternius/boats/lifeboat.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficLight.fbx",
+      "dest": "game/assets/third_party/quaternius/props/traffic_light.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficSign1.fbx",
+      "dest": "game/assets/third_party/quaternius/props/traffic_sign_1.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficSign2.fbx",
+      "dest": "game/assets/third_party/quaternius/props/traffic_sign_2.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Public Transport Pack - Feb 2017/FBX/TrafficCone.fbx",
+      "dest": "game/assets/third_party/quaternius/props/traffic_cone.fbx"
     }
   ],
   "textures": [

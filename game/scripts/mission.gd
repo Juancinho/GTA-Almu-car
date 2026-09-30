@@ -606,6 +606,9 @@ func _spawn(id: String) -> void:
 			var from_node := network.nearest_node(point)
 			var outgoing: Array = network.edges.get(from_node, [])
 			var yaw := 0.0
+			var is_boat := bool(DriveableVehicle.variant_spec(car.variant).get("boat", false))
+			if is_boat:
+				outgoing = []  # no road snapping and no road traffic at sea
 			if bool(spec.get("on_road", true)) and not outgoing.is_empty():
 				var a := network.nodes[from_node]
 				var b := network.nodes[int(outgoing[0])]
@@ -615,9 +618,13 @@ func _spawn(id: String) -> void:
 				yaw = atan2(-dir.x, -dir.z)
 			if spec.has("yaw"):
 				yaw = deg_to_rad(float(spec["yaw"]))
-			car.position = Vector3(point.x, world.height_at(point.x, point.z) + 0.4, point.z)
+			car.position = Vector3(point.x, DriveableVehicle.WATER_Y if is_boat else world.height_at(point.x, point.z) + 0.4, point.z)
 			car.rotation.y = yaw
 			world.add_child(car)
+			if is_boat and spec.has("route"):
+				for p in spec["route"]:
+					car.boat_route.append(Vector3(float(p[0]), 0.0, float(p[1])))
+				car.boat_cruise = float(spec.get("speed", 12.0))
 			if spec.has("occupant"):
 				car.set_occupant(str(spec["occupant"]))
 			if spec.has("health"):
