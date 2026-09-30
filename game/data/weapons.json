@@ -1,0 +1,16 @@
+{
+  "description": "Weapon tuning and world pickups. Damage is per hit (pedestrians have 100 health, vehicles 1000). Pickups snap to the nearest walkable way and respawn after 'respawn_s'.",
+  "order": ["fists", "bat", "pistol", "smg"],
+  "weapons": {
+    "fists": {"name": "Puños", "kind": "melee"},
+    "bat": {"name": "Bate", "kind": "melee", "damage": 45, "vehicle_damage": 60, "range": 2.5, "interval": 0.75},
+    "pistol": {"name": "Pistola", "kind": "gun", "damage": 34, "vehicle_damage": 55, "range": 110, "interval": 0.28, "clip": 12, "auto": false, "spread_hip": 2.2, "spread_aim": 0.45, "reload_s": 1.3, "sound": "pistol_shot"},
+    "smg": {"name": "Subfusil", "kind": "gun", "damage": 17, "vehicle_damage": 28, "range": 80, "interval": 0.085, "clip": 30, "auto": true, "spread_hip": 4.0, "spread_aim": 1.5, "reload_s": 1.8, "sound": "smg_shot"}
+  },
+  "pickups": [
+    {"weapon": "bat", "ammo": 0, "at": [-100.0, 102.0], "respawn_s": 60},
+    {"weapon": "pistol", "ammo": 36, "at": [-108.7, 54.3], "respawn_s": 90},
+    {"weapon": "pistol", "ammo": 36, "at": [-66.8, -270.0], "respawn_s": 90},
+    {"weapon": "smg", "ammo": 90, "at": [-410.0, 52.0], "respawn_s": 120}
+  ]
+}

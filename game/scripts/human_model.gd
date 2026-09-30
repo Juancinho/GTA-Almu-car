@@ -38,7 +38,7 @@ func _ready() -> void:
 		return
 	player = players[0] as AnimationPlayer
 	for animation_name in player.get_animation_list():
-		for key in ["Idle", "Walk", "Run", "Jump", "Sitting", "Death", "Punch"]:
+		for key in ["Idle", "Walk", "Run", "Jump", "Sitting", "Death", "Punch", "SwordSlash"]:
 			if str(animation_name).ends_with("_" + key):
 				clips[key.to_lower()] = animation_name
 				if key in ["Idle", "Walk", "Run", "Sitting"]:
@@ -58,6 +58,18 @@ func play_action(state: String, seconds: float) -> void:
 	current = state
 	player.speed_scale = 1.0
 	player.play(clips[state], 0.1)
+
+
+## Freeze a clip at `at_seconds` (the punch's extended arm doubles as the aiming pose).
+func hold_pose(state: String, at_seconds: float) -> void:
+	if player == null or not clips.has(state):
+		return
+	action_timer = 0.15
+	if current != state or player.is_playing():
+		current = state
+		player.play(clips[state], 0.08)
+		player.seek(at_seconds, true)
+		player.pause()
 
 
 static func model_for_seed(seed_value: int) -> String:

@@ -24,6 +24,31 @@
       "file": "game\\assets\\audio\\sea_wind_loop.wav",
       "seconds": 4.0,
       "sha256": "8832d880cde4d5ccec6ffbe2b24fcf934e68075c53a95b3901502351e338ceff"
+    },
+    {
+      "file": "game\\assets\\audio\\pistol_shot.wav",
+      "seconds": 0.45,
+      "sha256": "9587159da61fc3be989ab63e352eba85b425a59666e12a9079898e75f776fffc"
+    },
+    {
+      "file": "game\\assets\\audio\\smg_shot.wav",
+      "seconds": 0.16,
+      "sha256": "85e6004ede29dca40accc2dde5623cee4df8da45f6bda0edefccf06d9174ae9d"
+    },
+    {
+      "file": "game\\assets\\audio\\bat_hit.wav",
+      "seconds": 0.16,
+      "sha256": "c385e00b996f2006f6463bc82ad631f4a89e6bf6387bae4b1a0e66f3757007e5"
+    },
+    {
+      "file": "game\\assets\\audio\\dry_click.wav",
+      "seconds": 0.05,
+      "sha256": "f2915d7859860e95822e4bc99ace8e75c663f2c8d5f8fe88b1d67e8d609f3be5"
+    },
+    {
+      "file": "game\\assets\\audio\\reload.wav",
+      "seconds": 0.38,
+      "sha256": "42431c0291a1746af0e699d985cb9feb10a151af68e7973a3c11f1f23c77eda0"
     }
   ]
 }

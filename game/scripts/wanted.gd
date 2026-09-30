@@ -180,7 +180,7 @@ func report_incident(location: Vector3, forced: bool = false) -> bool:
 func _witness_near(location: Vector3) -> bool:
 	for node in get_tree().get_nodes_in_group("pedestrians"):
 		var person := node as Pedestrian
-		if person != null and person.global_position.distance_to(location) < 34.0:
+		if person != null and not person.dead and person.global_position.distance_to(location) < 34.0:
 			return true
 	return false
 

@@ -28,6 +28,8 @@ var enemy := false
 var toughness := 1
 var hits := 0
 var defeated := false
+var health := 100.0
+var dead := false
 
 
 func _ready() -> void:
@@ -138,6 +140,35 @@ func start_fight(seconds: float) -> void:
 	strike_timer = 0.8
 
 
+## Weapon damage. Heavy hits knock people down; at zero health they stay down.
+func take_damage(amount: float, from: Vector3) -> void:
+	if mission_contact or dead:
+		return
+	health -= amount
+	provoked_by_player = true
+	if health <= 0.0:
+		die(from)
+	elif amount >= 40.0 or enemy:
+		if state == State.DOWN:
+			return
+		knock_down(from, 3.0)
+	else:
+		flee_from(from)
+
+
+func die(from: Vector3) -> void:
+	if dead:
+		return
+	if state != State.DOWN:
+		knock_down(from, 4.0)
+	dead = true
+	defeated = true
+	health = 0.0
+	down_timer = INF
+	remove_from_group("mission_contacts")
+	get_tree().create_timer(45.0, false).timeout.connect(queue_free)
+
+
 ## A punch from the player: tough (mission) people stagger before going down.
 func take_hit(from: Vector3, impulse: float) -> void:
 	if state == State.DOWN or mission_contact:
@@ -206,6 +237,12 @@ func knock_down(from: Vector3, impulse: float) -> void:
 
 
 func _update_down(delta: float) -> void:
+	if dead:
+		velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)
+		global_position += Vector3(velocity.x, 0.0, velocity.z) * delta
+		human.action_timer = 1.0  # stay in the final pose
+		return
 	down_timer -= delta
 	velocity.x = move_toward(velocity.x, 0.0, 12.0 * delta)
 	velocity.z = move_toward(velocity.z, 0.0, 12.0 * delta)

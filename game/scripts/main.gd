@@ -8,6 +8,7 @@ const MissionScript = preload("res://scripts/mission.gd")
 const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
 const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
 const MarkersScript = preload("res://scripts/mission_markers.gd")
+const WeaponScript = preload("res://scripts/weapons.gd")
 const ARREST_FEE := 100
 const HOSPITAL_FEE := 100
 
@@ -18,6 +19,7 @@ var player: PlayerController
 var hud: GameHud
 var wanted: WantedSystem
 var mission: MissionController
+var weapons: WeaponSystem
 var perf_monitor: PerfMonitor
 var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
@@ -66,6 +68,13 @@ func _ready() -> void:
 	mission.mission_completed.connect(_on_mission_completed)
 	mission.mission_failed.connect(_on_mission_failed)
 	mission.mission_started.connect(func(title: String) -> void: playtest_log.record("mission_started", {"id": mission.mission_id, "title": title}))
+	weapons = WeaponScript.new() as WeaponSystem
+	weapons.name = "Weapons"
+	weapons.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(weapons)
+	weapons.configure(player, world, wanted)
+	player.weapons = weapons
+	weapons.fired.connect(func(id: String, _hit: Object) -> void: playtest_log.record("shot", {"weapon": id}))
 	var markers := MarkersScript.new() as MissionMarkers
 	markers.name = "MissionMarkers"
 	markers.mission = mission
@@ -315,7 +324,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		playtest_log.record("pause", {"paused": get_tree().paused})
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("restart"):
+	elif event.is_action_pressed("restart") and get_tree().paused:
 		playtest_log.record("restart", {"stage": mission.stage})
 		_auto_report("restart")
 		get_tree().paused = false
@@ -358,6 +367,24 @@ func _configure_input() -> void:
 	_add_key("pause", KEY_ESCAPE)
 	_add_key("brake", KEY_SPACE)
 	_add_key("restart", KEY_R)
+	_add_key("reload", KEY_R)
+	_add_key("weapon_1", KEY_1)
+	_add_key("weapon_2", KEY_2)
+	_add_key("weapon_3", KEY_3)
+	_add_key("weapon_4", KEY_4)
+	for pair in [["weapon_next", MOUSE_BUTTON_WHEEL_DOWN], ["weapon_prev", MOUSE_BUTTON_WHEEL_UP], ["aim", MOUSE_BUTTON_RIGHT]]:
+		if not InputMap.has_action(pair[0]):
+			InputMap.add_action(pair[0])
+		var wheel := InputEventMouseButton.new()
+		wheel.button_index = pair[1]
+		InputMap.action_add_event(pair[0], wheel)
+	_add_joy_button("weapon_next", JOY_BUTTON_DPAD_RIGHT)
+	_add_joy_button("weapon_prev", JOY_BUTTON_DPAD_LEFT)
+	_add_joy_button("reload", JOY_BUTTON_Y)
+	var trigger := InputEventJoypadMotion.new()
+	trigger.axis = JOY_AXIS_TRIGGER_LEFT
+	trigger.axis_value = 1.0
+	InputMap.action_add_event("aim", trigger)
 	_add_key("save_game", KEY_F5)
 	_add_key("load_game", KEY_F9)
 	_add_key("quality_cycle", KEY_F3)
@@ -438,6 +465,7 @@ func _save_game() -> void:
 		"money": money,
 		"bank_balance": bank_balance,
 		"jewellery_robbed": jewellery_robbed,
+		"weapons": weapons.to_save(),
 		"health": player.health,
 		"breath": player.breath,
 		"vehicle_name": vehicle.name if vehicle != null else "",
@@ -488,6 +516,7 @@ func _load_game() -> void:
 	money = maxi(0, int(data.get("money", money)))
 	bank_balance = maxi(0, int(data.get("bank_balance", 0)))
 	jewellery_robbed = bool(data.get("jewellery_robbed", false))
+	weapons.from_save(data.get("weapons", {}))
 	(world.venues["jewellery"] as VenueInterior).set_robbed(jewellery_robbed)
 	player.heal_full()
 	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)

@@ -70,6 +70,7 @@ var suspended_el_recado_stage: int:
 
 
 func _ready() -> void:
+	add_to_group("mission_controller")
 	_load_index()
 	load_mission("el_recado")
 

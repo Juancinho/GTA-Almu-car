@@ -68,7 +68,7 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 
 | ID | Description | Dependencies | Status | Acceptance criteria / evidence |
 |----|-------------|--------------|--------|--------------------------------|
-| GAME-009 | Weapons and aiming | GAME-007 | PLANNED | Bat, knife, pistol, SMG, shotgun, rifle, molotov, grenade; over-shoulder aim, gamepad soft lock, reload/ammo, hit reactions, weapon wheel; combat test. |
+| GAME-009 | Weapons and aiming | GAME-007 | IN PROGRESS | Slice 1 done (`weapons.gd`, `data/weapons.json`): fists, bat, pistol, SMG; over-the-shoulder aim (RMB/LT) with crosshair, hitscan from the camera, clip/reserve ammo and reload (R; restart moved to the pause screen), pedestrian health and death, vehicle damage, gunfire panic and police reports, spinning pickups that respawn, generated shot/reload sounds, weapons saved. `tests/weapons.gd` passes. Remaining: knife, shotgun, rifle, molotov, grenade, weapon wheel, gamepad soft lock, aim animation, police return fire. |
 | GAME-010 | Armour, pickups and healing | GAME-009 | PLANNED | Armour bar, bar food/drink heals, ammo/health pickups; tests. |
 | GAME-011 | Shop and petrol-station holdups | GAME-009, INT-003 | PLANNED | Aim at clerk → cash → alarm → police response; repeatable with cooldown; test. |
 | GAME-012 | Wanted levels 3–5 | GAME-004, GAME-009 | PLANNED | Escalating units, roadblocks, spike strips, helicopter, respray clears; escape test at each level. |

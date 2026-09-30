@@ -32,6 +32,8 @@ var title_timer := 0.0
 var timer_label: Label
 var world_map: WorldMap
 var pause_missions: Label
+var weapon_label: Label
+var crosshair: Label
 var money_delta_timer := 0.0
 
 
@@ -117,6 +119,26 @@ func _ready() -> void:
 	_outline(bank_label)
 	bank_label.visible = false
 	root.add_child(bank_label)
+	weapon_label = Label.new()
+	weapon_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	weapon_label.position = Vector2(-300, 352)
+	weapon_label.custom_minimum_size = Vector2(282, 30)
+	weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	weapon_label.add_theme_font_size_override("font_size", 22)
+	weapon_label.add_theme_color_override("font_color", Color("f4ecd8"))
+	_outline(weapon_label)
+	root.add_child(weapon_label)
+	crosshair = Label.new()
+	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	crosshair.position = Vector2(-20, -24)
+	crosshair.custom_minimum_size = Vector2(40, 40)
+	crosshair.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	crosshair.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	crosshair.text = "+"
+	crosshair.add_theme_font_size_override("font_size", 30)
+	_outline(crosshair, 4)
+	crosshair.visible = false
+	root.add_child(crosshair)
 	banner_label = Label.new()
 	banner_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	banner_label.position = Vector2(-400, -60)
@@ -248,7 +270,7 @@ func _on_mission_started(title: String) -> void:
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja", "Media", "Alta"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar partida\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
 
 
 func _process(delta: float) -> void:
@@ -276,6 +298,7 @@ func _process(delta: float) -> void:
 	objective_flash_timer -= delta
 	objective_flash.visible = objective_flash_timer > 0.0 and not banner_label.visible
 	_update_mission_status()
+	_update_weapon()
 	money_delta_timer -= delta
 	money_delta_label.visible = money_delta_timer > 0.0
 	if wanted.arrest_progress() > 0.0:
@@ -347,7 +370,31 @@ func _process(delta: float) -> void:
 	elif player.nearby_vehicle() != null:
 		prompt_label.text = "E · Entrar en el coche"
 	else:
-		prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · Ratón cámara"
+		var weapons: WeaponSystem = main.weapons if main != null and "weapons" in main else null
+		if weapons != null and weapons.is_gun():
+			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · 1-4 / rueda: armas"
+		elif weapons != null and weapons.current == "bat":
+			prompt_label.text = "Clic / F golpear con el bate · 1-4 / rueda: armas · M mapa"
+		else:
+			prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · F puñetazo · M mapa"
+
+
+func _update_weapon() -> void:
+	var main := get_parent()
+	var weapons: WeaponSystem = main.weapons if main != null and "weapons" in main else null
+	if weapons == null:
+		weapon_label.visible = false
+		crosshair.visible = false
+		return
+	weapon_label.visible = player.driving_vehicle == null
+	var text := weapons.display_name().to_upper()
+	if weapons.is_gun():
+		text += "   " + weapons.ammo_text()
+		if weapons.reload_timer > 0.0:
+			text += "  · recargando"
+	weapon_label.text = text
+	crosshair.visible = weapons.is_gun() and player.driving_vehicle == null and not player.dead
+	crosshair.add_theme_color_override("font_color", Color("ffffff") if weapons.aiming else Color(1, 1, 1, 0.45))
 
 
 func _mission_summary() -> String:

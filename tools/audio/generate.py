@@ -63,6 +63,41 @@ def sea_wind(rng: random.Random) -> list[float]:
     return result
 
 
+def gunshot(rng: random.Random, seconds: float, body_hz: float, crack: float) -> list[float]:
+    """Sharp noise crack over a decaying low thump; stylised, not a recording."""
+    count = int(seconds * SAMPLE_RATE)
+    result = []
+    low = 0.0
+    for i in range(count):
+        t = i / SAMPLE_RATE
+        noise = rng.uniform(-1, 1)
+        low = low * 0.9 + noise * 0.1
+        thump = math.sin(2 * math.pi * body_hz * t * (1 - 0.6 * i / count)) * math.exp(-t * 28)
+        result.append(crack * noise * math.exp(-t * 60) + 0.55 * low * math.exp(-t * 9) + 0.6 * thump)
+    return result
+
+
+def bat_hit(rng: random.Random) -> list[float]:
+    count = int(0.16 * SAMPLE_RATE)
+    return [0.7 * (math.sin(2 * math.pi * 190 * i / SAMPLE_RATE) * 0.6 + rng.uniform(-1, 1) * 0.4)
+            * math.exp(-30 * i / count * 0.25) * (1 - i / count) for i in range(count)]
+
+
+def dry_click() -> list[float]:
+    count = int(0.05 * SAMPLE_RATE)
+    return [0.5 * math.sin(2 * math.pi * 2400 * i / SAMPLE_RATE) * (1 - i / count) ** 4 for i in range(count)]
+
+
+def reload_sound(rng: random.Random) -> list[float]:
+    result = []
+    for tone in (900, 1400):
+        count = int(0.07 * SAMPLE_RATE)
+        result += [0.4 * (math.sin(2 * math.pi * tone * i / SAMPLE_RATE) + rng.uniform(-0.4, 0.4)) * (1 - i / count) ** 3
+                   for i in range(count)]
+        result += [0.0] * int(0.12 * SAMPLE_RATE)
+    return result
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=Path("game/assets/audio"))
@@ -71,7 +106,12 @@ def main() -> None:
     reports = [write_wav(args.out / "ui_click.wav", click()),
                write_wav(args.out / "footstep.wav", footstep(rng)),
                write_wav(args.out / "engine_loop.wav", engine()),
-               write_wav(args.out / "sea_wind_loop.wav", sea_wind(rng))]
+               write_wav(args.out / "sea_wind_loop.wav", sea_wind(rng)),
+               write_wav(args.out / "pistol_shot.wav", gunshot(rng, 0.45, 120.0, 0.9)),
+               write_wav(args.out / "smg_shot.wav", gunshot(rng, 0.16, 150.0, 0.75)),
+               write_wav(args.out / "bat_hit.wav", bat_hit(rng)),
+               write_wav(args.out / "dry_click.wav", dry_click()),
+               write_wav(args.out / "reload.wav", reload_sound(rng))]
     report = {"generator": "tools/audio/generate.py", "sample_rate": SAMPLE_RATE,
               "seed": 7401, "license": "original project-generated", "placeholder": True,
               "files": reports}

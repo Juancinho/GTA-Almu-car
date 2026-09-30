@@ -43,6 +43,8 @@ var sector_data: SectorData
 var swimming := false
 var diving := false
 var breath := MAX_BREATH
+var aiming := false  # set by WeaponSystem: over-the-shoulder camera, body faces the aim
+var weapons: Node  # WeaponSystem; fists fall back to punch()
 
 
 func _ready() -> void:
@@ -103,7 +105,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_update_camera_orientation()
 	if event.is_action_pressed("interact") and not dead:
 		_interact()
-	elif event.is_action_pressed("attack") and InputMap.has_action("attack"):
+	elif event.is_action_pressed("attack") and InputMap.has_action("attack") and (weapons == null or str(weapons.get("current")) == "fists"):
 		punch()
 
 
@@ -119,8 +121,10 @@ func _process(delta: float) -> void:
 		look_idle_time = 0.0
 	else:
 		look_idle_time += delta
-	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else FOOT_CAMERA_DISTANCE
-	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, 6.0 * delta)
+	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else (2.1 if aiming else FOOT_CAMERA_DISTANCE)
+	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, (14.0 if aiming else 6.0) * delta)
+	camera_arm.position.x = move_toward(camera_arm.position.x, 0.62 if aiming else 0.0, 4.0 * delta)
+	camera.fov = move_toward(camera.fov, 58.0 if aiming else 75.0, 60.0 * delta)
 	if driving_vehicle == null:
 		# With a wall right behind the player the arm collapses; hide the body
 		# instead of filling the screen with the back of the head.
@@ -161,11 +165,13 @@ func _physics_process(delta: float) -> void:
 	forward.y = 0
 	right.y = 0
 	var direction := (right.normalized() * axis.x + forward.normalized() * -axis.y).normalized()
-	var target_speed := RUN_SPEED if Input.is_action_pressed("sprint") else WALK_SPEED
+	var target_speed := RUN_SPEED if Input.is_action_pressed("sprint") and not aiming else (3.2 if aiming else WALK_SPEED)
 	var target := direction * target_speed
 	velocity.x = move_toward(velocity.x, target.x, ACCELERATION * delta)
 	velocity.z = move_toward(velocity.z, target.z, ACCELERATION * delta)
-	if direction.length_squared() > 0.01:
+	if aiming:
+		visual.rotation.y = lerp_angle(visual.rotation.y, camera_yaw, minf(1.0, 20.0 * delta))
+	elif direction.length_squared() > 0.01:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), minf(1.0, 12.0 * delta))
 	move_and_slide()
 	human.update_motion(Vector2(velocity.x, velocity.z).length(), is_on_floor())
