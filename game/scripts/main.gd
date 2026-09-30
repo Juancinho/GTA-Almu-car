@@ -9,6 +9,7 @@ const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
 const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
 const MarkersScript = preload("res://scripts/mission_markers.gd")
 const WeaponScript = preload("res://scripts/weapons.gd")
+const DayNightScript = preload("res://scripts/day_night.gd")
 const ARREST_FEE := 100
 const HOSPITAL_FEE := 100
 
@@ -20,6 +21,7 @@ var hud: GameHud
 var wanted: WantedSystem
 var mission: MissionController
 var weapons: WeaponScript
+var day_night: DayNightScript
 var perf_monitor: PerfMonitor
 var playtest_log: PlaytestLog
 var save_path := "user://save_v1.json"
@@ -77,6 +79,11 @@ func _ready() -> void:
 	weapons.configure(player, world, wanted)
 	player.weapons = weapons
 	weapons.fired.connect(func(id: String, _hit: Object) -> void: playtest_log.record("shot", {"weapon": id}))
+	day_night = DayNightScript.new() as DayNightScript
+	day_night.name = "DayNight"
+	day_night.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(day_night)
+	day_night.configure(world, player)
 	var markers := MarkersScript.new() as MarkersScript
 	markers.name = "MissionMarkers"
 	markers.mission = mission
@@ -510,6 +517,7 @@ func _save_game() -> void:
 		"bank_balance": bank_balance,
 		"jewellery_robbed": jewellery_robbed,
 		"weapons": weapons.to_save(),
+		"hours": day_night.hours,
 		"health": player.health,
 		"breath": player.breath,
 		"vehicle_name": vehicle.name if vehicle != null else "",
@@ -561,6 +569,7 @@ func _load_game() -> void:
 	bank_balance = maxi(0, int(data.get("bank_balance", 0)))
 	jewellery_robbed = bool(data.get("jewellery_robbed", false))
 	weapons.from_save(data.get("weapons", {}))
+	day_night.hours = float(data.get("hours", day_night.hours))
 	(world.venues["jewellery"] as VenueInterior).set_robbed(jewellery_robbed)
 	player.heal_full()
 	player.health = clampf(float(data.get("health", PlayerController.MAX_HEALTH)), 1.0, PlayerController.MAX_HEALTH)

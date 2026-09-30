@@ -10,6 +10,10 @@ const PalmScene = preload("res://assets/procedural/palm.glb")
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
 	var planned := plan(data, network)
+	var lamp_positions := PackedVector3Array()
+	for t in planned["lamps"]:
+		lamp_positions.append((t as Transform3D).origin)
+	parent.set_meta("lamp_positions", lamp_positions)
 	_scatter_scene(parent, "Palms", PalmScene, planned["palms"], mats)
 	_lamp_posts(parent, mats, planned["lamps"])
 	_benches(parent, mats, planned["benches"])

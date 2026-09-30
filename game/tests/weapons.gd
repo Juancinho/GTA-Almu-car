@@ -74,13 +74,29 @@ func _run() -> void:
 		await physics_frame
 	if target.state != Pedestrian.State.DOWN:
 		return _fail("bat swing did not knock the civilian down")
+	# Holdup: aim at the Mercado Azul counter for four seconds.
+	wanted.clear_wanted()
+	weapons.select("pistol")
+	var shop := world.venues["supermarket"] as VenueInterior
+	player.global_position = shop.inside_entry
+	await _frames(2)
+	var money_before := int(root.get("money"))
+	Input.action_press("aim")
+	for i in range(60 * 5):
+		_aim_at(player, shop.service_point + Vector3(0, 1.0, 0))
+		await physics_frame
+		if int(root.get("money")) > money_before:
+			break
+	Input.action_release("aim")
+	if int(root.get("money")) <= money_before or wanted.level < 2:
+		return _fail("aiming at the shop counter did not complete a holdup (money %d, level %d)" % [int(root.get("money")), wanted.level])
 	root.set("save_path", "user://test_weapons_save.json")
 	root.call("_save_game")
 	weapons.from_save({})
 	root.call("_load_game")
 	if not weapons.owned.has("pistol") or not weapons.owned.has("bat") or int(weapons.reserve["pistol"]) != 12:
 		return _fail("weapons not restored from the save")
-	print("WEAPONS PASS: pickup, aim camera, %d-shot kill, ammo/reload, vehicle damage, bat, save/load (wanted %d)" % [shots, wanted.level])
+	print("WEAPONS PASS: pickup, aim camera, shop holdup, %d-shot kill, ammo/reload, vehicle damage, bat, save/load (wanted %d)" % [shots, wanted.level])
 	root.queue_free()
 	await process_frame
 	quit(0)

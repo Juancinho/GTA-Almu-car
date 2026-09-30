@@ -45,6 +45,7 @@ Invoke-Godot 'jaime_mission' @('--headless', '--path', ('"' + $gamePath + '"'), 
 Invoke-Godot 'missions' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/missions.gd')
 Invoke-Godot 'weapons' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/weapons.gd')
 Invoke-Godot 'police' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/police.gd')
+Invoke-Godot 'day_night' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/day_night.gd')
 Invoke-Godot 'slope_buildings' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/slope_buildings.gd')
 Invoke-Godot 'water_and_dressing' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/water_and_dressing.gd')
 Invoke-Godot 'civilian_life' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/civilian_life.gd')

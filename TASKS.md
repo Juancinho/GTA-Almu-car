@@ -60,7 +60,7 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 
 | ID | Description | Dependencies | Status | Acceptance criteria / evidence |
 |----|-------------|--------------|--------|--------------------------------|
-| VIS-002 | Day/night cycle and street lighting | VIS-001 | PLANNED | 24 h cycle, sodium lamps, lit windows, headlights; -Perf at noon and midnight. |
+| VIS-002 | Day/night cycle and street lighting | VIS-001 | IMPLEMENTED BUT NOT VERIFIED | `day_night.gd`: 48-minute day, sunrise 07:00 east, sunset 21:00 west, moonlight, sky/fog/ambient palettes with golden hour, lit windows, glowing lamp heads plus six real lamp lights following the player, head/tail lamps on every car and a headlight spotlight on the player car, clock in the HUD and the save. `tests/day_night.gd` passes; night captures reviewed. -Perf at noon and midnight pending. |
 | VIS-003 | Sea and water shader | VIS-001 | PLANNED | Animated waves, turquoise shallows, foam at shore, boat wakes. |
 | AUD-001 | Original music, radio and ambience | none | PLANNED | Original tracks only, in-car radio stations, sector ambience, sirens and vehicle audio with licences recorded. |
 
@@ -70,7 +70,7 @@ Status vocabulary: **DONE**, **IMPLEMENTED BUT NOT VERIFIED**, **BLOCKED**, **PL
 |----|-------------|--------------|--------|--------------------------------|
 | GAME-009 | Weapons and aiming | GAME-007 | IN PROGRESS | Fists, bat, pistol, SMG (P90), shotgun (7 pellets) and rifle with CC0 Quaternius models (pinned in the third-party manifest, coloured per material) held in the right fist, aim pose, over-the-shoulder aim with crosshair, hitscan, blood/spark/dust impacts, ammo and reload, pickups showing the real model, pedestrian health/death with blood pool, vehicle damage, gunfire panic and police reports; weapons saved. `tests/weapons.gd` passes. Remaining: knife, molotov, grenade, weapon wheel, gamepad soft lock, proper aim animation. |
 | GAME-010 | Armour, pickups and healing | GAME-009 | PLANNED | Armour bar, bar food/drink heals, ammo/health pickups; tests. |
-| GAME-011 | Shop and petrol-station holdups | GAME-009, INT-003 | PLANNED | Aim at clerk → cash → alarm → police response; repeatable with cooldown; test. |
+| GAME-011 | Shop and café holdups | GAME-009, INT-003 | IMPLEMENTED BUT NOT VERIFIED | Aim a gun at the counter of Mercado Azul, Galería, Brisa y Limón, La Brisa or La Palmera for 4 s: 180–460 €, two stars, four-minute cooldown per shop; progress bar in the HUD. Covered by `tests/weapons.gd`. Petrol station pending. |
 | GAME-012 | Wanted levels 3–5 | GAME-004, GAME-009 | IN PROGRESS | Done: levels up to 5 with one patrol car per star (reinforcements every 5 s, faster pursuit), longer searches above two stars, officers (`police_officer.gd`, blue caps) leave patrols near a player on foot/stopped, arrest at one star and shoot from two stars or when the player draws a gun, return to the car when the player drives off; attacking police gives at least three stars; Taller Poniente respray (150 €, unseen) clears the level. `tests/police.gd` passes; levels 1–2 tuning unchanged (smoke/route pass). Remaining: roadblocks, spike strips, helicopter, special unit. |
 | GAME-013 | Motorbikes, scooters and bicycles | GAME-002 | PLANNED | Lean/handling, fall-off on crash, fits old-town lanes; route test through Calle Real. |
 | GAME-014 | Boats | WORLD-009 | PLANNED | Fishing boat, speedboat, jet ski with buoyancy and wake; sea chase test. |

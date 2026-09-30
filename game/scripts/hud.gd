@@ -35,6 +35,7 @@ var title_label: Label
 var title_timer := 0.0
 var timer_label: Label
 var world_map: WorldMapScript
+var clock_text := ""
 var pause_missions: Label
 var weapon_label: Label
 var crosshair: Label
@@ -295,6 +296,8 @@ func _process(delta: float) -> void:
 	var main := get_parent()
 	if main != null and "money" in main:
 		money_label.text = "%d €" % int(main.money)
+	if main != null and "day_night" in main and main.day_night != null:
+		clock_text = main.day_night.clock_text()
 	banner_timer -= delta
 	banner_label.visible = banner_timer > 0.0
 	title_timer -= delta
@@ -329,7 +332,7 @@ func _process(delta: float) -> void:
 		movement_label = "En coche"
 	elif player.swimming:
 		movement_label = "Buceando" if player.diving else "Nadando"
-	info_label.text = "BRISA DE PONIENTE\n%s · %s" % [street if street != "" else "Paseo del Altillo", movement_label]
+	info_label.text = "BRISA DE PONIENTE   %s\n%s · %s" % [clock_text, street if street != "" else "Paseo del Altillo", movement_label]
 	dialogue_label.text = mission.dialogue
 	if player.driving_vehicle != null:
 		prompt_label.text = "WASD conducir · Espacio freno de mano · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
@@ -392,6 +395,9 @@ func _update_weapon() -> void:
 		return
 	weapon_label.visible = player.driving_vehicle == null
 	var text := weapons.display_name().to_upper()
+	if weapons.holdup_text() != "":
+		timer_label.visible = true
+		timer_label.text = weapons.holdup_text()
 	if weapons.is_gun():
 		text += "   " + weapons.ammo_text()
 		if weapons.reload_timer > 0.0:

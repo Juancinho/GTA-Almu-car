@@ -34,6 +34,13 @@ var tracer_mesh: ImmediateMesh
 var tracer_timer := 0.0
 var gun_visual: MeshInstance3D
 var rng := RandomNumberGenerator.new()
+## Holdups: aim a gun at the counter of a shop, café or restaurant for a few
+## seconds and the staff empty the till. Two stars, and the shop needs time.
+const HOLDUP_KINDS := ["supermarket", "mall", "cafe", "restaurant", "palm_restaurant"]
+const HOLDUP_SECONDS := 4.0
+var holdup_progress := 0.0
+var holdup_venue := ""
+var holdup_cooldowns: Dictionary = {}  # venue kind -> msec when it can be robbed again
 
 
 func configure(target_player: PlayerController, target_world: SectorWorld, target_wanted: WantedSystem) -> void:
@@ -319,6 +326,7 @@ func _process(delta: float) -> void:
 	if is_gun() and bool(definition().get("auto", false)) and InputMap.has_action("attack") and Input.is_action_pressed("attack") and player.driving_vehicle == null:
 		fire()
 	_update_pickups(delta)
+	_update_holdup(delta)
 
 
 ## One shot along the camera's centre line. Returns what it hit (or null).
@@ -458,6 +466,55 @@ func play_remote_shot(at: Vector3) -> void:
 func _play(id: String) -> void:
 	if sounds.has(id) and DisplayServer.get_name() != "headless":
 		(sounds[id] as AudioStreamPlayer3D).play()
+
+
+func _update_holdup(delta: float) -> void:
+	var venue := _holdup_target() if aiming else null
+	if venue == null:
+		holdup_progress = maxf(0.0, holdup_progress - delta * 2.0)
+		if holdup_progress == 0.0:
+			holdup_venue = ""
+		return
+	if venue.kind != holdup_venue:
+		holdup_progress = 0.0
+		holdup_venue = venue.kind
+	holdup_progress += delta
+	if holdup_progress >= HOLDUP_SECONDS:
+		holdup_progress = 0.0
+		holdup_venue = ""
+		holdup_cooldowns[venue.kind] = Time.get_ticks_msec() + 240000
+		var cash := rng.randi_range(180, 460)
+		var main := get_parent()
+		if main != null and main.has_method("add_money"):
+			main.add_money(cash)
+			if "hud" in main:
+				main.hud.show_banner("ATRACO  +%d €" % cash, Color("f2d36b"))
+		wanted.raise_to(2, player.global_position)
+		get_tree().call_group("mission_controller", "_show_dialogue", "Dependiente: ¡Tome, tome, pero no dispare! (La alarma ya ha saltado.)")
+		get_tree().call_group("mission_controller", "notify_event", "holdup")
+
+
+## The shop counter the player is aiming at, if a holdup is possible there.
+func _holdup_target() -> VenueInterior:
+	if world == null:
+		return null
+	var forward := -player.camera.global_transform.basis.z
+	for kind in HOLDUP_KINDS:
+		var venue := world.venues.get(kind) as VenueInterior
+		if venue == null or not venue.contains_player(player.global_position):
+			continue
+		if Time.get_ticks_msec() < int(holdup_cooldowns.get(kind, 0)):
+			return null
+		var to_counter := venue.service_point - player.global_position
+		if to_counter.length() < 8.0 and forward.normalized().dot(to_counter.normalized()) > 0.75:
+			return venue
+	return null
+
+
+func holdup_text() -> String:
+	if holdup_progress <= 0.0:
+		return ""
+	return "ATRACO " + "■".repeat(int(holdup_progress / HOLDUP_SECONDS * 10.0)) + "□".repeat(10 - int(holdup_progress / HOLDUP_SECONDS * 10.0))
 
 
 # --- Pickups --------------------------------------------------------------------

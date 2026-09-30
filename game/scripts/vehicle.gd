@@ -68,6 +68,8 @@ var sector_data: SectorData
 var last_dry_transform := Transform3D.IDENTITY
 var ram_cooldown := 0.0
 var model_yaw := 0.0
+var lamps: Node3D  # headlight/tail-light glow (+ a spotlight for the player's car)
+var headlight: SpotLight3D
 var model_tilt := Quaternion.IDENTITY
 
 
@@ -318,6 +320,50 @@ func _physics_process(delta: float) -> void:
 		var impact := absf(forward.dot(get_wall_normal()))
 		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+## Night lighting: glowing head and tail lamps on every car, and a real
+## spotlight only on the car the player drives (lights are costly here).
+func set_headlights(on: bool) -> void:
+	if lamps == null:
+		if not on:
+			return
+		lamps = Node3D.new()
+		lamps.name = "Lamps"
+		add_child(lamps)
+		var glow := StandardMaterial3D.new()
+		glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		glow.albedo_color = Color("fff1c8")
+		var tail := StandardMaterial3D.new()
+		tail.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		tail.albedo_color = Color("ff2a1c")
+		for side: float in [-0.62, 0.62]:
+			for spec in [[-2.07, glow, 0.13], [2.07, tail, 0.1]]:
+				var bulb := MeshInstance3D.new()
+				var sphere := SphereMesh.new()
+				sphere.radius = spec[2]
+				sphere.height = spec[2] * 1.4
+				sphere.radial_segments = 8
+				sphere.rings = 4
+				bulb.mesh = sphere
+				bulb.material_override = spec[1]
+				bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				bulb.position = Vector3(side, 0.72, spec[0])
+				lamps.add_child(bulb)
+	lamps.visible = on and not destroyed
+	var wants_spot := on and driver != null and not destroyed
+	if wants_spot and headlight == null:
+		headlight = SpotLight3D.new()
+		headlight.light_color = Color("fff1d6")
+		headlight.light_energy = 4.0
+		headlight.spot_range = 38.0
+		headlight.spot_angle = 32.0
+		headlight.spot_attenuation = 0.8
+		headlight.position = Vector3(0, 0.9, -2.2)
+		headlight.rotation_degrees = Vector3(-6.0, 0.0, 0.0)
+		add_child(headlight)
+	if headlight != null:
+		headlight.visible = wants_spot
 
 
 ## A car never rides on another car's roof: it is pushed off sideways.
