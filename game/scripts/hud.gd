@@ -36,6 +36,8 @@ var title_timer := 0.0
 var timer_label: Label
 var world_map: WorldMapScript
 var clock_text := ""
+var credits: Label
+var credits_timer := 0.0
 var pause_missions: Label
 var weapon_label: Label
 var crosshair: Label
@@ -203,6 +205,15 @@ func _ready() -> void:
 	dialogue_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dialogue_label.add_theme_font_size_override("font_size", 19)
 	root.add_child(dialogue_label)
+	credits = Label.new()
+	credits.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	credits.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	credits.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	credits.add_theme_font_size_override("font_size", 28)
+	credits.add_theme_color_override("font_color", Color("f4ecd8"))
+	_outline(credits, 8)
+	credits.visible = false
+	root.add_child(credits)
 	world_map = WorldMapScript.new()
 	world_map.name = "WorldMap"
 	root.add_child(world_map)
@@ -239,6 +250,11 @@ func show_banner(text: String, color: Color) -> void:
 	banner_label.add_theme_color_override("font_color", color)
 	banner_label.visible = true
 	banner_timer = 3.0
+
+
+func show_credits() -> void:
+	credits.text = "BRISA DE PONIENTE\n\nFIN DEL CAPÍTULO 1: LADRILLO Y CUOTA\n\nRubén 'el del Puerto' se ha quedado sin negocio.\nEl concejal Ferrer irá a juicio con sus dos libretas.\nAlba y Dani navegan hacia Marina del Este.\n\nAlmuñécar sigue abierta: misiones de Marina, atracos, persecuciones y el mar.\n\nDatos del mapa © OpenStreetMap contributors (ODbL)\nModelos Quaternius (CC0) · Texturas ambientCG y Poly Haven (CC0)\nMúsica y efectos originales del proyecto"
+	credits_timer = 16.0
 
 
 func show_money_change(amount: int) -> void:
@@ -300,6 +316,8 @@ func _process(delta: float) -> void:
 		clock_text = main.day_night.clock_text()
 	banner_timer -= delta
 	banner_label.visible = banner_timer > 0.0
+	credits_timer -= delta
+	credits.visible = credits_timer > 0.0
 	title_timer -= delta
 	title_label.visible = title_timer > 0.0
 	objective_flash_timer -= delta

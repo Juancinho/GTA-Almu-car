@@ -230,12 +230,86 @@ func _run() -> void:
 	await _walk_to(player, Vector3(-85.0, world.height_at(-85.0, 108.0), 108.0))
 	if not mission.completed_missions.has("pescadores"):
 		return _fail("Pescadores did not complete")
+	# --- Emboscada en el castillo ---------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	if mission.mission_id != "emboscada" or mission.stage != 1:
+		return _fail("Emboscada did not start")
+	await _walk_to(player, mission.marker_position())
+	if mission.stage != 2 or not weapons.owned.has("smg"):
+		return _fail("reaching the castle did not arm the player or spring the ambush")
+	for i in range(1, 6):
+		var guard := mission.spawned.get("escolta_%d" % i) as Pedestrian
+		if guard == null or not guard.armed:
+			return _fail("ambush gunman %d missing" % i)
+		guard.take_damage(120.0, player.global_position)
+	await _frames(3)
+	wanted.clear_wanted()
+	await _frames(3)
+	player.heal_full()
+	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed_missions.has("emboscada"):
+		return _fail("Emboscada did not complete (stage %d)" % mission.stage)
+	# --- La copia -----------------------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	var alba_car := mission.spawned.get("alba_car2") as DriveableVehicle
+	await _board(player, alba_car)
+	var escort := mission.spawned.get("escort_car") as DriveableVehicle
+	if mission.mission_id != "la_copia" or mission.stage != 2 or escort == null:
+		return _fail("La copia did not start the chase")
+	escort.apply_damage(1300.0)
+	await _frames(3)
+	player._interact()
+	await _walk_to(player, mission.marker_position())
+	if wanted.level < 3:
+		return _fail("taking the briefcase did not give three stars")
+	wanted.clear_wanted()
+	await _frames(3)
+	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed_missions.has("la_copia"):
+		return _fail("La copia did not complete (stage %d)" % mission.stage)
+	# --- Poniente (finale) ---------------------------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	var getaway_final := mission.spawned.get("bank_getaway") as DriveableVehicle
+	await _board(player, getaway_final)
+	await _drive_to(getaway_final, mission.marker_position())
+	if mission.mission_id != "poniente" or mission.stage != 3:
+		return _fail("Poniente: did not reach the bank (stage %d)" % mission.stage)
+	player._interact()
+	var bank := world.venues["bank"] as VenueInterior
+	player.global_position = bank.inside_entry
+	weapons.select("smg")
+	await _frames(2)
+	Input.action_press("aim")
+	for i in range(60 * 6):
+		var from := player.camera_arm.global_position
+		var point := bank.service_point + Vector3(0, 1.0, 0)
+		player.camera_yaw = atan2(-(point.x - from.x), -(point.z - from.z))
+		player.camera_pitch = -atan2(from.y - point.y, Vector2(point.x - from.x, point.z - from.z).length())
+		player._update_camera_orientation()
+		await physics_frame
+		if mission.stage > 3:
+			break
+	Input.action_release("aim")
+	if mission.stage != 4 or wanted.level < 4:
+		return _fail("the bank holdup did not advance with four stars (stage %d level %d)" % [mission.stage, wanted.level])
+	var escape_rib := mission.spawned.get("escape_rib") as DriveableVehicle
+	player.global_position = escape_rib.global_position + Vector3(2.0, 0, 0)
+	player._interact()
+	await _frames(3)
+	escape_rib.global_position = Vector3(0.0, DriveableVehicle.WATER_Y, 440.0)
+	await _frames(4)
+	if not mission.completed_missions.has("poniente") or not (root.get("hud") as GameHud).credits.visible or wanted.level != 0:
+		return _fail("the finale did not complete with credits (stage %d)" % mission.stage)
+	player._interact()
 	# --- Save/load and offers after the chapter --------------------------------
 	root.set("save_path", "user://test_missions_save.json")
 	root.call("_save_game")
 	mission.completed_missions.clear()
 	root.call("_load_game")
-	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria", "pescadores"]:
+	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria", "pescadores", "emboscada", "la_copia", "poniente"]:
 		if not mission.completed_missions.has(id):
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":
@@ -256,7 +330,7 @@ func _run() -> void:
 	hud.minimap._update_gps()
 	if hud.minimap.waypoint != Vector3.INF:
 		return _fail("waypoint not cleared on arrival")
-	print("MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), Pescadores (boats, sea chase), rewards, save/load, map + waypoint")
+	print("MISSIONS PASS: offers/unlocks, Protección (wait, fight, chase, escape reset), La cuota (collection, chase target), El coche del concejal (theft, wanted, workshop), Ajuste de cuentas (gunmen), El furgón (armoured van, 3 stars), Golpe en Joyería Faro (heist, fence), Pescadores (boats, sea chase), Emboscada, La copia, Poniente (bank, boat escape, credits), rewards, save/load, map + waypoint")
 	root.queue_free()
 	await process_frame
 	quit(0)

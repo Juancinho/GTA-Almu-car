@@ -1,0 +1,88 @@
+{
+  "id": "poniente",
+  "title": "Poniente",
+  "reward": 10000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: La cámara de Caja Poniente sigue llena. Volvemos a intentarlo.",
+  "spawns": [
+    {
+      "id": "bank_getaway",
+      "kind": "vehicle",
+      "variant": "sports_white",
+      "at": [
+        140.0,
+        -100.0
+      ],
+      "when": "start"
+    },
+    {
+      "id": "escape_rib",
+      "kind": "vehicle",
+      "variant": "rib",
+      "at": [
+        60.0,
+        118.0
+      ],
+      "on_road": false,
+      "yaw": 180,
+      "when": "start"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Ferrer guarda el dinero de los sobornos en la cámara de Caja Poniente, a nombre de una sociedad pantalla.",
+        "Alba: Entras, encañonas al cajero y sales con todo. Habrá cuatro estrellas: el deportivo te espera junto al banco y la lancha de Paco en la playa. Salimos por mar."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "bank_getaway",
+      "text": "Coge el deportivo junto a Caja Poniente",
+      "give_weapon": {
+        "weapon": "smg",
+        "ammo": 150
+      },
+      "wrecked_text": "El coche de la huida ha quedado destrozado."
+    },
+    {
+      "type": "reach_area",
+      "marker_venue": "bank",
+      "radius": 14,
+      "text": "Aparca delante de Caja Poniente",
+      "dialogue": "Entra a pie."
+    },
+    {
+      "type": "event",
+      "event": "holdup_bank",
+      "marker_venue": "bank",
+      "text": "Entra en Caja Poniente y encañona al cajero (clic dcho. hacia el mostrador)",
+      "dialogue": "¡Cuatro estrellas! A la playa, a la lancha."
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "escape_rib",
+      "text": "Llega a la lancha de Paco en la playa del Altillo",
+      "wrecked_text": "La lancha se ha hundido."
+    },
+    {
+      "type": "reach_area",
+      "vehicle": "escape_rib",
+      "requires_vehicle": true,
+      "marker": [
+        0.0,
+        440.0
+      ],
+      "radius": 40,
+      "text": "Sal a mar abierto: aléjate de la costa",
+      "wrecked_text": "La lancha se ha hundido.",
+      "dialogue": [
+        "Alba (en la lancha): Mira el pueblo desde aquí... Lo echaremos de menos.",
+        "Alba: Ferrer irá a juicio con sus libretas. Y nosotros, a Marina del Este. Esto no ha terminado."
+      ]
+    }
+  ]
+}

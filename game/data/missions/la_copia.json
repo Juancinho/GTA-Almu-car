@@ -1,0 +1,87 @@
+{
+  "id": "la_copia",
+  "title": "La copia",
+  "reward": 2500,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: Mañana vuelve a salir otro coche del Ayuntamiento. Otra vez.",
+  "spawns": [
+    {
+      "id": "escort_car",
+      "kind": "vehicle",
+      "variant": "police_suv",
+      "at": [
+        -60.0,
+        -250.0
+      ],
+      "traffic": true,
+      "speed": 15.5,
+      "occupant": "male_suit",
+      "health": 1500,
+      "when": "objective"
+    },
+    {
+      "id": "alba_car2",
+      "kind": "vehicle",
+      "variant": "sports_white",
+      "at": [
+        0.9,
+        2.7
+      ],
+      "when": "start"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: El chófer de Ferrer lleva la copia en un todoterreno camuflado como coche oficial. Sale ahora de la Plaza de la Constitución.",
+        "Alba: Llévate mi deportivo. Páralo como sea y coge el maletín."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "alba_car2",
+      "text": "Sube al deportivo de Alba",
+      "wrecked_text": "El deportivo de Alba ha quedado destrozado."
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "escort_car",
+      "health_below": 350,
+      "escape_distance": 400,
+      "spawn": [
+        "escort_car"
+      ],
+      "text": "Detén el todoterreno oficial que sale del casco antiguo",
+      "escape_text": "El coche de Ferrer ha salido del pueblo con la copia.",
+      "dialogue": "El chófer huye. El maletín sigue en el asiento."
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker_target": "escort_car",
+      "radius": 4,
+      "text": "Coge el maletín con la copia de la libreta",
+      "set_wanted": 3,
+      "dialogue": "¡Era un coche con emisora! La policía viene a por ti."
+    },
+    {
+      "type": "escape_police",
+      "text": "Pierde a la policía (tres estrellas)",
+      "dialogue": "Los has perdido."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Lleva el maletín a Alba",
+      "dialogue": [
+        "Alba: Con las dos libretas, Ferrer está acabado... si no fuera porque su dinero sigue en Caja Poniente.",
+        "Alba: Un último golpe, y nos vamos de aquí por mar."
+      ]
+    }
+  ]
+}

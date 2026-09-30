@@ -75,6 +75,33 @@
       "requires": [
         "golpe_joyeria"
       ]
+    },
+    {
+      "id": "emboscada",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "pescadores"
+      ]
+    },
+    {
+      "id": "la_copia",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "emboscada"
+      ]
+    },
+    {
+      "id": "poniente",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "e0645a",
+      "requires": [
+        "la_copia"
+      ]
     }
   ],
   "contacts": {

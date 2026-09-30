@@ -314,6 +314,9 @@ func _respawn_at_hospital() -> void:
 func _on_mission_completed() -> void:
 	playtest_log.record("mission_completed", {"id": mission.mission_id, "stage": mission.stage})
 	add_money(mission.reward)
+	if mission.mission_id == "poniente":
+		wanted.clear_wanted()
+		hud.show_credits()
 	hud.show_banner("¡MISIÓN SUPERADA!\n+%d €" % mission.reward, Color("f2c14e"))
 	_auto_report("mission_completed")
 

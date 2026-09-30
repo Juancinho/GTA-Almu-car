@@ -95,8 +95,10 @@ Dani Márquez comes home to Almuñécar owing money and starts working for his c
 | 5 | Ajuste de cuentas (playable) | Parque El Majuelo | Rubén's retaliation: gunfight with four armed men, escape the police |
 | 6 | El furgón (playable) | Caja Poniente and the streets around | stop an armoured security SUV carrying Rubén's laundered cash, take the bags, three-star escape |
 | 7 | Golpe en Joyería Faro (playable) | Joyería Faro (old town) → Taller Poniente | heist: steal a getaway car, rob the display, three-star escape, sell the jewels to the fence |
-| 8 | Pescadores (after boats) | Fishing boats, Puerta del Mar | intercept Rubén's last shipment at sea |
-| 9–12 | La lancha, Calle Real, El castillo, Poniente | Night bay, old town, castle, bank | Ferrer strikes back: speedboat chase, ambush at the castle, bank finale at Caja Poniente and escape by sea |
+| 8 | Pescadores (playable) | Beach moorings → open sea off the Peñón del Santo | take Paco's RIB, ram or shoot Rubén's smuggling boat, bring the bales ashore |
+| 9 | Emboscada en el castillo (playable) | Below the Castillo de San Miguel | a "negotiation" with Ferrer is an ambush: five armed escorts, escape the police |
+| 10 | La copia (playable) | Plaza de la Constitución and the streets out of town | stop Ferrer's official SUV, take the briefcase with the ledger copy, three-star escape |
+| 11 | Poniente (playable finale) | Caja Poniente → Altillo beach → open sea | hold up the bank vault with Ferrer's bribe money, four stars, escape by RIB; end-of-chapter credits |
 
 La noche de Jaime (Marina, Jaime Playa) is a light side mission requested by the product owner (D-018) and stays outside the crime story.
 

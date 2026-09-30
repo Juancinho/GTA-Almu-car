@@ -36,7 +36,7 @@ var gun_visual: MeshInstance3D
 var rng := RandomNumberGenerator.new()
 ## Holdups: aim a gun at the counter of a shop, café or restaurant for a few
 ## seconds and the staff empty the till. Two stars, and the shop needs time.
-const HOLDUP_KINDS := ["supermarket", "mall", "cafe", "restaurant", "palm_restaurant"]
+const HOLDUP_KINDS := ["supermarket", "mall", "cafe", "restaurant", "palm_restaurant", "bank"]
 const HOLDUP_SECONDS := 4.0
 var holdup_progress := 0.0
 var holdup_venue := ""
@@ -483,15 +483,16 @@ func _update_holdup(delta: float) -> void:
 		holdup_progress = 0.0
 		holdup_venue = ""
 		holdup_cooldowns[venue.kind] = Time.get_ticks_msec() + 240000
-		var cash := rng.randi_range(180, 460)
+		var bank := venue.kind == "bank"
+		var cash := rng.randi_range(900, 1600) if bank else rng.randi_range(180, 460)
 		var main := get_parent()
 		if main != null and main.has_method("add_money"):
 			main.add_money(cash)
 			if "hud" in main:
 				main.hud.show_banner("ATRACO  +%d €" % cash, Color("f2d36b"))
-		wanted.raise_to(2, player.global_position)
-		get_tree().call_group("mission_controller", "_show_dialogue", "Dependiente: ¡Tome, tome, pero no dispare! (La alarma ya ha saltado.)")
-		get_tree().call_group("mission_controller", "notify_event", "holdup")
+		wanted.raise_to(4 if bank else 2, player.global_position)
+		get_tree().call_group("mission_controller", "_show_dialogue", "Cajero: ¡Llévese la caja fuerte, pero no dispare! La alarma va directa a comisaría." if bank else "Dependiente: ¡Tome, tome, pero no dispare! (La alarma ya ha saltado.)")
+		get_tree().call_group("mission_controller", "notify_event", "holdup_bank" if bank else "holdup")
 
 
 ## The shop counter the player is aiming at, if a holdup is possible there.
@@ -506,7 +507,7 @@ func _holdup_target() -> VenueInterior:
 		if Time.get_ticks_msec() < int(holdup_cooldowns.get(kind, 0)):
 			return null
 		var to_counter := venue.service_point - player.global_position
-		if to_counter.length() < 8.0 and forward.normalized().dot(to_counter.normalized()) > 0.75:
+		if to_counter.length() < 11.0 and forward.normalized().dot(to_counter.normalized()) > 0.75:
 			return venue
 	return null
 

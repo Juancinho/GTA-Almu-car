@@ -1,0 +1,131 @@
+{
+  "id": "emboscada",
+  "title": "Emboscada en el castillo",
+  "reward": 2000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: Ferrer sigue esperando bajo el castillo. Esta vez ve preparado.",
+  "spawns": [
+    {
+      "id": "escolta_1",
+      "kind": "enemy",
+      "display": "Escolta de Ferrer",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -125,
+        45
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "escolta_2",
+      "kind": "enemy",
+      "display": "Escolta de Ferrer",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -115,
+        64
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "escolta_3",
+      "kind": "enemy",
+      "display": "Escolta de Ferrer",
+      "model": "male_longsleeve",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -98,
+        47
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "escolta_4",
+      "kind": "enemy",
+      "display": "Escolta de Ferrer",
+      "model": "male_shirt",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -132,
+        60
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "escolta_5",
+      "kind": "enemy",
+      "display": "Escolta de Ferrer",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        -108,
+        36
+      ],
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Ferrer quiere su libreta. Nos cita bajo el castillo de San Miguel, 'para negociar'.",
+        "Alba: No me fío. Ve tú con el subfusil; yo vigilo desde el paseo."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker_anchor": "castle_drop",
+      "radius": 30,
+      "text": "Ve a la cita bajo el castillo de San Miguel",
+      "give_weapon": {
+        "weapon": "smg",
+        "ammo": 120
+      },
+      "spawn": [
+        "escolta_1",
+        "escolta_2",
+        "escolta_3",
+        "escolta_4",
+        "escolta_5"
+      ],
+      "dialogue": "Escolta: El concejal no viene. Pero te manda recuerdos."
+    },
+    {
+      "type": "beat_up",
+      "targets": [
+        "escolta_1",
+        "escolta_2",
+        "escolta_3",
+        "escolta_4",
+        "escolta_5"
+      ],
+      "text": "Sobrevive a la emboscada: acaba con los escoltas de Ferrer",
+      "dialogue": "Silencio. Por las sirenas, alguien ha avisado a la policía."
+    },
+    {
+      "type": "escape_police",
+      "text": "Pierde a la policía",
+      "dialogue": "Despistados."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Vuelve con Alba",
+      "dialogue": [
+        "Alba: Una emboscada con escoltas municipales. Ferrer ya no disimula.",
+        "Alba: Él tiene una copia de la libreta y la va a sacar del pueblo. Hay que quitársela."
+      ]
+    }
+  ]
+}
