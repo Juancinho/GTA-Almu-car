@@ -17,7 +17,7 @@ func _run() -> void:
 	var player := root.get_node("Player") as PlayerController
 	var weapons := root.get_node_or_null("Weapons") as WeaponSystem
 	var wanted := root.get_node("WantedSystem") as WantedSystem
-	if weapons == null or weapons.pickups.size() < 4 or weapons.current != "fists":
+	if weapons == null or weapons.pickups.size() < 6 or weapons.current != "fists":
 		return _fail("weapon system or pickups missing")
 	var pistol_pickup: Dictionary = weapons.pickups.filter(func(p: Dictionary) -> bool: return p["weapon"] == "pistol")[0]
 	player.global_position = (pistol_pickup["node"] as Node3D).global_position + Vector3(0, 0.3, 0)

@@ -308,6 +308,7 @@ func _physics_process(delta: float) -> void:
 	if not _deep_water(global_position) and is_on_floor():
 		last_dry_transform = global_transform
 	_resolve_contacts(recent_speed)
+	_slide_off_cars()
 	_tilt_to_ground(delta)
 	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
 	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
@@ -317,6 +318,21 @@ func _physics_process(delta: float) -> void:
 		var impact := absf(forward.dot(get_wall_normal()))
 		apply_damage(maxf(0.0, speed_before * impact - IMPACT_THRESHOLD) ** 2 * 2.5)
 		speed *= clampf(1.0 - impact * 0.85, 0.1, 1.0)
+
+
+## A car never rides on another car's roof: it is pushed off sideways.
+func _slide_off_cars() -> void:
+	for i in range(get_slide_collision_count()):
+		var hit := get_slide_collision(i)
+		if hit.get_normal().y > 0.6 and hit.get_collider() is DriveableVehicle:
+			var other := hit.get_collider() as DriveableVehicle
+			var away := global_position - other.global_position
+			away.y = 0.0
+			if away.length() < 0.05:
+				away = global_transform.basis.x
+			global_position += away.normalized() * 0.25
+			velocity.y = minf(velocity.y, -2.0)
+			return
 
 
 ## The body stays upright for stable physics; the visible car pitches and rolls
@@ -346,6 +362,8 @@ func _resolve_contacts(speed_before: float) -> void:
 		var other := get_slide_collision(i).get_collider()
 		if other is Pedestrian and (other as Pedestrian).state != Pedestrian.State.DOWN:
 			(other as Pedestrian).knock_down(global_position, speed_before)
+			if speed_before > 9.0:  # a fast car can kill
+				(other as Pedestrian).take_damage((speed_before - 6.0) * 6.0, global_position)
 			ran_over.emit(other)
 			if driver != null:
 				get_tree().call_group("wanted_system", "report_crime", "atropello", global_position)
@@ -558,7 +576,10 @@ func _far_traffic_step(delta: float) -> void:
 		return
 	var offset := _lane_offset(lane_from, lane_to)
 	var point := a.lerp(b, along / length) + Vector3(-direction.z, 0.0, direction.x) * offset
-	global_position = Vector3(point.x, point.y + 0.35, point.z)
+	# Follow the real ground, not the straight chord between two graph nodes
+	# (over a dip the chord hung cars metres in the air).
+	var ground := sector_data.height_at(point.x, point.z) if sector_data != null else point.y
+	global_position = Vector3(point.x, ground + 0.2, point.z)
 	rotation.y = atan2(-direction.x, -direction.z)
 	speed = traffic_speed
 

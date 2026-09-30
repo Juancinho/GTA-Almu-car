@@ -25,6 +25,8 @@ func _run() -> void:
 	var window_start := {}
 	var stalled_windows := {}
 	var max_off_road := 0.0
+	var max_air := 0.0  # height of any car above the real ground ("flying cars")
+	var data := (root.get_node("District_Altillo") as SectorWorld).data if root.has_node("District_Altillo") else null
 	for car in cars:
 		travelled[car] = 0.0
 		last[car] = car.global_position
@@ -37,6 +39,8 @@ func _run() -> void:
 			travelled[car] += car.global_position.distance_to(last[car])
 			last[car] = car.global_position
 			max_off_road = maxf(max_off_road, float(network.nearest(car.global_position)["distance"]))
+			if data != null:
+				max_air = maxf(max_air, car.global_position.y - data.height_at(car.global_position.x, car.global_position.z))
 		if frame % (WINDOW * ticks) == WINDOW * ticks - 1:
 			for car in cars:
 				if car.global_position.distance_to(window_start[car]) < 5.0:
@@ -48,11 +52,11 @@ func _run() -> void:
 		summary.append("%s:%dm/%d" % [car.name, int(travelled[car]), stalled_windows[car]])
 		if stalled_windows[car] >= 3:
 			jammed += 1
-	var success := jammed <= 1 and max_off_road < 9.0
-	print("TRAFFIC SOAK: cars=", cars.size(), " jammed=", jammed, " max_off_road_m=", snappedf(max_off_road, 0.1), " ", " ".join(summary))
+	var success := jammed <= 1 and max_off_road < 9.0 and max_air < 1.2
+	print("TRAFFIC SOAK: cars=", cars.size(), " jammed=", jammed, " max_off_road_m=", snappedf(max_off_road, 0.1), " max_air_m=", snappedf(max_air, 0.01), " ", " ".join(summary))
 	root.queue_free()
 	for i in range(3):
 		await process_frame
 	if not success:
-		push_error("TRAFFIC SOAK FAIL: jammed=%d max_off_road=%.1f" % [jammed, max_off_road])
+		push_error("TRAFFIC SOAK FAIL: jammed=%d max_off_road=%.1f max_air=%.2f" % [jammed, max_off_road, max_air])
 	quit(0 if success else 1)

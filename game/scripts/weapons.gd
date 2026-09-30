@@ -81,29 +81,137 @@ func configure(target_player: PlayerController, target_world: SectorWorld, targe
 	_build_gun_visual()
 
 
-## A simple dark pistol/SMG shape held in the right hand.
+## Colours for the CC0 Quaternius gun materials (the FBX import leaves them white).
+const GUN_COLORS := {
+	"Metal": ["5a5d61", 0.7, 0.35], "DarkMetal": ["2e3033", 0.6, 0.4], "DarkerMetal": ["232427", 0.6, 0.4],
+	"Black": ["1b1c1e", 0.2, 0.6], "Wood": ["6b3f22", 0.0, 0.7], "LightWood": ["9b6a3c", 0.0, 0.7],
+	"DarkWood": ["4a2a16", 0.0, 0.7], "Magazine": ["26282a", 0.4, 0.5], "Muzzle": ["2e3033", 0.6, 0.4],
+	"Trigger": ["202224", 0.5, 0.5], "Barrels": ["3a3c40", 0.7, 0.35], "BulletYellow": ["b8912f", 0.8, 0.3],
+	"BulletRed": ["9a2a22", 0.2, 0.5], "BulletOrange": ["c0762a", 0.8, 0.3], "BulletTip": ["b87333", 0.8, 0.3],
+	"Material.001": ["2b2d30", 0.3, 0.5], "Material.003": ["1c1d1f", 0.3, 0.5], "Material.004": ["6d6f73", 0.5, 0.4],
+}
+
+var gun_holder: Node3D
+var gun_models: Dictionary = {}  # weapon id -> Node3D
+
+
+## Real weapon models (CC0 Quaternius) held by the player: raised to the eye
+## when aiming, lowered along the body otherwise.
 func _build_gun_visual() -> void:
-	var skeletons := player.human.find_children("*", "Skeleton3D", true, false)
-	if skeletons.is_empty():
+	gun_holder = Node3D.new()
+	gun_holder.name = "HeldWeapon"
+	player.visual.add_child(gun_holder)
+	for id in defs:
+		if defs[id].has("model"):
+			var model := weapon_model(id)
+			if model != null:
+				model.visible = false
+				gun_holder.add_child(model)
+				gun_models[id] = model
+	gun_visual = null
+
+
+## A correctly oriented (barrel along -Z, grip down), scaled and coloured model.
+func weapon_model(id: String) -> Node3D:
+	var spec: Dictionary = defs.get(id, {})
+	if not spec.has("model"):
+		return null
+	var scene := load(str(spec["model"])) as PackedScene
+	if scene == null:
+		return null
+	var pivot := Node3D.new()
+	pivot.name = "Model_" + id
+	var model := scene.instantiate() as Node3D
+	var scale := float(spec.get("model_scale", 0.05))
+	model.scale = Vector3.ONE * scale
+	model.rotation.y = deg_to_rad(float(spec.get("model_yaw", 0.0)))
+	pivot.add_child(model)
+	var bounds := AABB()
+	var first := true
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for surface in range(mesh.mesh.get_surface_count()):
+			var source := mesh.mesh.surface_get_material(surface)
+			var look: Array = GUN_COLORS.get(source.resource_name if source != null else "", ["303236", 0.5, 0.45])
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(str(look[0]))
+			mat.metallic = float(look[1])
+			mat.roughness = float(look[2])
+			mesh.set_surface_override_material(surface, mat)
+		var local := mesh.get_aabb()
+		bounds = local if first else bounds.merge(local)
+		first = false
+	# Centre the mesh on the pivot so every gun sits in the hand the same way.
+	var centre := (model.transform * bounds.get_center()) if not first else Vector3.ZERO
+	model.position = -centre
+	return pivot
+
+
+func _pose_gun(delta: float) -> void:
+	if gun_holder == null:
 		return
-	var attach := BoneAttachment3D.new()
-	attach.name = "RightHandWeapon"
-	attach.bone_name = "Palm.R"
-	(skeletons[0] as Skeleton3D).add_child(attach)
-	gun_visual = MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.05, 0.13, 0.26)
-	gun_visual.mesh = box
-	var metal := StandardMaterial3D.new()
-	metal.albedo_color = Color("222426")
-	metal.metallic = 0.6
-	metal.roughness = 0.35
-	gun_visual.material_override = metal
-	# The skeleton sits inside the 0.36-scaled model; undo that so the gun keeps real size.
-	gun_visual.scale = Vector3.ONE / HumanModel.MODEL_SCALE
-	gun_visual.position = Vector3(0, 0.12, 0.1) / HumanModel.MODEL_SCALE
-	gun_visual.visible = false
-	attach.add_child(gun_visual)
+	for id in gun_models:
+		(gun_models[id] as Node3D).visible = id == current and player.driving_vehicle == null and not player.swimming
+	if not gun_models.has(current):
+		return
+	var long := bool(definition().get("long", false))
+	# The gun sits in the right fist (bone position) and points where the body faces.
+	var body := player.visual.global_transform.basis.orthonormalized()
+	var grip := _hand_position()
+	var basis := body if aiming else body * Basis(Vector3.RIGHT, deg_to_rad(-55.0 if long else -75.0))
+	if grip == Vector3.INF:
+		grip = player.visual.global_position + body * Vector3(0.2, 1.3, -0.4)
+	var forward := -basis.z
+	# Long guns rest their stock against the shoulder: shift them back along the barrel.
+	var offset := forward * (-0.22 if long else 0.06) + basis.y * 0.04
+	gun_holder.global_transform = Transform3D(basis, grip + offset)
+
+
+var _hand_bone := -2
+var _skeleton: Skeleton3D
+
+
+func _hand_position() -> Vector3:
+	if _hand_bone == -2:
+		var skeletons := player.human.find_children("*", "Skeleton3D", true, false)
+		_hand_bone = -1
+		if not skeletons.is_empty():
+			_skeleton = skeletons[0] as Skeleton3D
+			_hand_bone = _skeleton.find_bone("Palm.R")
+	if _hand_bone < 0 or _skeleton == null:
+		return Vector3.INF
+	return (_skeleton.global_transform * _skeleton.get_bone_global_pose(_hand_bone)).origin
+
+
+func _impact(at: Vector3, color: Color, amount: int) -> void:
+	var puff := CPUParticles3D.new()
+	puff.one_shot = true
+	puff.amount = amount
+	puff.lifetime = 0.4
+	puff.explosiveness = 1.0
+	puff.direction = Vector3.UP
+	puff.spread = 70.0
+	puff.initial_velocity_min = 1.0
+	puff.initial_velocity_max = 3.0
+	puff.gravity = Vector3(0, -9.0, 0)
+	puff.scale_amount_min = 0.05
+	puff.scale_amount_max = 0.1
+	var dot := SphereMesh.new()
+	dot.radius = 0.5
+	dot.height = 1.0
+	dot.radial_segments = 4
+	dot.rings = 2
+	puff.mesh = dot
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	puff.material_override = mat
+	puff.top_level = true
+	add_child(puff)
+	puff.global_position = at
+	puff.emitting = true
+	get_tree().create_timer(1.0, false).timeout.connect(puff.queue_free)
 
 
 func definition() -> Dictionary:
@@ -143,9 +251,6 @@ func select(id: String) -> void:
 		return
 	current = id
 	cooldown = 0.2
-	if gun_visual != null:
-		gun_visual.visible = is_gun()
-		(gun_visual.mesh as BoxMesh).size = Vector3(0.05, 0.13, 0.36) if id == "smg" else Vector3(0.05, 0.13, 0.26)
 	inventory_changed.emit()
 
 
@@ -208,10 +313,9 @@ func _process(delta: float) -> void:
 	var can_aim := is_gun() and player.driving_vehicle == null and not player.dead and not player.swimming
 	aiming = can_aim and InputMap.has_action("aim") and Input.is_action_pressed("aim")
 	player.aiming = aiming
-	if gun_visual != null:
-		gun_visual.visible = is_gun() and player.driving_vehicle == null
+	_pose_gun(delta)
 	if aiming:
-		player.human.hold_pose("punch", 0.26)
+		player.human.hold_pose("punch", 0.42)
 	if is_gun() and bool(definition().get("auto", false)) and InputMap.has_action("attack") and Input.is_action_pressed("attack") and player.driving_vehicle == null:
 		fire()
 	_update_pickups(delta)
@@ -233,26 +337,32 @@ func fire() -> Object:
 	cooldown = float(spec.get("interval", 0.3))
 	var camera := player.camera
 	var spread := deg_to_rad(float(spec.get("spread_aim" if aiming else "spread_hip", 2.0)))
-	var direction := (-camera.global_transform.basis.z).rotated(camera.global_transform.basis.x, rng.randf_range(-spread, spread)).rotated(Vector3.UP, rng.randf_range(-spread, spread)).normalized()
-	var origin := camera.global_position
-	# Start the ray at the player's depth so walls between camera and player don't block it.
-	origin += direction * maxf(0.0, (player.global_position - origin).dot(direction))
 	var reach := float(spec.get("range", 100.0))
-	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * reach)
-	query.exclude = [player.get_rid()]
-	var hit := player.get_world_3d().direct_space_state.intersect_ray(query)
-	var end := origin + direction * reach
 	var target: Object = null
-	if not hit.is_empty():
-		end = hit["position"]
-		target = hit["collider"]
-		_apply_hit(target, spec, end)
+	var end := Vector3.ZERO
+	for pellet in range(int(spec.get("pellets", 1))):
+		var direction := (-camera.global_transform.basis.z).rotated(camera.global_transform.basis.x, rng.randf_range(-spread, spread)).rotated(Vector3.UP, rng.randf_range(-spread, spread)).normalized()
+		var origin := camera.global_position
+		# Start the ray at the player's depth so walls between camera and player don't block it.
+		origin += direction * maxf(0.0, (player.global_position - origin).dot(direction))
+		var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * reach)
+		query.exclude = [player.get_rid()]
+		var hit := player.get_world_3d().direct_space_state.intersect_ray(query)
+		end = origin + direction * reach
+		if not hit.is_empty():
+			end = hit["position"]
+			var struck: Object = hit["collider"]
+			if target == null or struck is Pedestrian or struck is DriveableVehicle:
+				target = struck
+			_apply_hit(struck, spec, end)
+			var tint := Color(0.55, 0.05, 0.05) if struck is Pedestrian else (Color(1.0, 0.8, 0.35) if struck is DriveableVehicle else Color(0.62, 0.58, 0.52))
+			_impact(end, tint, 8 if pellet == 0 else 3)
 	var muzzle := player.global_position + Vector3(0, 1.35, 0) + (-camera.global_transform.basis.z) * 0.6 + camera.global_transform.basis.x * 0.25
 	_tracer(muzzle, end)
 	flash.global_position = muzzle
 	flash_timer = 0.05
 	_play(str(spec.get("sound", "pistol_shot")))
-	player.human.hold_pose("punch", 0.26)
+	player.human.hold_pose("punch", 0.42)
 	player.camera_pitch = clampf(player.camera_pitch + 0.012, -1.1, 0.55)
 	_scare(player.global_position, 45.0)
 	wanted.report_crime("disparos", player.global_position)
@@ -364,18 +474,24 @@ func _add_pickup(spec: Dictionary) -> void:
 	node.top_level = true
 	add_child(node)
 	node.global_position = point
-	var body := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.12, 0.22, 0.55) if str(spec["weapon"]) != "bat" else Vector3(0.1, 0.1, 0.9)
-	body.mesh = box
-	var glow := StandardMaterial3D.new()
-	glow.albedo_color = Color("2a2c2e")
-	glow.emission_enabled = true
-	glow.emission = Color("f2c14e")
-	glow.emission_energy_multiplier = 0.6
-	body.material_override = glow
+	var body: Node3D = weapon_model(str(spec["weapon"]))
+	if body == null:  # the bat: a simple turned-wood shape
+		var bat := MeshInstance3D.new()
+		var shape := CylinderMesh.new()
+		shape.top_radius = 0.035
+		shape.bottom_radius = 0.018
+		shape.height = 0.85
+		bat.mesh = shape
+		var wood := StandardMaterial3D.new()
+		wood.albedo_color = Color("b98a55")
+		bat.material_override = wood
+		bat.rotation.z = PI * 0.5
+		body = Node3D.new()
+		body.add_child(bat)
+	body.scale = Vector3.ONE * (1.8 if str(spec["weapon"]) in ["pistol"] else 1.2)
 	body.position.y = 0.9
 	node.add_child(body)
+	node.move_child(body, 0)
 	var halo := MeshInstance3D.new()
 	var ring := TorusMesh.new()
 	ring.inner_radius = 0.45

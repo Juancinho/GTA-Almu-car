@@ -67,7 +67,7 @@ func hold_pose(state: String, at_seconds: float) -> void:
 	action_timer = 0.15
 	if current != state or player.is_playing():
 		current = state
-		player.play(clips[state], 0.08)
+		player.play(clips[state], 0.0)  # no cross-fade: a paused blend would freeze half-way
 		player.seek(at_seconds, true)
 		player.pause()
 

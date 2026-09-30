@@ -1,5 +1,5 @@
 {
-  "manifest_sha256": "0105a44a1c546012571fc81a6553132254d232103ba76c3d6a6529f3c1c5d780",
+  "manifest_sha256": "5ca23dd0956da5009698669ab0b0c6bb7f12f918314cb5c6cfc7bad0a7534bc0",
   "sources": {
     "quaternius_free": {
       "repo": "https://github.com/beep2bleep/FreeAssetsByKenneyNLandQuaternius.git",
@@ -100,6 +100,42 @@
       "source": "quaternius_free",
       "from": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Taxi.fbx",
       "sha256": "45196b14ec0f17181a63227dcf666b7065911b3e5d98c5aa9f74293fc1fdf21f"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/pistol.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Pistol.fbx",
+      "sha256": "fb8b6429c89a00cc836490a3303afd248fd89b2b667b908e2d7889c6210da226"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/smg_p90.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/P90.fbx",
+      "sha256": "bd820ab3ba6b09c8b490023db452d3b32a80537b74199986f9f85b22edccfd9a"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/shotgun.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Shotgun.fbx",
+      "sha256": "5bebd5a16a5055f1f6a84fe05bcc8c9710a947bb8ce3fba2c4e485b539672d99"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/rifle.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Rifle.fbx",
+      "sha256": "e9b645b553bd3dd6083dd33a9952d1040c51a252b5d036c5e7c142938a0f00e0"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/revolver.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Revolver.fbx",
+      "sha256": "050e608afd141b3ac948b48eb5aeef124c1548e33c7ddec57efb6ed1c31ce82c"
+    },
+    {
+      "file": "game/assets/third_party/quaternius/weapons/knife.fbx",
+      "source": "quaternius_free",
+      "from": "FreeModels by Quaternius[Patreon]/Medieval/Medieval Weapons Pack - Sept 2018/FBX/Dagger.fbx",
+      "sha256": "814db5370cab363f34abd0b54f902c0962cd9dd9cfdc48e88e2b817a9438bd06"
     },
     {
       "file": "game/assets/third_party/ambientcg/asphalt010_color.png",

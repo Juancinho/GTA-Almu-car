@@ -376,9 +376,9 @@ func _process(delta: float) -> void:
 	else:
 		var weapons: WeaponScript = main.weapons if main != null and "weapons" in main else null
 		if weapons != null and weapons.is_gun():
-			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · 1-4 / rueda: armas"
+			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · 1-6 / rueda: armas"
 		elif weapons != null and weapons.current == "bat":
-			prompt_label.text = "Clic / F golpear con el bate · 1-4 / rueda: armas · M mapa"
+			prompt_label.text = "Clic / F golpear con el bate · 1-6 / rueda: armas · M mapa"
 		else:
 			prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · F puñetazo · M mapa"
 

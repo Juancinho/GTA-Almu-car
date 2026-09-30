@@ -17,30 +17,180 @@
     }
   },
   "models": [
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Casual.fbx", "dest": "game/assets/third_party/quaternius/people/male_casual.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_LongSleeve.fbx", "dest": "game/assets/third_party/quaternius/people/male_longsleeve.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Shirt.fbx", "dest": "game/assets/third_party/quaternius/people/male_shirt.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Suit.fbx", "dest": "game/assets/third_party/quaternius/people/male_suit.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Alternative.fbx", "dest": "game/assets/third_party/quaternius/people/female_alternative.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Casual.fbx", "dest": "game/assets/third_party/quaternius/people/female_casual.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Dress.fbx", "dest": "game/assets/third_party/quaternius/people/female_dress.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_TankTop.fbx", "dest": "game/assets/third_party/quaternius/people/female_tanktop.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Cop.fbx", "dest": "game/assets/third_party/quaternius/cars/cop.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar1.fbx", "dest": "game/assets/third_party/quaternius/cars/normal_car_1.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar2.fbx", "dest": "game/assets/third_party/quaternius/cars/normal_car_2.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SUV.fbx", "dest": "game/assets/third_party/quaternius/cars/suv.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SportsCar.fbx", "dest": "game/assets/third_party/quaternius/cars/sports_car.fbx"},
-    {"source": "quaternius_free", "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Taxi.fbx", "dest": "game/assets/third_party/quaternius/cars/taxi.fbx"}
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Casual.fbx",
+      "dest": "game/assets/third_party/quaternius/people/male_casual.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_LongSleeve.fbx",
+      "dest": "game/assets/third_party/quaternius/people/male_longsleeve.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Shirt.fbx",
+      "dest": "game/assets/third_party/quaternius/people/male_shirt.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Men Characters - Feb 2019/FBX/Smooth_Male_Suit.fbx",
+      "dest": "game/assets/third_party/quaternius/people/male_suit.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Alternative.fbx",
+      "dest": "game/assets/third_party/quaternius/people/female_alternative.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Casual.fbx",
+      "dest": "game/assets/third_party/quaternius/people/female_casual.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_Dress.fbx",
+      "dest": "game/assets/third_party/quaternius/people/female_dress.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Characters and Animals/Animated Women Characters - Feb 2019/FBX/Smooth_Female_TankTop.fbx",
+      "dest": "game/assets/third_party/quaternius/people/female_tanktop.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Cop.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/cop.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar1.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/normal_car_1.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/NormalCar2.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/normal_car_2.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SUV.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/suv.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/SportsCar.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/sports_car.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Vehicles/Realistic Car Pack - Nov 2018/FBX/Taxi.fbx",
+      "dest": "game/assets/third_party/quaternius/cars/taxi.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Pistol.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/pistol.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/P90.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/smg_p90.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Shotgun.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/shotgun.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Rifle.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/rifle.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/FPS/Animated FPS Guns - Jun 2018/FBX/Revolver.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/revolver.fbx"
+    },
+    {
+      "source": "quaternius_free",
+      "path": "FreeModels by Quaternius[Patreon]/Medieval/Medieval Weapons Pack - Sept 2018/FBX/Dagger.fbx",
+      "dest": "game/assets/third_party/quaternius/weapons/knife.fbx"
+    }
   ],
   "textures": [
-    {"source": "ambientcg_ktx2", "id": "Asphalt010", "maps": ["Color", "NormalGL"], "use": "roads"},
-    {"source": "ambientcg_ktx2", "id": "Plaster003", "maps": ["Color", "NormalGL"], "use": "façade walls, tinted per building"},
-    {"source": "ambientcg_ktx2", "id": "RoofingTiles006", "maps": ["Color", "NormalGL"], "use": "roofs"},
-    {"source": "ambientcg_ktx2", "id": "PavingStones046", "maps": ["Color", "NormalGL"], "use": "walkways"},
-    {"source": "ambientcg_ktx2", "id": "Tiles040", "maps": ["Color", "NormalGL"], "use": "promenade"},
-    {"source": "ambientcg_ktx2", "id": "Ground080", "maps": ["Color", "NormalGL"], "use": "beach sand"},
-    {"source": "ambientcg_ktx2", "id": "Ground037", "maps": ["Color", "NormalGL"], "use": "town ground and hills"},
-    {"source": "ambientcg_ktx2", "id": "Rock020", "maps": ["Color", "NormalGL"], "use": "Peñón and castle hill"}
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Asphalt010",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "roads"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Plaster003",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "façade walls, tinted per building"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "RoofingTiles006",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "roofs"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "PavingStones046",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "walkways"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Tiles040",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "promenade"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Ground080",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "beach sand"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Ground037",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "town ground and hills"
+    },
+    {
+      "source": "ambientcg_ktx2",
+      "id": "Rock020",
+      "maps": [
+        "Color",
+        "NormalGL"
+      ],
+      "use": "Peñón and castle hill"
+    }
   ],
   "texture_dest": "game/assets/third_party/ambientcg"
 }

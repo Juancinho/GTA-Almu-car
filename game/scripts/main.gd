@@ -403,6 +403,8 @@ func _configure_input() -> void:
 	_add_key("weapon_2", KEY_2)
 	_add_key("weapon_3", KEY_3)
 	_add_key("weapon_4", KEY_4)
+	_add_key("weapon_5", KEY_5)
+	_add_key("weapon_6", KEY_6)
 	for pair in [["weapon_next", MOUSE_BUTTON_WHEEL_DOWN], ["weapon_prev", MOUSE_BUTTON_WHEEL_UP], ["aim", MOUSE_BUTTON_RIGHT]]:
 		if not InputMap.has_action(pair[0]):
 			InputMap.add_action(pair[0])

@@ -31,6 +31,7 @@ var defeated := false
 var health := 100.0
 var armed := false  # mission gunmen keep their distance and shoot
 var gun_timer := 1.5
+var air_speed := 0.0  # vertical speed while thrown by a car or an explosion
 var dead := false
 
 
@@ -201,7 +202,33 @@ func die(from: Vector3) -> void:
 	health = 0.0
 	down_timer = INF
 	remove_from_group("mission_contacts")
+	get_tree().create_timer(1.2, false).timeout.connect(_blood_pool)
 	get_tree().create_timer(45.0, false).timeout.connect(queue_free)
+
+
+## A small dark pool that spreads under the body (stylised, not gory).
+func _blood_pool() -> void:
+	if not is_inside_tree():
+		return
+	var pool := MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.top_radius = 0.5
+	disc.bottom_radius = 0.5
+	disc.height = 0.01
+	disc.radial_segments = 14
+	pool.mesh = disc
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.28, 0.02, 0.03)
+	mat.roughness = 0.15
+	pool.material_override = mat
+	pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pool)
+	pool.position = Vector3(0, 0.02, 0)
+	pool.top_level = true
+	pool.global_position = global_position + Vector3(0, 0.02, 0) + global_transform.basis.z * 0.3
+	pool.scale = Vector3(0.2, 1.0, 0.25)
+	var grow := create_tween()
+	grow.tween_property(pool, "scale", Vector3(1.5, 1.0, 1.2), 5.0).set_ease(Tween.EASE_OUT)
 
 
 ## A punch from the player: tough (mission) people stagger before going down.
@@ -274,6 +301,8 @@ func knock_down(from: Vector3, impulse: float) -> void:
 	var away := global_position - from
 	away.y = 0.0
 	velocity = (away.normalized() if away.length() > 0.01 else Vector3.FORWARD) * minf(impulse, 9.0)
+	# Hard hits (cars, explosions) throw the body up; it arcs and lands on the real ground.
+	air_speed = clampf((impulse - 6.0) * 0.45, 0.0, 6.5)
 	collider.set_deferred("disabled", true)
 	human.play_action("death", 7.0)
 	for node in get_tree().get_nodes_in_group("pedestrians"):
@@ -292,7 +321,15 @@ func _settle_on_ground(delta: float) -> void:
 	if hit.is_empty():
 		return
 	var ground: float = (hit["position"] as Vector3).y
-	global_position.y = move_toward(global_position.y, ground, 9.0 * delta) if global_position.y > ground else ground
+	if air_speed != 0.0 or global_position.y > ground + 0.05:
+		air_speed -= 16.0 * delta
+		global_position.y += air_speed * delta
+		if global_position.y <= ground:
+			global_position.y = ground
+			air_speed = 0.0
+			velocity *= 0.35  # the landing kills most of the slide
+	else:
+		global_position.y = ground
 
 
 func _update_down(delta: float) -> void:
