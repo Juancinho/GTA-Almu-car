@@ -318,7 +318,7 @@ func _land_punch() -> void:
 		offset.y = 0.0
 		if offset.length() < PUNCH_RANGE and offset.normalized().dot(forward) > 0.35:
 			person.provoked_by_player = true
-			person.knock_down(global_position, 4.0)
+			person.take_hit(global_position, 4.0)
 			assaulted.emit(person)
 			return
 

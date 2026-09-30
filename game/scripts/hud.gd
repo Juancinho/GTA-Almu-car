@@ -25,6 +25,11 @@ var health_back: ColorRect
 var health_fill: ColorRect
 var banner_label: Label
 var banner_timer := 0.0
+var objective_flash: Label
+var objective_flash_timer := 0.0
+var title_label: Label
+var title_timer := 0.0
+var timer_label: Label
 var money_delta_timer := 0.0
 
 
@@ -120,6 +125,35 @@ func _ready() -> void:
 	_outline(banner_label, 10)
 	banner_label.visible = false
 	root.add_child(banner_label)
+	# GTA-style guidance: the mission title when it starts, each new objective
+	# in large type across the lower third, and a countdown for timed objectives.
+	title_label = Label.new()
+	title_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	title_label.position = Vector2(-500, 150)
+	title_label.custom_minimum_size = Vector2(1000, 90)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 54)
+	title_label.add_theme_color_override("font_color", Color("f2c14e"))
+	_outline(title_label, 10)
+	title_label.visible = false
+	root.add_child(title_label)
+	objective_flash = Label.new()
+	objective_flash.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	objective_flash.position = Vector2(-560, -250)
+	objective_flash.custom_minimum_size = Vector2(1120, 60)
+	objective_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective_flash.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	objective_flash.add_theme_font_size_override("font_size", 30)
+	objective_flash.add_theme_color_override("font_color", Color("fff6d8"))
+	_outline(objective_flash, 8)
+	objective_flash.visible = false
+	root.add_child(objective_flash)
+	timer_label = Label.new()
+	timer_label.position = Vector2(32, 180)
+	timer_label.add_theme_font_size_override("font_size", 30)
+	_outline(timer_label, 7)
+	timer_label.visible = false
+	root.add_child(timer_label)
 	var prompt_back := ColorRect.new()
 	prompt_back.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_back.position = Vector2(-290, -87)
@@ -180,6 +214,22 @@ func set_game(value: PlayerController, mission_value: MissionController, wanted_
 	minimap.player = player
 	minimap.mission = mission
 	minimap.wanted = wanted
+	mission.objective_changed.connect(_on_objective_changed)
+	mission.mission_started.connect(_on_mission_started)
+
+
+func _on_objective_changed(text: String, _marker: Vector3) -> void:
+	if text == "":
+		return
+	objective_flash.text = text
+	objective_flash.visible = true
+	objective_flash_timer = 5.0
+
+
+func _on_mission_started(title: String) -> void:
+	title_label.text = title.to_upper()
+	title_label.visible = true
+	title_timer = 3.5
 
 
 func update_settings(quality: int, volume: int) -> void:
@@ -206,6 +256,11 @@ func _process(delta: float) -> void:
 		money_label.text = "%d €" % int(main.money)
 	banner_timer -= delta
 	banner_label.visible = banner_timer > 0.0
+	title_timer -= delta
+	title_label.visible = title_timer > 0.0
+	objective_flash_timer -= delta
+	objective_flash.visible = objective_flash_timer > 0.0 and not banner_label.visible
+	_update_mission_status()
 	money_delta_timer -= delta
 	money_delta_label.visible = money_delta_timer > 0.0
 	if wanted.arrest_progress() > 0.0:
@@ -269,11 +324,43 @@ func _process(delta: float) -> void:
 	elif player.swimming:
 		prompt_label.text = "WASD nadar · C bucear · Espacio subir  |  Aire %.0f s" % player.breath
 	elif player.nearby_contact() != null:
-		prompt_label.text = "E · Hablar con " + player.nearby_contact().display_name
+		var contact := player.nearby_contact()
+		var offer := mission.offer_of(str(contact.name))
+		prompt_label.text = "E · Hablar con " + contact.display_name
+		if offer != "" and (offer != mission.mission_id or mission.stage == 0):
+			prompt_label.text += "  ·  Misión: " + str(mission._titles.get(offer, offer))
 	elif player.nearby_vehicle() != null:
 		prompt_label.text = "E · Entrar en el coche"
 	else:
 		prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · Ratón cámara"
+
+
+## Countdown for timed objectives and the state of a chased vehicle.
+func _update_mission_status() -> void:
+	var parts: Array[String] = []
+	var urgent := false
+	if mission.objective_time_left > 0.0:
+		var seconds := int(ceil(mission.objective_time_left))
+		parts.append("TIEMPO %d:%02d" % [seconds / 60, seconds % 60])
+		urgent = seconds <= 15
+	if not mission.completed and not mission.objectives.is_empty():
+		var objective: Dictionary = mission.objectives[mission.stage]
+		if str(objective.get("type", "")) == "destroy_vehicle":
+			var target := mission.spawned.get(str(objective.get("target_spawn", ""))) as DriveableVehicle
+			if target != null and is_instance_valid(target):
+				var floor_health := float(objective.get("health_below", 0.0))
+				var left := clampf((target.health - floor_health) / (DriveableVehicle.MAX_HEALTH - floor_health), 0.0, 1.0)
+				parts.append("OBJETIVO %s" % ("■".repeat(int(ceil(left * 10.0))) + "□".repeat(10 - int(ceil(left * 10.0)))))
+		elif str(objective.get("type", "")) == "beat_up":
+			var remaining := 0
+			for id in objective.get("targets", []):
+				var person := mission.spawned.get(str(id)) as Pedestrian
+				if person != null and is_instance_valid(person) and not person.defeated:
+					remaining += 1
+			parts.append("QUEDAN %d" % remaining)
+	timer_label.visible = not parts.is_empty()
+	timer_label.text = "   ".join(parts)
+	timer_label.add_theme_color_override("font_color", Color("e0645a") if urgent and int(Time.get_ticks_msec() / 300) % 2 == 0 else Color("fff1c1"))
 
 
 func _nearby_venue() -> VenueInterior:

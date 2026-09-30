@@ -23,6 +23,11 @@ var conversation_timer := 0.0
 var fight_timer := 0.0
 var strike_timer := 0.0
 var provoked_by_player := false
+## Mission enemies attack on sight, take several punches and never give up until beaten.
+var enemy := false
+var toughness := 1
+var hits := 0
+var defeated := false
 
 
 func _ready() -> void:
@@ -110,6 +115,8 @@ func speak() -> String:
 		return ""
 	conversation_count = conversation_count + 1 if conversation_timer > 0.0 else 1
 	conversation_timer = 8.0
+	if enemy:
+		return "¡Lárgate de aquí!"
 	if state == State.FIGHT:
 		return "¡Déjame en paz!"
 	if temperament > 0.72 and conversation_count >= 3:
@@ -123,7 +130,37 @@ func speak() -> String:
 	return "Hola. Si buscas el centro, sigue hacia Calle Real."
 
 
+func start_fight(seconds: float) -> void:
+	if state == State.DOWN:
+		return
+	state = State.FIGHT
+	fight_timer = seconds
+	strike_timer = 0.8
+
+
+## A punch from the player: tough (mission) people stagger before going down.
+func take_hit(from: Vector3, impulse: float) -> void:
+	if state == State.DOWN or mission_contact:
+		return
+	hits += 1
+	if hits < toughness:
+		human.play_action("punch", 0.3)
+		var away := global_position - from
+		away.y = 0.0
+		if away.length() > 0.01:
+			global_position += away.normalized() * 0.35
+		if state != State.FIGHT:
+			start_fight(18.0)
+		return
+	hits = 0
+	knock_down(from, impulse)
+
+
 func _fight(delta: float) -> void:
+	if enemy and player != null and not player.dead and player.driving_vehicle != null:
+		velocity = Vector3.ZERO
+		human.update_motion(0.0)
+		return
 	if player == null or player.dead or player.driving_vehicle != null:
 		state = State.FLEE
 		think_timer = 4.0
@@ -154,6 +191,7 @@ func knock_down(from: Vector3, impulse: float) -> void:
 	if state == State.DOWN or mission_contact:
 		return
 	state = State.DOWN
+	defeated = true
 	down_timer = 7.0
 	knocked_from = from
 	var away := global_position - from

@@ -42,6 +42,7 @@ Invoke-Godot 'import' @('--headless', '--editor', '--path', ('"' + $gamePath + '
 Invoke-Godot 'smoke' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/smoke.gd')
 Invoke-Godot 'damage' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/damage_test.gd')
 Invoke-Godot 'jaime_mission' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/jaime_mission.gd')
+Invoke-Godot 'missions' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/missions.gd')
 Invoke-Godot 'slope_buildings' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/slope_buildings.gd')
 Invoke-Godot 'water_and_dressing' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/water_and_dressing.gd')
 Invoke-Godot 'civilian_life' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/civilian_life.gd')

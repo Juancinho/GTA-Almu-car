@@ -7,6 +7,7 @@ const WantedScript = preload("res://scripts/wanted.gd")
 const MissionScript = preload("res://scripts/mission.gd")
 const PerfMonitorScript = preload("res://scripts/perf_monitor.gd")
 const PlaytestLogScript = preload("res://scripts/playtest_log.gd")
+const MarkersScript = preload("res://scripts/mission_markers.gd")
 const ARREST_FEE := 100
 const HOSPITAL_FEE := 100
 
@@ -58,11 +59,18 @@ func _ready() -> void:
 	mission.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(mission)
 	mission.anchors = world.data.raw.get("anchors", {})
+	mission.world = world
 	mission.configure(player, wanted)
 	mission.objective_changed.connect(_play_ui_feedback)
 	mission.objective_changed.connect(_on_objective_changed)
 	mission.mission_completed.connect(_on_mission_completed)
 	mission.mission_failed.connect(_on_mission_failed)
+	mission.mission_started.connect(func(title: String) -> void: playtest_log.record("mission_started", {"id": mission.mission_id, "title": title}))
+	var markers := MarkersScript.new() as MissionMarkers
+	markers.name = "MissionMarkers"
+	markers.mission = mission
+	markers.player = player
+	add_child(markers)
 	player.vehicle_entered.connect(_on_vehicle_entered)
 	player.vehicle_jacked.connect(_on_vehicle_jacked)
 	player.died.connect(_on_player_died)
@@ -247,12 +255,14 @@ func _respawn_at_hospital() -> void:
 func _on_mission_completed() -> void:
 	playtest_log.record("mission_completed", {"id": mission.mission_id, "stage": mission.stage})
 	add_money(mission.reward)
-	hud.show_banner("MISIÓN COMPLETADA", Color("a4db8b"))
+	hud.show_banner("¡MISIÓN SUPERADA!\n+%d €" % mission.reward, Color("f2c14e"))
 	_auto_report("mission_completed")
 
 
 func _on_mission_failed(reason: String) -> void:
 	playtest_log.record("mission_failed", {"reason": reason, "stage": mission.stage})
+	if not hud.banner_label.visible:  # arrest and death show their own banner
+		hud.show_banner("MISIÓN FALLIDA", Color("d9534a"))
 
 
 func _on_wanted_changed(level: int, phase: String) -> void:
@@ -399,6 +409,9 @@ func _save_game() -> void:
 		"mission_id": mission.mission_id,
 		"jaime_finished": mission.jaime_finished,
 		"suspended_el_recado_stage": mission.suspended_el_recado_stage,
+		"completed_missions": mission.completed_missions.keys(),
+		"suspended_id": mission.suspended_id,
+		"suspended_stage": mission.suspended_stage,
 		"quality_level": quality_level,
 		"volume_level": volume_level,
 		"money": money,
@@ -442,8 +455,14 @@ func _load_game() -> void:
 	player._update_camera_orientation()
 	if not mission.load_mission(str(data.get("mission_id", "el_recado")), false):
 		return
-	mission.jaime_finished = bool(data.get("jaime_finished", false))
+	mission.completed_missions.clear()
+	for id in data.get("completed_missions", []):
+		mission.completed_missions[str(id)] = true
+	mission.jaime_finished = bool(data.get("jaime_finished", false)) or mission.completed_missions.has("jaime_playa")
 	mission.suspended_el_recado_stage = int(data.get("suspended_el_recado_stage", -1))
+	if data.has("suspended_id"):
+		mission.suspended_id = str(data["suspended_id"])
+		mission.suspended_stage = int(data.get("suspended_stage", -1))
 	mission.restore_stage(int(data.get("mission_stage", 0)))
 	money = maxi(0, int(data.get("money", money)))
 	bank_balance = maxi(0, int(data.get("bank_balance", 0)))

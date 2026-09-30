@@ -70,14 +70,27 @@ Entered through real façades; each is its own scene with navmesh, lighting and 
 
 Shop and petrol-station holdups (aim at the clerk, bag the cash, escape the response), armoured-van hits on the coast road, car-theft export orders, jewellery and bank heists (planning + crew + execution), smuggling runs by sea at night, taxi, bus and delivery jobs, street races, beach-bar racket collection, vigilante police calls, collectibles (Phoenician coins hidden around town). Interactions with people: talk, ask directions, buy, intimidate (raise weapon), pickpocket, hire crew, recruit a driver.
 
+## Mission flow and player guidance
+
+The player must always know what to do next, without a manual:
+
+- **Contacts and letters.** Every character with a mission waiting shows a floating letter over their head and on the minimap (A Alba, P Paco, J Marina). The objective panel names the nearest one when no mission is running. Talking to them (E) starts the mission with its title card.
+- **One clear objective.** Each new objective appears in large type across the lower third and stays in the objective panel. Dialogue lines play in sequence as subtitles.
+- **Where to go.** The minimap draws a GPS route along the real road graph to the objective and points to it from the edge when it is off the map. In the world, a glowing column marks destinations and a bobbing arrow marks targets (the car to take or chase in yellow, enemies in red).
+- **Pressure and state.** Timed objectives show a countdown that flashes in the last 15 s; chases show the target's remaining condition; fights show how many opponents remain.
+- **Failure is cheap.** Time running out, a wrecked mission vehicle, an escaped target, arrest or death show MISIÓN FALLIDA and return to the mission's checkpoint (usually right after the briefing) with its vehicles and enemies reset. Success shows MISIÓN SUPERADA with the reward.
+
+Missions are data (`game/data/missions/*.json`, registry and unlock chain in `index.json`). Objective types: `talk_to`, `enter_vehicle`, `reach_area`, `escape_police`, `destroy_vehicle`, `beat_up`, `wait`; options include time limits, on-foot/vehicle/no-wanted requirements, spawned vehicles and enemies, live-target markers and a crime reported on completion.
+
 ## First story chapter (draft, fictional characters)
 
 | # | Mission | Setting | Verbs |
 |---|---------|---------|-------|
 | 1 | El Recado (exists) | Paseo → old town → castle | talk, drive, escape |
-| 2 | Hielo para el chiringuito | Beach bars, Calle Real | deliver on a scooter, fist fight |
-| 3 | La cuota | Beach bars at night | intimidate, collect, chase |
-| 4 | Pescadores | Fishing boats, Puerta del Mar | boat drive, pursuit at sea |
+| 2 | Hielo para el chiringuito (playable) | Chiringuito Arenas → Mercado Azul → paseo | timed drive in Paco's SUV, on-foot delivery, fist fight with two tough gorrones |
+| 3 | La cuota (playable) | La Orilla, Sal y Sol, El Espeto, paseo | collect on foot, ram a fleeing sports car, recover the money |
+| 4 | El coche del concejal (playable) | Calle de la Puerta de Granada → Taller Poniente | car theft, lose the police, deliver for a respray |
+| 4b | Pescadores (after boats) | Fishing boats, Puerta del Mar | boat drive, pursuit at sea |
 | 5 | Noche en el Majuelo | Concert in Parque El Majuelo | stealth, pickpocket a key card |
 | 6 | Siete Palacios | Cueva de Siete Palacios | infiltration, escape through lanes |
 | 7 | Furgón | Coast road | armoured-van robbery, 3-star escape |

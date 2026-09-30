@@ -1,0 +1,23 @@
+{
+  "id": "coche_concejal",
+  "title": "El coche del concejal",
+  "reward": 800,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: El deportivo sigue en la Puerta de Granada. Inténtalo otra vez.",
+  "spawns": [
+    {"id": "councillor_car", "kind": "vehicle", "variant": "sports_orange", "at": [-66.84, -276.87], "when": "start"}
+  ],
+  "objectives": [
+    {
+      "type": "talk_to", "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Un concejal de fuera ha dejado su deportivo en la calle de la Puerta de Granada. El mismo que firmó lo del puerto de Rubén.",
+        "Alba: Llévalo al Taller Poniente. Allí le cambian la pintura y nadie pregunta."
+      ]
+    },
+    {"type": "enter_vehicle", "vehicle": "councillor_car", "text": "Roba el deportivo en la calle de la Puerta de Granada", "crime_on_complete": "robo de vehículo", "wrecked_text": "El deportivo ha quedado para el desguace."},
+    {"type": "escape_police", "vehicle": "councillor_car", "text": "Pierde a la policía sin destrozar el deportivo", "wrecked_text": "El deportivo ha quedado para el desguace.", "dialogue": "Los has despistado. Ahora al taller."},
+    {"type": "reach_area", "vehicle": "councillor_car", "requires_vehicle": true, "requires_no_wanted": true, "marker_workshop": true, "radius": 10, "text": "Lleva el deportivo al Taller Poniente", "wrecked_text": "El deportivo ha quedado para el desguace.", "dialogue": "Mecánico: Bonito coche. Mañana no lo reconoce ni su madre."}
+  ]
+}

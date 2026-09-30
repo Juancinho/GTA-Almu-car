@@ -1,0 +1,107 @@
+{
+  "id": "la_cuota",
+  "title": "La cuota",
+  "reward": 600,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: Los chiringuitos siguen esperando. Vuelve a por los sobres.",
+  "spawns": [
+    {
+      "id": "getaway",
+      "kind": "vehicle",
+      "variant": "sedan_teal",
+      "at": [
+        110.0,
+        42.0
+      ],
+      "when": "start"
+    },
+    {
+      "id": "thief_car",
+      "kind": "vehicle",
+      "variant": "sports_orange",
+      "at": [
+        140.0,
+        42.0
+      ],
+      "traffic": true,
+      "speed": 15.5,
+      "occupant": "male_suit",
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Rubén, el del puerto, cobra una 'cuota' a los chiringuitos del paseo. Cada verano más.",
+        "Alba: Hoy la recoges tú: pasa por La Orilla, Sal y Sol y El Espeto. Ese dinero vuelve a sus dueños."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker": [
+        250.0,
+        130.0
+      ],
+      "radius": 6,
+      "text": "Recoge el sobre en el chiringuito La Orilla",
+      "dialogue": "Camarera: ¿De parte de Alba? Toma. Y que Rubén no se entere."
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker": [
+        170.0,
+        90.0
+      ],
+      "radius": 6,
+      "text": "Recoge el sobre en Sal y Sol",
+      "dialogue": "Camarero: Aquí tienes. Ojo, que Rubén tiene gente mirando."
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker": [
+        110.0,
+        78.0
+      ],
+      "radius": 6,
+      "text": "Recoge el último sobre en El Espeto",
+      "dialogue": [
+        "Camarero: Toma... ¡Eh! ¡El del deportivo naranja se lleva la caja del día!",
+        "Alba (teléfono): ¡Que no se escape! Hay un coche en el paseo, cógelo."
+      ]
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "thief_car",
+      "health_below": 300,
+      "escape_distance": 320,
+      "text": "Embiste el deportivo naranja hasta que pare",
+      "escape_text": "El deportivo se ha escapado con la caja.",
+      "dialogue": "El conductor sale corriendo y abandona la bolsa del dinero.",
+      "spawn": [
+        "thief_car"
+      ]
+    },
+    {
+      "type": "reach_area",
+      "requires_on_foot": true,
+      "marker_target": "thief_car",
+      "radius": 4,
+      "text": "Recoge la bolsa del dinero junto al deportivo",
+      "dialogue": "Tienes la caja del día. Llévasela a Alba."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "text": "Lleva el dinero a Alba al Paseo del Altillo",
+      "requires_no_wanted": true,
+      "dialogue": "Alba: Buen trabajo. Rubén va a tener que buscarse otro pueblo. Y tú, otro trabajo: te llamo."
+    }
+  ]
+}

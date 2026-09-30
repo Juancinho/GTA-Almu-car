@@ -66,6 +66,7 @@ var ai_reverse_steer := 1.0
 var ai_blocker: Object
 var sector_data: SectorData
 var last_dry_transform := Transform3D.IDENTITY
+var ram_cooldown := 0.0
 
 
 func _ready() -> void:
@@ -263,6 +264,7 @@ func _material(color: Color) -> StandardMaterial3D:
 
 
 func _physics_process(delta: float) -> void:
+	ram_cooldown = maxf(0.0, ram_cooldown - delta)
 	if _deep_water(global_position):
 		global_transform = last_dry_transform
 		speed = 0.0
@@ -330,6 +332,10 @@ func _resolve_contacts(speed_before: float) -> void:
 				get_tree().call_group("wanted_system", "report_crime", "atropello", global_position)
 		elif other is PlayerController and (other as PlayerController).driving_vehicle == null:
 			(other as PlayerController).take_damage(speed_before * 2.5, "vehicle")
+		elif other is DriveableVehicle and driver != null and ram_cooldown <= 0.0:
+			# Ramming: the player's car dents whatever it hits (chases, wrecking targets).
+			ram_cooldown = 0.35
+			(other as DriveableVehicle).apply_damage(maxf(0.0, speed_before - 4.0) ** 2 * 3.0)
 
 
 func apply_damage(amount: float) -> void:
