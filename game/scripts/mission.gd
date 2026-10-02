@@ -272,6 +272,8 @@ func resolve_marker(objective: Dictionary) -> Vector3:
 	if objective.has("marker_venue") and world != null and world.venues.has(str(objective["marker_venue"])):
 		var venue := world.venues[str(objective["marker_venue"])] as VenueInterior
 		return venue.point_position(str(objective["venue_point"])) if objective.has("venue_point") else venue.exterior_entry
+	if objective.has("marker_building") and world != null and "apartments" in world and world.apartments.has(str(objective["marker_building"])):
+		return world.apartments[str(objective["marker_building"])].point(str(objective.get("building_point", "portal")))
 	if objective.has("marker_workshop") and world != null:
 		return world.workshop.exterior_entry
 	if objective.has("marker_anchor") and anchors.has(str(objective["marker_anchor"])):
@@ -357,6 +359,8 @@ func _process(delta: float) -> void:
 				return
 			var player_pos := player.driving_vehicle.global_position if player.driving_vehicle != null else player.global_position
 			var distance := Vector2(player_pos.x - marker.x, player_pos.z - marker.z).length()
+			if bool(objective.get("radius_3d", false)):  # e.g. a flat on an upper floor
+				distance = player_pos.distance_to(marker)
 			if objective.has("marker_venue") and absf(player_pos.y - marker.y) > float(objective.get("height_tolerance", 1.0)):
 				return
 			if distance < float(objective.get("radius", 10)):
@@ -655,6 +659,8 @@ func _spawn(id: String) -> void:
 			person.toughness = int(spec.get("toughness", 3))
 			person.armed = bool(spec.get("armed", false))
 			person.position = Vector3(point.x, world.height_at(point.x, point.z) + 0.1, point.z)
+			if spec.has("building") and "apartments" in world and world.apartments.has(str(spec["building"])):
+				person.position = world.apartments[str(spec["building"])].point(str(spec.get("point", "portal"))) + Vector3(0, 0.1, 0)
 			world.add_child(person)
 			node = person
 	if node != null:

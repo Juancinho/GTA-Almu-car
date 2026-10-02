@@ -162,6 +162,38 @@ func _capture() -> void:
 		camera.global_position = venue.exterior_entry + venue.exterior_normal * 7.0 + Vector3.UP * 2.2
 		camera.look_at(venue.exterior_entry + Vector3.UP * 2.0)
 		camera.current = true
+	elif view.begins_with("block:") and "apartments" in world:
+		var parts := view.split(":")  # block:<id>:exterior|garage|lobby|stair|flat
+		var block: Node3D = world.apartments[parts[1]]
+		var camera := Camera3D.new()
+		root.add_child(camera)
+		camera.current = true
+		var key_floor := int(block.spec.get("penthouse_floor", block.spec.get("safehouse_floor", block.spec.get("office_floor", 1)))) * 3.1
+		var eye := Vector3.ZERO
+		var look := Vector3.ZERO
+		match parts[2]:
+			"exterior":
+				camera.global_position = block.exterior_entry + block.exterior_normal * 2.5 + Vector3.UP * 1.9
+				camera.look_at(block.exterior_entry + Vector3.UP * 2.4)
+				player.global_position = block.exterior_entry + block.exterior_normal * 12.0
+			"garage":
+				camera.global_position = block.garage_spot + block.exterior_normal * 7.0 + Vector3.UP * 3.2
+				camera.look_at(block.garage_spot + Vector3.UP * 0.8)
+				player.global_position = block.exterior_entry
+			"lobby":
+				eye = Vector3(-3.6, 1.7, -0.9)
+				look = Vector3(2.0, 1.1, -10.0)
+			"stair":
+				eye = Vector3(-1.2, 3.1 + 1.7, -6.0)
+				look = Vector3(2.5, 2.2, -12.5)
+			"flat":
+				eye = Vector3(-0.8, key_floor + 1.75, -6.0)
+				look = Vector3(-1.5, key_floor + 1.0, -0.5)
+		if not parts[2] in ["exterior", "garage"]:
+			camera.global_position = block.to_global(eye)
+			camera.look_at(block.to_global(look))
+			player.global_position = block.to_global(eye - Vector3(0, 1.6, -0.6))
+		block.update_room_visibility(player.global_position)
 	elif view == "workshop_exterior":
 		var camera := Camera3D.new()
 		root.add_child(camera)

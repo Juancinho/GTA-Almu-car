@@ -12,12 +12,19 @@ func run() -> void:
 		person.set_physics_process(false)
 	for car in get_nodes_in_group("vehicles"):
 		car.set_physics_process(false)
+	# Jolt registers new static bodies with the broadphase on the next step.
+	await physics_frame
+	await physics_frame
 	var near: Dictionary = world.road_network.nearest(world.anchor("first_car"))
 	var at: Vector3 = near["point"]
 	var ray := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 3.0, at + Vector3.DOWN * 3.0)
+	var parked: Array[RID] = []
+	for car in get_nodes_in_group("vehicles"):
+		parked.append((car as CollisionObject3D).get_rid())
+	ray.exclude = parked  # the parked first car sits on this very road point
 	var hit := world.get_world_3d().direct_space_state.intersect_ray(ray)
 	if hit.is_empty() or not hit["collider"].is_in_group("road_surfaces"):
-		return fail("visible road has no matching collision")
+		return fail("visible road has no matching collision: %s" % (str(hit["collider"].name) if not hit.is_empty() else "nothing"))
 	var road_y: float = hit["position"].y
 	if absf(road_y - world.height_at(at.x, at.z) - RoadBuilder.LIFT_DRIVE) > 0.03:
 		return fail("road collision differs from visible road height")

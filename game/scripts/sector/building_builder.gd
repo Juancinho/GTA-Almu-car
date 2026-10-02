@@ -19,10 +19,12 @@ const CELL := {"shutter_green": 0, "shutter_blue": 1, "shutter_brown": 2, "reja"
 	"door": 6, "modern": 7, "garage": 8, "shop_awning": 9, "small_reja": 10, "door_arched": 11,
 	"modern_blind": 12, "balcony_shutters": 13, "railing": 14}
 const VenueCatalog = preload("res://scripts/venue_catalog.gd")
+const ApartmentCatalog = preload("res://scripts/apartment_catalog.gd")
 
 
 static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> Dictionary:
 	var venue_fronts := VenueCatalog.fronts()
+	venue_fronts.merge(ApartmentCatalog.fronts())
 	var wall_mats := {
 		"walls": mats.textured("building_plaster", "plaster003", Color.WHITE, 3.0, 0.92, true),
 		"stone": mats.textured("building_stone", "rock020", Color("e1d8c6"), 2.2, 0.91, true),
@@ -81,6 +83,9 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> Di
 			var c0 := Vector3(c.x, base, c.y)
 			var venue_front := venue_fronts.has(id) and i == int(venue_fronts[id][0])
 			var aperture_half := minf(length * 0.5 - 0.25, 7.0 * float(venue_fronts[id][1])) if venue_front else 0.0
+			# Residential portals: a door-sized opening; the rest of the façade stays.
+			var portal := venue_front and (venue_fronts[id] as Array).size() > 2
+			var portal_top := ApartmentCatalog.portal_lintel(data, id) if portal else 0.0
 			# A single ground height buries the uphill half of a long façade.
 			# Sample the actual terrain along each wall and step the plinth with it.
 			var segments := maxi(1, int(ceil(length / 2.0)))
@@ -116,7 +121,7 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> Di
 						Geo.add_quad(chunk[wall_key], s0, s1, Vector3(p1.x, wall_top, p1.y), Vector3(p0.x, wall_top, p0.y), normal, face_color)
 						(chunk["faces"] as Array).append_array([f0, f1, Vector3(p1.x, wall_top, p1.y), f0, Vector3(p1.x, wall_top, p1.y), Vector3(p0.x, wall_top, p0.y)])
 					else:
-						var lintel_y := data.height_at((p0.x + p1.x) * 0.5, (p0.y + p1.y) * 0.5) + 4.5
+						var lintel_y := portal_top if portal else data.height_at((p0.x + p1.x) * 0.5, (p0.y + p1.y) * 0.5) + 4.5
 						var high0 := Vector3(p0.x, lintel_y, p0.y)
 						var high1 := Vector3(p1.x, lintel_y, p1.y)
 						Geo.add_quad(chunk[wall_key], high0, high1, Vector3(p1.x, wall_top, p1.y), Vector3(p0.x, wall_top, p0.y), normal, face_color)
@@ -126,8 +131,8 @@ static func build(parent: Node3D, data: SectorData, mats: SectorMaterials) -> Di
 			if Geo.hash01(id, 121) < 0.48:
 				var trim_color := wall_color.lightened(0.16)
 				Geo.add_quad(chunk[wall_key], Vector3(a.x, top - 0.30, a.y) + normal * 0.05, Vector3(c.x, top - 0.30, c.y) + normal * 0.05, Vector3(c.x, top, c.y) + normal * 0.05, Vector3(a.x, top, a.y) + normal * 0.05, normal, trim_color)
-			if not venue_front:
-				stats["details"] += _facade(details[key], boxes, b, zone, a, c, normal, data, top, int(street[i]) == 1, id * 31 + i)
+			if not venue_front or portal:
+				stats["details"] += _facade(details[key], boxes, b, zone, a, c, normal, data, top, int(street[i]) == 1, id * 31 + i, aperture_half if portal else 0.0)
 		_roof(chunk, pts, top, tiled, Vector2(cx, cz))
 		stats["buildings"] += 1
 	for key in chunks:
@@ -194,7 +199,7 @@ static func _roof(chunk: Dictionary, pts: Array[Vector2], top: float, tiled: boo
 
 
 ## Places façade detail quads for one wall edge; returns how many were placed.
-static func _facade(list: Array, boxes: Dictionary, b: Dictionary, zone: String, a: Vector2, c: Vector2, normal: Vector3, data: SectorData, top: float, street: bool, seed_value: int) -> int:
+static func _facade(list: Array, boxes: Dictionary, b: Dictionary, zone: String, a: Vector2, c: Vector2, normal: Vector3, data: SectorData, top: float, street: bool, seed_value: int, door_half: float = 0.0) -> int:
 	var length := a.distance_to(c)
 	if length < 2.4:
 		return 0
@@ -211,12 +216,15 @@ static func _facade(list: Array, boxes: Dictionary, b: Dictionary, zone: String,
 	var landmark := str(b.get("landmark", ""))
 	for bay in range(bays):
 		var along := spacing * (bay + 0.5)
+		var at_door := door_half > 0.0 and absf(along - length * 0.5) < door_half + 1.9
 		var base_point := Vector3(a.x, 0, a.y) + dir * along + normal * 0.03
 		var ground := data.height_at(base_point.x, base_point.z)
 		for floor_index in range(levels):
 			var y := ground + floor_index * FLOOR_M
 			if y + 2.4 > top:
 				break
+			if at_door and floor_index == 0:
+				continue  # the portal itself
 			var cell := -1
 			var size := Vector2(1.5, 1.9)
 			var center_y := y + 1.55

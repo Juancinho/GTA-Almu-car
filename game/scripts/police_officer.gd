@@ -33,27 +33,67 @@ func _ready() -> void:
 	_add_cap()
 
 
-## Dark blue peaked cap so officers read as police at a glance.
+## Policía Local look: navy uniform, light-blue shirt, yellow badge details and a
+## peaked cap with a chequered band. The skeleton sits inside a 0.36-scaled model
+## whose FBX armature is itself scaled ×100, so attachments must undo the
+## skeleton's real global scale (a fixed factor made the cap a giant disc in the sky).
+const UNIFORM := {"Shirt": "1d2b4f", "Pants": "18223d", "TieTexture": "9ec0e6", "Details": "d8c94a"}
+
+
 func _add_cap() -> void:
+	for node in human.find_children("*", "MeshInstance3D", true, false):
+		var mesh := node as MeshInstance3D
+		for surface in range(mesh.mesh.get_surface_count()):
+			var source := mesh.mesh.surface_get_material(surface)
+			var key := source.resource_name if source != null else ""
+			if UNIFORM.has(key):
+				var cloth := StandardMaterial3D.new()
+				cloth.albedo_color = Color(str(UNIFORM[key]))
+				cloth.roughness = 0.8
+				mesh.set_surface_override_material(surface, cloth)
 	var skeletons := human.find_children("*", "Skeleton3D", true, false)
 	if skeletons.is_empty():
 		return
+	var skeleton := skeletons[0] as Skeleton3D
 	var attach := BoneAttachment3D.new()
 	attach.bone_name = "Head"
-	(skeletons[0] as Skeleton3D).add_child(attach)
-	var cap := MeshInstance3D.new()
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.13
-	mesh.bottom_radius = 0.12
-	mesh.height = 0.09
-	mesh.radial_segments = 10
-	cap.mesh = mesh
-	var cloth := StandardMaterial3D.new()
-	cloth.albedo_color = Color("1f3c7a")
-	cap.material_override = cloth
-	cap.scale = Vector3.ONE / HumanModel.MODEL_SCALE
-	cap.position = Vector3(0, 0.2, 0) / HumanModel.MODEL_SCALE
+	skeleton.add_child(attach)
+	var undo := 1.0 / maxf(skeleton.global_transform.basis.get_scale().x, 0.001)
+	var cap := Node3D.new()
+	cap.name = "PoliceCap"
+	cap.scale = Vector3.ONE * undo
+	cap.position = Vector3(0, 0.19, 0.01) * undo
 	attach.add_child(cap)
+	var navy := StandardMaterial3D.new()
+	navy.albedo_color = Color("16223f")
+	var band := StandardMaterial3D.new()
+	band.albedo_color = Color("e9edf2")
+	var crown := MeshInstance3D.new()
+	var crown_mesh := CylinderMesh.new()
+	crown_mesh.top_radius = 0.13
+	crown_mesh.bottom_radius = 0.115
+	crown_mesh.height = 0.08
+	crown_mesh.radial_segments = 12
+	crown.mesh = crown_mesh
+	crown.material_override = navy
+	cap.add_child(crown)
+	var ring := MeshInstance3D.new()
+	var ring_mesh := CylinderMesh.new()
+	ring_mesh.top_radius = 0.118
+	ring_mesh.bottom_radius = 0.118
+	ring_mesh.height = 0.035
+	ring_mesh.radial_segments = 12
+	ring.mesh = ring_mesh
+	ring.material_override = band
+	ring.position.y = -0.045
+	cap.add_child(ring)
+	var visor := MeshInstance3D.new()
+	var visor_mesh := BoxMesh.new()
+	visor_mesh.size = Vector3(0.2, 0.015, 0.09)
+	visor.mesh = visor_mesh
+	visor.material_override = navy
+	visor.position = Vector3(0, -0.06, -0.13)  # model faces -Z after HumanModel's flip? adjusted by bone
+	cap.add_child(visor)
 
 
 func threatening() -> bool:

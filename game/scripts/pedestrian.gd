@@ -3,6 +3,8 @@ extends CharacterBody3D
 
 enum State { IDLE, WANDER, FLEE, DOWN, FIGHT }
 
+const FAR_STEP_M := 45.0
+var lod_tick := randi() % 3
 var display_name := "Vecina"
 var mission_contact := false
 var shirt_color := Color("b77f62")
@@ -106,6 +108,14 @@ func _physics_process(delta: float) -> void:
 		activity_phase += delta * (4.0 if activity == "dance" else 1.6)
 		AmbientPose.update(human, activity, activity_phase)
 		return
+	# Far strollers move at a third of the tick rate with three ticks' worth of
+	# motion each time: ~90 civilians were the biggest physics cost, and at that
+	# distance the interpolated walk still reads smoothly.
+	if state != State.FLEE and player != null and global_position.distance_squared_to(player.global_position) > FAR_STEP_M * FAR_STEP_M:
+		lod_tick = (lod_tick + 1) % 3
+		if lod_tick != 0:
+			return
+		delta *= 3.0
 	think_timer -= delta
 	if think_timer <= 0.0:
 		think_timer = rng.randf_range(2.5, 5.0)

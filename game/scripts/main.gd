@@ -33,6 +33,10 @@ var volume_level := 2
 var money := 0
 var bank_balance := 0
 var jewellery_robbed := false
+var cigarettes := 0
+var estanco_robbed_until := 0
+var smoking: Node  # SmokingSystem
+var stash_ready_at := 0
 var discoveries: Dictionary = {}
 var _warm_resources: Array = []  # scenes loaded up front: no hitch when police or weapons first appear
 
@@ -109,6 +113,8 @@ func _ready() -> void:
 		(venue as VenueInterior).bank_transaction_requested.connect(_on_bank_transaction)
 		(venue as VenueInterior).robbery_requested.connect(_on_jewellery_robbery)
 		(venue as VenueInterior).interior_event_requested.connect(_on_interior_event)
+	for block in world.apartments.values():
+		block.action_requested.connect(_on_block_action)
 	for bar in world.beach_bars:
 		bar.meal_requested.connect(func() -> void: _on_venue_purchase("restaurant"))
 	wanted.crime_reported.connect(func(kind: String, witnessed: bool) -> void: playtest_log.record("crime", {"kind": kind, "witnessed": witnessed}))
@@ -120,9 +126,17 @@ func _ready() -> void:
 	for kind in world.venues:
 		var venue := world.venues[kind] as VenueInterior
 		hud.minimap.venue_markers[kind] = Vector2(venue.exterior_entry.x, venue.exterior_entry.z)
+	if world.apartments.has("residencial_poniente"):
+		var home: Vector3 = world.apartments["residencial_poniente"].exterior_entry
+		hud.minimap.venue_markers["piso_franco"] = Vector2(home.x, home.z)
 	hud.world_map.configure(world, mission, player, hud.minimap)
 	hud.minimap.activities = activities
 	activities.activity_changed.connect(func(text: String) -> void: if text != "": hud._on_objective_changed(text, Vector3.ZERO))
+	smoking = (load("res://scripts/smoking.gd") as GDScript).new()
+	smoking.name = "Smoking"
+	smoking.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(smoking)
+	smoking.call("configure", player, self)
 	perf_monitor = PerfMonitorScript.new()
 	perf_monitor.name = "PerfMonitor"
 	perf_monitor.context_provider = _perf_context
@@ -133,6 +147,9 @@ func _ready() -> void:
 	add_child(playtest_log)
 	_apply_settings()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if DisplayServer.get_name() != "headless":
+		# Compile every material up front instead of stalling mid-game.
+		(load("res://scripts/shader_warmup.gd") as GDScript).call("attach", player.camera, world, _warm_resources)
 
 
 func _warm_up() -> void:
@@ -272,6 +289,9 @@ func _on_interior_event(event: String) -> void:
 
 
 func _on_venue_purchase(kind: String) -> void:
+	if kind.begins_with("estanco"):
+		_on_estanco(kind.ends_with("_secondary"), kind.trim_suffix("_secondary"))
+		return
 	if bool(VenueInterior.SPECS.get(kind, {}).get("residential", false)):
 		if wanted.level > 0:
 			mission._show_dialogue("No puedes descansar mientras te busca la policía.")
@@ -365,6 +385,27 @@ func _gamble(stake: int, chance: float, multiplier: int, roulette: bool) -> void
 	playtest_log.record("gamble", {"stake": stake, "won": won})
 
 
+## Buy a pack of 20 for 5 €, or grab a carton from behind the counter (one star).
+func _on_estanco(steal: bool, kind: String) -> void:
+	if steal:
+		if Time.get_ticks_msec() < estanco_robbed_until:
+			mission._show_dialogue("Estanquera: ¡Ya llamé a la policía la otra vez! No queda nada a mano.")
+			return
+		estanco_robbed_until = Time.get_ticks_msec() + 180000
+		cigarettes += 200
+		wanted.raise_to(1, player.global_position)
+		hud.show_banner("CARTÓN ROBADO", Color("f2d36b"))
+		mission._show_dialogue("Estanquera: ¡Al ladrón! ¡Que alguien llame a la policía!")
+		playtest_log.record("crime", {"kind": "robo en estanco", "witnessed": true})
+		return
+	if money < 5:
+		mission._show_dialogue("Estanquera: son 5 €, cariño.")
+		return
+	add_money(-5)
+	cigarettes += 20
+	mission._show_dialogue("Estanquera: aquí tienes tu paquete. Pulsa X para encender uno (fuera, que aquí no se fuma).")
+
+
 func _on_bank_transaction(action: String) -> void:
 	if action == "deposit":
 		if money < 100:
@@ -380,6 +421,67 @@ func _on_bank_transaction(action: String) -> void:
 		bank_balance -= 100
 		add_money(100)
 		mission._show_dialogue("Cajero: retirados 100 €. Saldo: %d €." % bank_balance)
+
+
+## Residential blocks: the safehouse bed (rest + save), its stash, Ferrer's safe, burglaries.
+func _on_block_action(block_id: String, action: String) -> void:
+	if action.begins_with("burgle:"):
+		var block: Node = world.apartments.get(block_id)
+		var door := action.trim_prefix("burgle:")
+		if block == null or not block.can_burgle(door):
+			return
+		block.mark_burgled(door)
+		var night := float(day_night.night) > 0.5
+		var loot := randi_range(80, 260) if night else randi_range(40, 160)
+		add_money(loot)
+		hud.show_banner("ROBO EN EL %s  +%d €" % [door, loot], Color("f2d36b"))
+		if randf() < (0.25 if night else 0.6):
+			wanted.report_scripted_crime("robo en vivienda", player.global_position)
+			mission._show_dialogue("Vecina: ¡Al ladrón! ¡Que llamen a la policía!")
+		else:
+			mission._show_dialogue("Todos duermen. Sales con el dinero sin que nadie se entere." if night else "No hay nadie en casa. Un sobre con dinero en el cajón... y a correr.")
+		return
+	match action:
+		"sleep":
+			if wanted.level > 0:
+				mission._show_dialogue("Con la policía buscándote no hay quien duerma.")
+				return
+			player.heal_full()
+			day_night.hours = fmod(day_night.hours + 8.0, 24.0)
+			hud.show_banner("PISO FRANCO  ·  %s" % day_night.clock_text(), Color("9fd8a8"))
+			_save_game()
+		"stash":
+			if Time.get_ticks_msec() < stash_ready_at:
+				mission._show_dialogue("El armario está vacío. Vuelve más tarde.")
+				return
+			stash_ready_at = Time.get_ticks_msec() + 300000
+			weapons.give("bat", 0)
+			weapons.give("pistol", 36)
+			cigarettes += 20
+			mission._show_dialogue("Alijo: la pistola con 36 balas, el bate y un paquete de tabaco.")
+		"heist":
+			var office: Node = world.apartments.get(block_id)
+			if office == null or not office.can_burgle("office_safe"):
+				return
+			office.mark_burgled("office_safe")
+			var take := randi_range(900, 1600)
+			add_money(take)
+			hud.show_banner("CAJA DE MAR AZUL  +%d €" % take, Color("f2d36b"))
+			wanted.raise_to(2, player.global_position)
+			mission._show_dialogue("Dinero negro de las comisiones. ¡Ha saltado la alarma de la empresa de seguridad!")
+		"safe":
+			var before := "%s:%d:%s" % [mission.mission_id, mission.stage, mission.completed]
+			mission.notify_event("atico_safe")
+			if before == "%s:%d:%s" % [mission.mission_id, mission.stage, mission.completed]:
+				mission._show_dialogue("Una caja fuerte con combinación. Ahora no.")
+
+
+func _garage_state() -> Dictionary:
+	var state := {}
+	for block in world.apartments.values():
+		if str(block.garage_variant) != "":
+			state[block.block_id] = block.garage_variant
+	return state
 
 
 func _on_jewellery_robbery() -> void:
@@ -559,6 +661,7 @@ func _configure_input() -> void:
 	_add_key("fullscreen_toggle", KEY_F11)
 	_add_key("perf_report", KEY_F6)
 	_add_key("map_toggle", KEY_M)
+	_add_key("smoke", KEY_X)
 	_add_key("activity", KEY_T)
 	_add_joy_button("map_toggle", JOY_BUTTON_BACK)
 	for action in ["look_left", "look_right", "look_up", "look_down"]:
@@ -630,6 +733,8 @@ func _save_game() -> void:
 		"money": money,
 		"bank_balance": bank_balance,
 		"jewellery_robbed": jewellery_robbed,
+		"garages": _garage_state(),
+		"cigarettes": cigarettes,
 		"discoveries": discoveries,
 		"weapons": weapons.to_save(),
 		"broken_glass": weapons.ballistics.glass_to_save(),
@@ -686,6 +791,9 @@ func _load_game() -> void:
 	money = maxi(0, int(data.get("money", money)))
 	bank_balance = maxi(0, int(data.get("bank_balance", 0)))
 	jewellery_robbed = bool(data.get("jewellery_robbed", false))
+	for block in world.apartments.values():
+		block.restore_garage(str((data.get("garages", {}) as Dictionary).get(block.block_id, "")))
+	cigarettes = maxi(0, int(data.get("cigarettes", 0)))
 	discoveries = data.get("discoveries", {}) if data.get("discoveries", {}) is Dictionary else {}
 	for venue in world.venues.values():
 		(venue as VenueInterior).restore_discoveries(discoveries)
@@ -714,6 +822,8 @@ func _load_game() -> void:
 
 
 func _sync_venue_rooms() -> void:
+	for block in world.apartments.values():
+		block.update_room_visibility(player.global_position)
 	for venue in world.venues.values():
 		var interior := venue as VenueInterior
 		interior.room.visible = true

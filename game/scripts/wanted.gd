@@ -84,7 +84,10 @@ func _physics_process(delta: float) -> void:
 			continue
 		if _can_see(car, target_pos):
 			seen = true
-			if car.global_position.distance_to(target_pos) < ARREST_RADIUS:
+			# On foot a patrol car alongside is enough. In a car only a stopped car
+			# counts (or an officer at the door): a cruiser blocking a narrow lane
+			# while you shunt back and forth to get out is not an arrest.
+			if car.global_position.distance_to(target_pos) < ARREST_RADIUS and (player.driving_vehicle == null or absf(player.driving_vehicle.speed) < 0.5):
 				close_unit = true
 		if car.global_position.distance_to(last_known) < 22.0:
 			reached_last_known = true

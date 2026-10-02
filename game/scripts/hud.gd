@@ -408,6 +408,9 @@ func _process(delta: float) -> void:
 		street = _venue_display_name(active_venue.kind)
 		if int(VenueInterior.SPECS[active_venue.kind].get("floors", 1)) > 1:
 			street += " · Planta %d" % active_venue.floor_number(player.global_position)
+	var block := _current_block()
+	if block != null:
+		street = block.location_text(player.global_position)
 	bank_label.visible = active_venue != null and active_venue.kind == "bank"
 	if bank_label.visible:
 		bank_label.text = "Saldo bancario: %d €" % int(main.bank_balance)
@@ -446,6 +449,8 @@ func _process(delta: float) -> void:
 				prompt_label.text = "E · Descansar"
 			"casino":
 				prompt_label.text = "E · Ruleta: 100 € al rojo (pago 200 €, apuesta incluida)"
+			"estanco", "estanco_centro":
+				prompt_label.text = "E · Comprar un paquete de tabaco (5 €)"
 			"gun_shop":
 				prompt_label.text = "E · Munición para el arma actual (100 €)"
 			"nightclub":
@@ -456,12 +461,16 @@ func _process(delta: float) -> void:
 				prompt_label.text = "E · " + str(VenueInterior.SPECS[active_venue.kind].get("service", "Interactuar"))
 	elif active_venue != null and active_venue.kind == "bank" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
 		prompt_label.text = "E · Retirar 100 €"
+	elif active_venue != null and active_venue.kind.begins_with("estanco") and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
+		prompt_label.text = "E · Robar un cartón de tabaco (1 estrella)"
 	elif active_venue != null and active_venue.kind == "casino" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
 		prompt_label.text = "E · Tragaperras (20 €)"
 	elif active_venue != null and active_venue.kind == "gun_shop" and player.global_position.distance_to(active_venue.secondary_service_point) < 2.7:
 		prompt_label.text = "E · Comprar arma (pistola 300 € · escopeta 800 € · subfusil 1200 € · fusil 1500 €)"
-	elif active_venue != null and player.global_position.distance_to(active_venue.inside_entry) < 2.7:
+	elif active_venue != null and active_venue.near_exit(player.global_position):
 		prompt_label.text = "E · Salir del local"
+	elif _block_prompt() != "":
+		prompt_label.text = _block_prompt()
 	elif _nearby_venue() != null:
 		prompt_label.text = "E · Entrar en " + _venue_display_name(_nearby_venue().kind)
 	elif _nearby_beach_bar() != null:
@@ -495,6 +504,9 @@ func _update_weapon() -> void:
 		return
 	weapon_label.visible = player.driving_vehicle == null
 	var text := weapons.display_name().to_upper()
+	var tobacco: String = main.smoking.call("packs_text") if main != null and "smoking" in main and main.smoking != null else ""
+	if tobacco != "":
+		text = tobacco + "   " + text
 	if weapons.holdup_text() != "":
 		timer_label.visible = true
 		timer_label.text = weapons.holdup_text()
@@ -569,8 +581,25 @@ func _nearby_beach_bar() -> BeachBarService:
 	return null
 
 
+func _current_block() -> Node3D:
+	var main := get_parent()
+	if main == null or not ("world" in main) or main.world == null or not ("apartments" in main.world):
+		return null
+	for block in main.world.apartments.values():
+		if block.contains_player(player.global_position):
+			return block
+	return null
+
+
+func _block_prompt() -> String:
+	var block := _current_block()
+	return str(block.prompt_text(player)) if block != null else ""
+
+
 func _venue_display_name(kind: String) -> String:
 	match kind:
+		"piso_franco":
+			return "Piso franco"
 		"supermarket":
 			return "Mercado Azul"
 		"restaurant":

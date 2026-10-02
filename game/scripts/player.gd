@@ -25,6 +25,8 @@ const DIVE_SPEED := 2.7
 const MAX_BREATH := 16.0
 
 var camera_pivot: Node3D
+var camera_height := 1.55
+var _last_tick_position := Vector3.INF
 var camera_arm: SpringArm3D
 var camera: Camera3D
 var visual: Node3D
@@ -85,7 +87,12 @@ func _build_body() -> void:
 func _build_camera() -> void:
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "CameraPivot"
-	camera_pivot.position.y = 1.55
+	# Physics runs at 60 Hz but the screen at up to 120+: the body is drawn
+	# interpolated between ticks, and the camera follows that interpolated body
+	# every rendered frame (mouse look stays immediate). Without this the view
+	# stepped at 60 Hz on a 120 Hz display and play felt jerky.
+	camera_pivot.top_level = true
+	camera_pivot.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(camera_pivot)
 	# The spring arm pulls the camera in front of walls in narrow streets.
 	camera_arm = SpringArm3D.new()
@@ -117,7 +124,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _update_camera_orientation() -> void:
-	camera_pivot.rotation = Vector3(camera_pitch, camera_yaw, 0)
+	var target: Node3D = driving_vehicle if driving_vehicle != null else self
+	var anchor := target.get_global_transform_interpolated().origin if is_inside_tree() else position
+	if driving_vehicle != null:
+		anchor.y += 0.3
+	camera_pivot.global_transform = Transform3D(Basis.from_euler(Vector3(camera_pitch, camera_yaw, 0)), anchor + Vector3(0, camera_height, 0))
 
 
 func _process(delta: float) -> void:
@@ -139,7 +150,7 @@ func _process(delta: float) -> void:
 	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else (2.1 if aiming else 2.4 if interior_camera else FOOT_CAMERA_DISTANCE)
 	if diving:
 		target_length = 2.4
-	camera_pivot.position.y = move_toward(camera_pivot.position.y, 0.6 if diving else 1.55, 4.0 * delta)
+	camera_height = move_toward(camera_height, 0.6 if diving else 1.55, 4.0 * delta)
 	camera_arm.spring_length = move_toward(camera_arm.spring_length, target_length, (14.0 if aiming else 6.0) * delta)
 	camera_arm.position.x = move_toward(camera_arm.position.x, 0.62 if aiming else 0.0, 4.0 * delta)
 	camera.fov = move_toward(camera.fov, 58.0 if aiming else 75.0, 60.0 * delta)
@@ -158,6 +169,10 @@ func _process(delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
+	# Teleports (doors, lifts, respawn, loading) must not be drawn as a swoop.
+	if _last_tick_position != Vector3.INF and global_position.distance_squared_to(_last_tick_position) > 9.0:
+		reset_physics_interpolation()
+	_last_tick_position = global_position
 	if dead:
 		velocity = Vector3.ZERO
 		return

@@ -10,6 +10,8 @@ const SPECS := {
 	"church": {"building_id": 1136153313, "front_edge": 0, "scale": 1.0, "origin": Vector3(2100, 0, 0), "sign": "IGLESIA DE LA ENCARNACIÓN", "service": "DESCANSAR"},
 	"mall": {"building_id": 1388629764, "front_edge": 0, "scale": 1.0, "origin": Vector3(2520, 0, 0), "sign": "GALERÍA COSTA TROPICAL", "service": "COMPRAR COMIDA  ·  15 €"},
 	"cafe": {"building_id": 467627875, "front_edge": 10, "scale": 1.0, "origin": Vector3(2940, 0, 0), "sign": "BRISA Y LIMÓN · CAFETERÍA", "service": "CAFÉ Y TOSTADA · 8 €", "price": 8, "heal": 20.0},
+	"estanco": {"building_id": 1388943443, "front_edge": 5, "scale": 0.42, "origin": Vector3(9240, 0, 0), "sign": "ESTANCO DEL PASEO · TABACOS", "service": "TABACO · 5 €", "secondary": "ROBAR UN CARTÓN"},
+	"estanco_centro": {"building_id": 1010364348, "front_edge": 9, "scale": 0.5, "origin": Vector3(9660, 0, 0), "sign": "ESTANCO Nº 2 · TABACOS Y LOTERÍA", "service": "TABACO · 5 €", "secondary": "ROBAR UN CARTÓN"},
 	"palm_restaurant": {"building_id": 1154823706, "front_edge": 8, "scale": 1.0, "origin": Vector3(3360, 0, 0), "sign": "LA PALMERA · RESTAURANTE", "service": "PEDIR MENÚ · 35 €", "price": 35, "heal": 100.0},
 	"casino": {"building_id": 467627872, "front_edge": 7, "scale": 0.9, "origin": Vector3(3780, 0, 0), "sign": "CASINO COSTA TROPICAL", "service": "RULETA · ROJO · 100 €", "secondary": "TRAGAPERRAS · 20 €", "floors": 2},
 	"gun_shop": {"building_id": 1388943439, "front_edge": 2, "scale": 0.7, "origin": Vector3(4200, 0, 0), "sign": "ARMERÍA EL COTO", "service": "MUNICIÓN · 100 €", "secondary": "COMPRAR ARMA"},

@@ -101,12 +101,21 @@
       ]
     },
     {
+      "id": "el_atico",
+      "contact": "Alba",
+      "blip": "A",
+      "color": "f2c14e",
+      "requires": [
+        "la_copia"
+      ]
+    },
+    {
       "id": "poniente",
       "contact": "Alba",
       "blip": "A",
       "color": "e0645a",
       "requires": [
-        "la_copia"
+        "el_atico"
       ]
     }
   ],

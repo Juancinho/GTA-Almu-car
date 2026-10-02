@@ -14,7 +14,7 @@ func _run() -> void:
 	var wanted := root.get_node("WantedSystem") as WantedSystem
 	if world.venues.size() != VenueInterior.SPECS.size():
 		return _fail("venue catalog and physical venues differ")
-	if int(world.build_stats.get("businesses", 0)) < 10 or int(world.build_stats.get("beach_bars", 0)) != 5:
+	if int(world.build_stats.get("businesses", 0)) < 9 or int(world.build_stats.get("beach_bars", 0)) != 5:
 		return _fail("promenade businesses or walk-in beach bars missing")
 	if world.beach_bars.size() != 5:
 		return _fail("beach bar counters unavailable")

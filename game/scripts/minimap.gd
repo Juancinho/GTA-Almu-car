@@ -152,7 +152,7 @@ func _draw() -> void:
 	for kind in venue_markers:
 		var venue_pos := _to_map(venue_markers[kind], center, map_center, scale)
 		if bounds.has_point(venue_pos):
-			var marker_color := Color("63b5e3") if kind == "supermarket" else Color("ecaa73") if kind in ["restaurant", "cafe", "palm_restaurant"] else Color("d7c46e") if kind == "bank" else Color("d89cc9")
+			var marker_color := Color("7bd88f") if kind == "piso_franco" else Color("63b5e3") if kind == "supermarket" else Color("ecaa73") if kind in ["restaurant", "cafe", "palm_restaurant"] else Color("d7c46e") if kind == "bank" else Color("d89cc9")
 			draw_circle(venue_pos, 5.0, marker_color)
 	var font := ThemeDB.fallback_font
 	for offer in offers:

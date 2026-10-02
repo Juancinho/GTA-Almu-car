@@ -12,6 +12,7 @@ extends RefCounted
 
 const FLOOR_M := 3.1
 const VenueCatalog = preload("res://scripts/venue_catalog.gd")
+const ApartmentCatalog = preload("res://scripts/apartment_catalog.gd")
 const AWNING_COLORS := ["2e6f8e", "b8432f", "2f7a4f", "c98a2b", "6b3d6e", "1f4e79", "a33b4f", "3d6b5a", "d0a33a"]
 const BOUGAINVILLEA := ["c2185b", "d63384", "a0306e", "e0529c", "b8327a"]
 const LEAVES := ["4f7a3a", "5d8a3f", "3f6b34"]
@@ -32,9 +33,13 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 	return builder.call("_build", parent, data, network, mats)
 
 
+var _portals := {}  # residential portals: no awning over the door
+
+
 func _build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
 	_define_kinds(mats)
 	var skip := {}
+	_portals = ApartmentCatalog.fronts()
 	for id in VenueCatalog.fronts():
 		skip[int(id)] = true
 	for shop in CommerceBuilder.SHOPS:
@@ -203,7 +208,7 @@ func _building(b: Dictionary, data: SectorData, skip_facade: bool, stats: Dictio
 			continue
 		var edge := c - a
 		var normal := Vector3(edge.y, 0, -edge.x) / length
-		_facade(stats, b, zone, a, c, normal, data, top, id * 31 + i)
+		_facade(stats, b, zone, a, c, normal, data, top, id * 31 + i, ApartmentCatalog.DOOR_HALF if _portals.has(id) and int(_portals[id][0]) == i else 0.0)
 
 
 func _roof(pts: Array[Vector2], top: float, id: int, levels: int, area: float, wall_color: Color) -> int:
@@ -275,7 +280,7 @@ static func _roof_spot(polygon: PackedVector2Array, bounds: Rect2, margin: float
 
 
 ## Mirrors BuildingBuilder._facade's bays, door bay and per-floor random values.
-func _facade(stats: Dictionary, b: Dictionary, zone: String, a: Vector2, c: Vector2, normal: Vector3, data: SectorData, top: float, seed_value: int) -> void:
+func _facade(stats: Dictionary, b: Dictionary, zone: String, a: Vector2, c: Vector2, normal: Vector3, data: SectorData, top: float, seed_value: int, door_half: float = 0.0) -> void:
 	var length := a.distance_to(c)
 	var bay_width := 2.7 + Geo.hash01(seed_value, 301) * 1.35
 	var bays := maxi(1, int(length / bay_width))
@@ -304,7 +309,7 @@ func _facade(stats: Dictionary, b: Dictionary, zone: String, a: Vector2, c: Vect
 			var roll := Geo.hash01(seed_value * 7 + bay, floor_index + 40)
 			if floor_index == 0:
 				var shop := bay != door_bay and (not old or r < 0.35)
-				if shop and (r < 0.3 or Geo.hash01(seed_value + bay, 77) < 0.3):
+				if shop and (r < 0.3 or Geo.hash01(seed_value + bay, 77) < 0.3) and not (door_half > 0.0 and absf(along - length * 0.5) < door_half + 2.2):
 					var width := minf(spacing - 0.4, 3.0) + 0.3
 					_add("Awning", _box(face, Vector3(width, 1.0, 1.15), at + normal * 0.05 + Vector3(0, ground + 2.95, 0)), awning_color, Color(width / 10.0, striped, 0, 0))
 					stats["awnings"] += 1

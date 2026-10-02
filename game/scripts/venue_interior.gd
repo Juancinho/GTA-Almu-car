@@ -133,7 +133,7 @@ func try_interact(player: PlayerController) -> bool:
 		player._update_camera_orientation()
 		room.visible = true
 		return true
-	if contains_player(player.global_position) and player.global_position.distance_to(inside_entry) < 2.7:
+	if near_exit(player.global_position):
 		if kind == "record_shop":
 			(room.get_node("ListeningStation") as AudioStreamPlayer3D).stop()
 		player.global_position = exterior_entry + exterior_normal * 0.35
@@ -174,7 +174,32 @@ func _process(delta: float) -> void:
 
 func update_room_visibility(at: Vector3) -> void:
 	var radius_squared := visibility_distance * visibility_distance
-	room.visible = contains_player(at) or at.distance_squared_to(inside_entry) < radius_squared or at.distance_squared_to(exterior_entry) < radius_squared
+	# Measured to the room's whole box, not only to its doors: on angled plots a
+	# side or back wall can stand proud of the façade, and a hidden room left
+	# those walls solid but invisible in the street ("invisible walls").
+	room.visible = contains_player(at) or at.distance_squared_to(inside_entry) < radius_squared or at.distance_squared_to(exterior_entry) < radius_squared or _distance_to_room(at) < minf(visibility_distance, 18.0)
+
+
+func _distance_to_room(at: Vector3) -> float:
+	var local := room.to_local(at)
+	var origin: Vector3 = SPECS[kind]["origin"]
+	var scale_xz := float(SPECS[kind]["scale"])
+	var dx := maxf(absf(local.x - origin.x) - 7.2, 0.0) * scale_xz
+	var dz := maxf(absf(local.z - origin.z) - 9.2, 0.0) * scale_xz
+	return sqrt(dx * dx + dz * dz)
+
+
+## The whole street half of the ground floor counts as the doorway: players walk
+## to the glass door to leave, which is several metres in front of inside_entry
+## (in small shops like the bakery E there did nothing: "you can enter but not leave").
+func near_exit(at: Vector3) -> bool:
+	if not contains_player(at):
+		return false
+	if at.distance_to(inside_entry) < 2.7:
+		return true
+	var local := room.to_local(at)
+	var origin: Vector3 = SPECS[kind]["origin"]
+	return local.y < 2.5 and local.z - origin.z > 2.0 and absf(local.x - origin.x) < 4.5
 
 
 func contains_player(at: Vector3) -> bool:
@@ -278,6 +303,8 @@ func _make_room(origin: Vector3, mats: SectorMaterials, spec: Dictionary) -> voi
 		_make_church(origin, wood, accent, mats)
 	elif kind == "mall":
 		_make_mall(origin, wood, metal, accent, mats)
+	elif kind.begins_with("estanco"):
+		_make_estanco(origin, wood, accent, mats)
 	elif kind == "casino":
 		_make_casino(origin, wood, metal, mats)
 	elif kind == "gun_shop":
@@ -740,6 +767,19 @@ func _make_nightclub(origin: Vector3, metal: Material, mats: SectorMaterials) ->
 		person.position = origin + Vector3(-3.4 + dancer * 1.3, 0, -1.2 + (dancer % 2) * 1.5)
 		person.rotation.y = dancer * 1.3
 		room.add_child(person)
+
+
+## Estanco: counter, a wall of tobacco packs behind glass, the lottery stand.
+func _make_estanco(origin: Vector3, wood: Material, accent: Material, mats: SectorMaterials) -> void:
+	_box("TobaccoCounter", Vector3(6.0, 1.05, 0.9), origin + Vector3(3.0, 0.53, -5.5), wood, true)
+	_box("TobaccoWall", Vector3(12.0, 2.8, 0.25), origin + Vector3(0, 1.9, -8.7), wood)
+	var colors := [Color("b8322a"), Color("e8e4d8"), Color("2f4f8f"), Color("d4a93a"), Color("2f6b45"), Color("6b2f5a")]
+	for row in range(5):
+		for col in range(14):
+			_box("TobaccoPack", Vector3(0.26, 0.36, 0.12), origin + Vector3(-5.2 + col * 0.8, 1.0 + row * 0.5, -8.5), mats.plain("pack_%d" % ((row + col) % colors.size()), colors[(row + col) % colors.size()], 0.6))
+	_box("TobaccoGlass", Vector3(11.8, 2.6, 0.05), origin + Vector3(0, 1.95, -8.3), accent)
+	_box("LotteryStand", Vector3(1.4, 1.5, 0.6), origin + Vector3(-4.8, 0.75, -3.8), mats.plain("lottery_stand", Color("c9a227"), 0.5), true)
+	_wall_label("EstancoSign", "TABACOS  ·  SELLOS  ·  LOTERÍA", origin + Vector3(0, 3.7, -8.55), Color("f2d36b"))
 
 
 func _box(label: String, size: Vector3, at: Vector3, material: Material, solid: bool = false) -> void:

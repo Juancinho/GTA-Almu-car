@@ -303,6 +303,9 @@ func _material(color: Color) -> StandardMaterial3D:
 
 func _physics_process(delta: float) -> void:
 	ram_cooldown = maxf(0.0, ram_cooldown - delta)
+	if _last_tick_position != Vector3.INF and global_position.distance_squared_to(_last_tick_position) > 25.0:
+		reset_physics_interpolation()  # respawned, reset or far traffic jump: no streak
+	_last_tick_position = global_position
 	if boat:
 		_boat_process(delta)
 		return
@@ -339,7 +342,11 @@ func _physics_process(delta: float) -> void:
 	if absf(speed) > 0.1 and _deep_water(global_position + forward * (speed * delta + signf(speed) * 2.3)):
 		speed = 0.0
 	velocity = forward * speed
-	velocity.y = maxf(velocity.y - 16.0 * delta, -18.0) if not is_on_floor() else -0.2
+	# Keep the vertical speed between frames: overwriting velocity every frame
+	# left only one frame of gravity (0.27 m/s), so cars that left a kerb, a ramp
+	# or another car's bonnet hung in the air ("flying police cars").
+	fall_speed = maxf(fall_speed - 22.0 * delta, -30.0) if not is_on_floor() else -0.2
+	velocity.y = fall_speed
 	var speed_before := absf(speed)
 	recent_speed = maxf(speed_before, recent_speed - 25.0 * delta)
 	if is_on_wall():
@@ -447,19 +454,41 @@ func set_headlights(on: bool) -> void:
 		headlight.visible = wants_spot
 
 
-## A car never rides on another car's roof: it is pushed off sideways.
+## A car never rides on another car's roof or on top of street furniture (palms,
+## lamp posts, benches, containers): it is pushed off sideways. As a last resort a
+## car that stays well above the real ground is put back on it.
+var airborne_time := 0.0
+var fall_speed := 0.0
+var _last_tick_position := Vector3.INF
+
+
 func _slide_off_cars() -> void:
 	for i in range(get_slide_collision_count()):
 		var hit := get_slide_collision(i)
-		if hit.get_normal().y > 0.6 and hit.get_collider() is DriveableVehicle:
-			var other := hit.get_collider() as DriveableVehicle
-			var away := global_position - other.global_position
+		var other := hit.get_collider()
+		var prop := other is DriveableVehicle or (other is Node and str((other as Node).name) in ["StreetFurnitureCollision", "ContainerCollision"])
+		if hit.get_normal().y > 0.6 and prop:
+			var centre: Vector3 = (other as Node3D).global_position if other is DriveableVehicle else hit.get_position()
+			var away := global_position - centre
 			away.y = 0.0
 			if away.length() < 0.05:
 				away = global_transform.basis.x
 			global_position += away.normalized() * 0.25
-			velocity.y = minf(velocity.y, -2.0)
-			return
+			fall_speed = minf(fall_speed, -2.0)
+			break
+	if sector_data == null:
+		return
+	# Safety net: a car hanging more than 2.2 m over the real ground for most of a
+	# second (wedged on a façade ledge, a prop or a roof) is put back on the street.
+	var ground := sector_data.height_at(global_position.x, global_position.z)
+	if global_position.y - ground > 2.2 and not is_on_floor():
+		airborne_time += get_physics_process_delta_time()
+		if airborne_time > 0.8:
+			global_position.y = ground + 0.3
+			fall_speed = 0.0
+			airborne_time = 0.0
+	else:
+		airborne_time = 0.0
 
 
 ## The body stays upright for stable physics; the visible car pitches and rolls

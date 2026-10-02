@@ -269,6 +269,30 @@ func _run() -> void:
 	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
 	if not mission.completed_missions.has("la_copia"):
 		return _fail("La copia did not complete (stage %d)" % mission.stage)
+	# --- El ático de Ferrer (walk-in tower) --------------------------------------------
+	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
+	player._interact()
+	await _frames(2)
+	if mission.mission_id != "el_atico" or mission.stage != 1:
+		return _fail("El ático did not start (%s stage %d)" % [mission.mission_id, mission.stage])
+	var tower: Node3D = world.apartments["torre_mediterraneo"]
+	await _walk_to(player, tower.exterior_entry)
+	await _walk_to(player, tower.point("flat_door"))
+	if mission.stage != 3:
+		return _fail("El ático: did not reach the penthouse (stage %d)" % mission.stage)
+	for id in ["guard_1", "guard_2", "guard_3"]:
+		var guard := mission.spawned.get(id) as Pedestrian
+		guard.take_damage(500.0, guard.global_position + Vector3(1, 0, 0))
+	await _frames(4)
+	await _walk_to(player, tower.point("safe"))
+	player._interact()
+	if mission.stage != 5 or wanted.level < 2:
+		return _fail("El ático: the safe did not raise the alarm (stage %d)" % mission.stage)
+	wanted.clear_wanted()
+	await _frames(3)
+	await _walk_to(player, alba.global_position + Vector3(1.5, 0, 0))
+	if not mission.completed_missions.has("el_atico"):
+		return _fail("El ático did not complete (stage %d)" % mission.stage)
 	# --- Poniente (finale) ---------------------------------------------------------------
 	player.global_position = alba.global_position + Vector3(0.8, 0.3, 0)
 	player._interact()
@@ -309,7 +333,7 @@ func _run() -> void:
 	root.call("_save_game")
 	mission.completed_missions.clear()
 	root.call("_load_game")
-	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria", "pescadores", "emboscada", "la_copia", "poniente"]:
+	for id in ["el_recado", "proteccion", "la_cuota", "coche_concejal", "ajuste_de_cuentas", "el_furgon", "golpe_joyeria", "pescadores", "emboscada", "la_copia", "el_atico", "poniente"]:
 		if not mission.completed_missions.has(id):
 			return _fail("completed mission %s lost on load" % id)
 	if mission.offer_of("Alba") != "" or mission.offer_of("Marina") != "jaime_playa":

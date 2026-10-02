@@ -23,6 +23,7 @@ static var chair_mesh: ArrayMesh
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> Dictionary:
 	var physical_fronts: Dictionary = preload("res://scripts/venue_catalog.gd").fronts()
+	physical_fronts.merge(preload("res://scripts/apartment_catalog.gd").fronts())
 	var by_id := {}
 	for building in data.raw["buildings"]:
 		by_id[int(building["id"])] = building

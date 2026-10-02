@@ -57,6 +57,8 @@ Invoke-Godot 'venues' @('--headless', '--path', ('"' + $gamePath + '"'), '--scri
 Invoke-Godot 'neighborhood' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/neighborhood.gd')
 Invoke-Godot 'surface_contacts' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/surface_contacts.gd')
 Invoke-Godot 'casino_route' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/casino_route.gd')
+Invoke-Godot 'tobacco' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/tobacco.gd')
+Invoke-Godot 'apartments' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/apartments.gd')
 Invoke-Godot 'traffic' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_soak.gd')
 Invoke-Godot 'traffic_obstacles' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_obstacles.gd')
 Invoke-Godot 'route' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')

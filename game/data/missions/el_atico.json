@@ -1,0 +1,132 @@
+{
+  "id": "el_atico",
+  "title": "El ático de Ferrer",
+  "reward": 3000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Alba: Ferrer sigue arriba con la caja fuerte llena. Vuelve a la Torre Mediterráneo.",
+  "spawns": [
+    {
+      "id": "guard_1",
+      "kind": "enemy",
+      "at": [
+        59.0,
+        -45.0
+      ],
+      "building": "torre_mediterraneo",
+      "point": "guard_1",
+      "display": "Escolta",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 4,
+      "when": "objective"
+    },
+    {
+      "id": "guard_2",
+      "kind": "enemy",
+      "at": [
+        59.0,
+        -45.0
+      ],
+      "building": "torre_mediterraneo",
+      "point": "guard_2",
+      "display": "Escolta",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 4,
+      "when": "objective"
+    },
+    {
+      "id": "guard_3",
+      "kind": "enemy",
+      "at": [
+        59.0,
+        -45.0
+      ],
+      "building": "torre_mediterraneo",
+      "point": "guard_3",
+      "display": "Escolta",
+      "model": "male_suit",
+      "armed": true,
+      "toughness": 4,
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Alba",
+      "text": "Habla con Alba en el Paseo del Altillo",
+      "dialogue": [
+        "Alba: Ferrer se ha encerrado en su ático de la Torre Mediterráneo, con tres escoltas pagados con dinero público.",
+        "Alba: En la caja fuerte del despacho guarda las claves de la cámara de Caja Poniente y los poderes de la sociedad pantalla. Sin eso, el banco no sirve de nada.",
+        "Alba: Entra por el portal, sube hasta el ático y ábrela. Toma, vas a necesitarla."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker_building": "torre_mediterraneo",
+      "radius": 4,
+      "requires_on_foot": true,
+      "text": "Entra a pie por el portal de la Torre Mediterráneo",
+      "give_weapon": {
+        "weapon": "pistol",
+        "ammo": 48
+      },
+      "dialogue": "Conserje: ¡Oiga! ¿A qué piso va? ... (descuelga el teléfono y avisa arriba)"
+    },
+    {
+      "type": "reach_area",
+      "marker_building": "torre_mediterraneo",
+      "building_point": "flat_door",
+      "radius": 3.0,
+      "radius_3d": true,
+      "spawn": [
+        "guard_1",
+        "guard_2",
+        "guard_3"
+      ],
+      "text": "Sube al ático (planta 5) por la escalera o en ascensor",
+      "dialogue": "Escolta: ¡Es él! ¡Que no llegue al despacho!"
+    },
+    {
+      "type": "beat_up",
+      "targets": [
+        "guard_1",
+        "guard_2",
+        "guard_3"
+      ],
+      "marker_building": "torre_mediterraneo",
+      "building_point": "flat_door",
+      "text": "Neutraliza a los tres escoltas de Ferrer",
+      "dialogue": "Despejado. La caja fuerte está en el despacho, junto a la mesa."
+    },
+    {
+      "type": "event",
+      "event": "atico_safe",
+      "marker_building": "torre_mediterraneo",
+      "building_point": "safe",
+      "text": "Abre la caja fuerte del despacho (E)",
+      "set_wanted": 2,
+      "dialogue": [
+        "Dentro: las claves de la cámara, los poderes notariales y varios fajos de billetes de quinientos.",
+        "¡El conserje ha llamado a la Policía Local! Baja y sal de ahí."
+      ]
+    },
+    {
+      "type": "escape_police",
+      "text": "Sal de la torre y pierde a la policía",
+      "dialogue": "Los has despistado."
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Alba",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Lleva los papeles de Ferrer a Alba",
+      "dialogue": [
+        "Alba: Las claves de la cámara... y los poderes a nombre de la sociedad pantalla. Ferrer está desnudo.",
+        "Alba: Ahora sí: Caja Poniente. El último golpe."
+      ]
+    }
+  ]
+}

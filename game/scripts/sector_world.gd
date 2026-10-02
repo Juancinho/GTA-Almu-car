@@ -10,6 +10,7 @@ const VehicleScript = preload("res://scripts/vehicle.gd")
 const PedestrianScript = preload("res://scripts/pedestrian.gd")
 const WorkshopScript = preload("res://scripts/workshop_interior.gd")
 const VenueScript = preload("res://scripts/venue_interior.gd")
+const ApartmentScript = preload("res://scripts/apartment_block.gd")
 const TownDressingScript = preload("res://scripts/sector/town_dressing_builder.gd")
 const TRAFFIC_COUNT := 16
 const PEDESTRIAN_COUNT := 56
@@ -25,6 +26,7 @@ var landmark_info: Dictionary = {}
 var build_stats: Dictionary = {}
 var workshop: WorkshopInterior
 var venues: Dictionary = {}
+var apartments: Dictionary = {}  # block id -> apartment_block.gd (walk-in residential blocks)
 var beach_bars: Array[BeachBarService] = []
 
 
@@ -50,6 +52,7 @@ func _ready() -> void:
 	build_stats.merge(beach_bar_result)
 	_create_workshop()
 	_create_venues()
+	_create_apartments()
 	_create_vehicle()
 	_create_boats()
 	_create_people()
@@ -72,6 +75,15 @@ func _create_venues() -> void:
 		add_child(venue)
 		if venue.configure(kind, data, mats):
 			venues[kind] = venue
+
+
+func _create_apartments() -> void:
+	for id in ApartmentScript.Catalog.SPECS:
+		var block := ApartmentScript.new()
+		block.name = "Block_" + str(id)
+		add_child(block)
+		if block.configure(str(id), data, mats):
+			apartments[str(id)] = block
 
 
 func anchor(name: String) -> Vector3:
