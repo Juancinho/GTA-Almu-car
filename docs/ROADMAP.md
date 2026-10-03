@@ -1,5 +1,7 @@
 # Roadmap
 
+The full open-world scope (every pillar, status and next priorities) is tracked in `docs/GTA_SCOPE.md`.
+
 Milestones are ordered by prerequisites. A milestone is complete only when its acceptance evidence is recorded in `TASKS.md`; design text alone does not qualify.
 
 | Milestone | Deliverable | Acceptance criteria |

@@ -225,7 +225,8 @@ static func _palm_instance(parent: Node3D, label: String, multi: MultiMesh, mesh
 		var frond := mats.plain("palm_frond", Color("56702f"), 0.78)
 		frond.cull_mode = BaseMaterial3D.CULL_DISABLED
 		instance.material_override = frond
-	instance.visibility_range_end = 450.0
+	# Crowns are ~40 % of the street view's triangles: far chunks stop at 320 m.
+	instance.visibility_range_end = 320.0 if str(mesh_instance.name).begins_with("PalmLeaf") else 450.0
 	parent.add_child(instance)
 
 

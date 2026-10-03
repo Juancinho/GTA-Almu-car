@@ -7,6 +7,16 @@ extends RefCounted
 
 const LIFT_DRIVE := 0.16
 const LIFT_WALK := 0.11
+const CURB_WIDTH := 0.6
+const SKIRT_WALK := 0.5
+
+## No lips anywhere. Every ribbon floats 11–16 cm above the heightmap, and its
+## bare edge used to be a lip that a capsule or a tyre met at ~30°: an invisible
+## wall wherever the ground texture changed (road → pavement, paseo paving →
+## tiles). Each ribbon now ends in a sloping skirt down into the ground (in the
+## visible mesh and in the collision), and the kerb is a sloped stone band
+## instead of a step, so feet and wheels roll on and off everywhere.
+static var _skirts := {}  # ribbon key -> collision faces of its skirts
 
 
 static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: SectorMaterials) -> void:
@@ -16,6 +26,7 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 	var curb := mats.plain("curb", Color("cfc8b8"), 0.85)
 	var paint := mats.plain("road_paint", Color("eeeae0"), 0.7)
 	var tools: Dictionary = {}  # "chunk|kind" -> SurfaceTool
+	_skirts = {}
 	var dashes: Array[Transform3D] = []
 	for road in network.roads:
 		var points := _densify(road["points"] as PackedVector3Array, data)
@@ -63,8 +74,11 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 					Geo.add_uv_quad(st, v0, v1, v2, v3, Vector3.UP, 2.1, road_tint)
 				else:
 					Geo.add_quad(st, v0, v1, v2, v3, Vector3.UP)
-		if kind == "asphalt":
-			_curbs(tools, key.replace("asphalt", "curb"), left, right, points, network, int(road["id"]))
+		_collision_skirts(key, left, right, points, data, CURB_WIDTH if kind == "asphalt" else SKIRT_WALK)
+		if kind != "asphalt":
+			_walk_skirts(st, left, right, data)
+		else:
+			_curbs(tools, key.replace("asphalt", "curb"), left, right, points, network, int(road["id"]), data)
 			if str(road["class"]) == "tertiary":
 				_edge_lines(tools, key.replace("asphalt", "paint"), left, right, data, lift, network, int(road["id"]))
 			# Wide one-way streets have two lanes too, so retain their painted
@@ -80,7 +94,7 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 		instance.material_override = {"asphalt": asphalt, "paving": paving, "steps": steps, "curb": curb, "paint": paint}[kind]
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		parent.add_child(instance)
-		if kind in ["asphalt", "paving", "steps", "curb"]:
+		if kind in ["asphalt", "paving", "steps"]:
 			# Use exactly the rendered triangles: the heightmap lies 11–16 cm below
 			# the road and cannot support feet or tyres on its visible surface.
 			var body := StaticBody3D.new()
@@ -88,7 +102,9 @@ static func build(parent: Node3D, data: SectorData, network: RoadNetwork, mats: 
 			body.add_to_group("terrain")
 			body.add_to_group("road_surfaces")
 			var shape := ConcavePolygonShape3D.new()
-			shape.set_faces(mesh.get_faces())
+			var faces := mesh.get_faces()
+			faces.append_array(_skirts.get(key, PackedVector3Array()))
+			shape.set_faces(faces)
 			shape.backface_collision = true
 			var collision := CollisionShape3D.new()
 			collision.shape = shape
@@ -132,7 +148,9 @@ static func _road_vertex(left: Vector3, right: Vector3, t: float, data: SectorDa
 	return p
 
 
-static func _curbs(tools: Dictionary, key: String, left: PackedVector3Array, right: PackedVector3Array, center: PackedVector3Array, network: RoadNetwork, own_id: int) -> void:
+## Kerb: a light stone band sloping from the road edge down to the pavement
+## (a dropped kerb all along), so it reads as a kerb but is never a step.
+static func _curbs(tools: Dictionary, key: String, left: PackedVector3Array, right: PackedVector3Array, center: PackedVector3Array, network: RoadNetwork, own_id: int, data: SectorData) -> void:
 	if not tools.has(key):
 		var st_new := SurfaceTool.new()
 		st_new.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -142,16 +160,70 @@ static func _curbs(tools: Dictionary, key: String, left: PackedVector3Array, rig
 		for i in range(edge.size() - 1):
 			var a: Vector3 = edge[i]
 			var b: Vector3 = edge[i + 1]
-			# At junctions, the curb of a side street must end before it
-			# reaches the carriageway of the crossing road.
+			# At junctions, the kerb of a side street ends before it reaches the
+			# carriageway of the crossing road.
 			if _inside_other_carriageway((a + b) * 0.5, network, own_id):
 				continue
-			var outward: Vector3 = (a - center[i]).normalized()
-			outward.y = 0.0
-			var up := Vector3(0, 0.13, 0)
-			var o := outward * 0.3
-			Geo.add_quad(st, a, b, b + up, a + up, -outward)  # curb face toward the road
-			Geo.add_quad(st, a + up, b + up, b + up + o, a + up + o, Vector3.UP)
+			var out_a := _outward(a, center[i])
+			var out_b := _outward(b, center[i + 1])
+			var a_out := _skirt_end(a, out_a, CURB_WIDTH, data, 0.012)
+			var b_out := _skirt_end(b, out_b, CURB_WIDTH, data, 0.012)
+			var lift := Vector3(0, 0.012, 0)
+			Geo.add_quad(st, a + lift, b + lift, b_out, a_out, Vector3.UP)
+
+
+## Paving and steps: the same sloping edge in their own stone.
+static func _walk_skirts(st: SurfaceTool, left: PackedVector3Array, right: PackedVector3Array, data: SectorData) -> void:
+	for pair in [[left, right], [right, left]]:
+		var edge: PackedVector3Array = pair[0]
+		var other: PackedVector3Array = pair[1]
+		for i in range(edge.size() - 1):
+			var a: Vector3 = edge[i]
+			var b: Vector3 = edge[i + 1]
+			var a_out := _skirt_end(a, _outward(a, (a + other[i]) * 0.5), SKIRT_WALK, data, 0.005)
+			var b_out := _skirt_end(b, _outward(b, (b + other[i + 1]) * 0.5), SKIRT_WALK, data, 0.005)
+			if edge == left:
+				Geo.add_quad(st, a, b, b_out, a_out, Vector3.UP)
+			else:
+				Geo.add_quad(st, b, a, a_out, b_out, Vector3.UP)
+
+
+## Collision skirts on both sides and both ends of a ribbon, tucked a few
+## centimetres under the ground so there is no edge left to catch on.
+static func _collision_skirts(key: String, left: PackedVector3Array, right: PackedVector3Array, center: PackedVector3Array, data: SectorData, width: float) -> void:
+	if not _skirts.has(key):
+		_skirts[key] = PackedVector3Array()
+	var faces: PackedVector3Array = _skirts[key]
+	for edge in [left, right]:
+		for i in range(edge.size() - 1):
+			var a: Vector3 = edge[i]
+			var b: Vector3 = edge[i + 1]
+			_tri_quad(faces, a, b, _skirt_end(b, _outward(b, center[i + 1]), width, data, -0.04), _skirt_end(a, _outward(a, center[i]), width, data, -0.04))
+	var last := center.size() - 1
+	for end in [[0, 1], [last, last - 1]]:
+		var here: Vector3 = center[end[0]]
+		var away := Vector3(here.x - center[end[1]].x, 0, here.z - center[end[1]].z).normalized()
+		var l: Vector3 = left[end[0]]
+		var r: Vector3 = right[end[0]]
+		_tri_quad(faces, l, r, _skirt_end(r, away, width, data, -0.04), _skirt_end(l, away, width, data, -0.04))
+	_skirts[key] = faces
+
+
+static func _outward(edge_point: Vector3, centre: Vector3) -> Vector3:
+	var out := Vector3(edge_point.x - centre.x, 0, edge_point.z - centre.z)
+	return out.normalized() if out.length() > 0.001 else Vector3.RIGHT
+
+
+## Where a skirt meets the ground, `width` metres out from `edge_point`; never
+## above the edge itself (on a downhill side the ground may be higher).
+static func _skirt_end(edge_point: Vector3, outward: Vector3, width: float, data: SectorData, offset: float) -> Vector3:
+	var p := edge_point + outward * width
+	p.y = minf(data.height_at(p.x, p.z) + offset, edge_point.y)
+	return p
+
+
+static func _tri_quad(faces: PackedVector3Array, a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> void:
+	faces.append_array([a, b, c, a, c, d])
 
 
 static func _edge_lines(tools: Dictionary, key: String, left: PackedVector3Array, right: PackedVector3Array, data: SectorData, lift: float, network: RoadNetwork, own_id: int) -> void:

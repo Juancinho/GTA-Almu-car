@@ -21,6 +21,7 @@ var gps_goal := Vector3.INF
 var gps_from := Vector3.INF
 var offers: Array = []
 var activities: Node  # ActivitySystem: its target takes over the GPS while active
+var events: Node  # StreetEvents: its blip_target is drawn as a pulsing red dot
 var waypoint := Vector3.INF  # player-chosen destination from the full map
 var waypoint_path := PackedVector3Array()
 var waypoint_from := Vector3.INF
@@ -173,6 +174,12 @@ func _draw() -> void:
 				var dir := (raw - map_center).normalized()
 				var side := Vector2(-dir.y, dir.x)
 				draw_colored_polygon(PackedVector2Array([at + dir * 8.0, at - dir * 5.0 + side * 6.0, at - dir * 5.0 - side * 6.0]), OBJECTIVE_COLOR)
+	if events != null and is_instance_valid(events.get("blip_target")):
+		var target := events.get("blip_target") as Node3D
+		var event_pos := _edge_clamp(_to_map(Vector2(target.global_position.x, target.global_position.z), center, map_center, scale), 8.0)
+		var pulse := 5.5 + 1.5 * sin(Time.get_ticks_msec() * 0.008)
+		draw_circle(event_pos, pulse + 1.5, Color(0.05, 0.05, 0.05, 0.85))
+		draw_circle(event_pos, pulse, Color("ff5a4a"))
 	if wanted != null:
 		var blink := int(Time.get_ticks_msec() / 250) % 2 == 0
 		for car in wanted.police_cars:

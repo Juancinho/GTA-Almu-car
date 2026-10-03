@@ -1,6 +1,7 @@
 class_name DriveableVehicle
 extends CharacterBody3D
 
+signal tyres_burst_signal
 signal ran_over(victim: Pedestrian)
 signal destroyed_vehicle
 
@@ -78,7 +79,26 @@ var bob_time := 0.0
 var model_yaw := 0.0
 var lamps: Node3D  # headlight/tail-light glow (+ a spotlight for the player's car)
 var headlight: SpotLight3D
+var lights_on := false
+var light_slots: Array = []  # [MeshInstance3D, surface, head|tail|blue|red|white]
+static var light_materials := {}
+var car_front_z := -2.1
+var siren_on := false
+var siren_phase := false
+var siren_timer := 0.0
+var beacon := false  # light bar on while parked (roadblocks)
 var model_tilt := Quaternion.IDENTITY
+var model_base_y := 0.0
+## Spike strips: burst tyres cap the speed, make the car wander and sit lower
+## until it is repaired (Taller Poniente or a mission reset).
+var tyres_burst := false
+## 1.0 on dry roads, lower on wet ones (set by WeatherSystem): longer braking.
+static var wet_grip := 1.0
+var _wobble := 0.0
+const BURST_MAX_SPEED := 9.0
+var suspension_y := 0.0
+var _last_body_y := INF
+var _last_rise := 0.0
 
 
 func _ready() -> void:
@@ -88,6 +108,9 @@ func _ready() -> void:
 		sector_data = (sectors[0] as SectorWorld).data
 	last_dry_transform = global_transform
 	floor_snap_length = 0.45
+	# Kerb chamfers (~40°) and steep old-town ramps must read as floor so the
+	# tyres roll up them instead of treating them as a wall.
+	floor_max_angle = deg_to_rad(52.0)
 	_build_visuals()
 	engine_audio = AudioStreamPlayer3D.new()
 	engine_audio.name = "EngineAudio"
@@ -153,6 +176,21 @@ func _build_model() -> void:
 			bottom = minf(bottom, bounds.position.y)
 		if is_finite(bottom):
 			model.position.y -= bottom
+		model_base_y = model.position.y
+	if scene != CarScene:
+		_merge_model(model)
+	var lamp_kinds := {"Headlights": "head", "M_lamp": "head", "TailLights": "tail", "M_rear_lamp": "tail", "BlueLights": "blue", "RedLights": "red", "WhiteLights": "white"}
+	var front := 0.0
+	for node in model.find_children("*", "MeshInstance3D", true, false):
+		var lamp_mesh := node as MeshInstance3D
+		for surface in range(lamp_mesh.mesh.get_surface_count()):
+			var source := lamp_mesh.mesh.surface_get_material(surface)
+			if source != null and lamp_kinds.has(source.resource_name):
+				light_slots.append([lamp_mesh, surface, lamp_kinds[source.resource_name]])
+		var box: AABB = (global_transform.affine_inverse() * lamp_mesh.global_transform) * lamp_mesh.mesh.get_aabb()
+		front = minf(front, box.position.z)
+	if front < -0.5:
+		car_front_z = front
 	var paint: Dictionary = spec.get("paint", {})
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
@@ -165,6 +203,48 @@ func _build_model() -> void:
 			var source := mesh_instance.mesh.surface_get_material(surface)
 			if source != null and paint.has(source.resource_name):
 				mesh_instance.set_surface_override_material(surface, _material(Color(str(paint[source.resource_name]))))
+
+
+## One mesh per car instead of four: surfaces that share a material are joined
+## (12 surfaces -> ~6), halving each car's draw calls in colour and shadow passes.
+## The merged mesh is built once per variant and shared by every car of that kind.
+static var merged_models := {}
+
+
+func _merge_model(model: Node3D) -> void:
+	var parts := model.find_children("*", "MeshInstance3D", true, false)
+	if parts.size() < 2:
+		return
+	var merged: ArrayMesh = merged_models.get(variant)
+	if merged == null:
+		var groups := {}  # material id -> [material, [[mesh, surface, transform]]]
+		var order: Array = []
+		for item in parts:
+			var part := item as MeshInstance3D
+			var relative := model.global_transform.affine_inverse() * part.global_transform
+			for surface in range(part.mesh.get_surface_count()):
+				var material := part.get_active_material(surface)
+				var key := material.get_instance_id() if material != null else 0
+				if not groups.has(key):
+					groups[key] = [material, []]
+					order.append(key)
+				(groups[key][1] as Array).append([part.mesh, surface, relative])
+		merged = ArrayMesh.new()
+		for key in order:
+			var st := SurfaceTool.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
+			for entry in groups[key][1]:
+				st.append_from(entry[0], int(entry[1]), entry[2])
+			st.commit(merged)
+			merged.surface_set_material(merged.get_surface_count() - 1, groups[key][0])
+		merged_models[variant] = merged
+	for item in parts:
+		item.get_parent().remove_child(item)
+		item.free()
+	var body := MeshInstance3D.new()
+	body.name = "Body"
+	body.mesh = merged
+	model.add_child(body)
 
 
 ## Variant data from res://data/vehicles/models.json (cached for all vehicles).
@@ -338,6 +418,10 @@ func _physics_process(delta: float) -> void:
 		_follow_route(delta)
 	else:
 		speed = move_toward(speed, 0.0, DRAG * delta)
+	if tyres_burst and not destroyed:
+		speed = clampf(speed, -4.0, BURST_MAX_SPEED)
+		_wobble += delta * 7.0
+		rotation.y += sin(_wobble) * 0.35 * clampf(absf(speed) / BURST_MAX_SPEED, 0.0, 1.0) * delta
 	var forward := -global_transform.basis.z
 	if absf(speed) > 0.1 and _deep_water(global_position + forward * (speed * delta + signf(speed) * 2.3)):
 		speed = 0.0
@@ -351,12 +435,28 @@ func _physics_process(delta: float) -> void:
 	recent_speed = maxf(speed_before, recent_speed - 25.0 * delta)
 	if is_on_wall():
 		CharacterStep.climb(self, Vector3(velocity.x,0,velocity.z) * delta, 0.20)
+	var grounded_before := is_on_floor()
+	# While climbing a ramp the floor snap would suck the car down at the lip.
+	floor_snap_length = 0.0 if _climb_history.size() == 6 and float(_climb_history.min()) > 1.5 else 0.45
 	move_and_slide()
+	# Leaving a ramp or a crest keeps the climb rate the car had on it (a ramp
+	# launches the car). Only a sustained climb counts: the smallest of the last
+	# six ticks, so a kerb step (one or two ticks) never turns into a launch.
+	if is_on_floor():
+		_climb_history.push_back(get_real_velocity().y)
+		if _climb_history.size() > 6:
+			_climb_history.pop_front()
+	elif grounded_before and _climb_history.size() == 6:
+		var sustained: float = _climb_history.min()
+		if sustained > 1.5:
+			fall_speed = minf(sustained, absf(speed) * 0.45)
+		_climb_history.clear()
 	if not _deep_water(global_position) and is_on_floor():
 		last_dry_transform = global_transform
 	_resolve_contacts(recent_speed)
 	_slide_off_cars()
 	_tilt_to_ground(delta)
+	_update_siren(delta)
 	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
 	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
 	engine_audio.volume_db = -22.0 + engine_load * 9.0
@@ -413,33 +513,20 @@ func _boat_water(at: Vector3) -> bool:
 ## Night lighting: glowing head and tail lamps on every car, and a real
 ## spotlight only on the car the player drives (lights are costly here).
 func set_headlights(on: bool) -> void:
+	# The models' own lamp surfaces glow (no extra bulbs floating off the body:
+	# fixed-position spheres stuck out of shorter cars and did not tilt with them).
 	if lamps == null:
-		if not on:
-			return
 		lamps = Node3D.new()
 		lamps.name = "Lamps"
 		add_child(lamps)
-		var glow := StandardMaterial3D.new()
-		glow.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		glow.albedo_color = Color("fff1c8")
-		var tail := StandardMaterial3D.new()
-		tail.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		tail.albedo_color = Color("ff2a1c")
-		for side: float in [-0.62, 0.62]:
-			for spec in [[-2.07, glow, 0.13], [2.07, tail, 0.1]]:
-				var bulb := MeshInstance3D.new()
-				var sphere := SphereMesh.new()
-				sphere.radius = spec[2]
-				sphere.height = spec[2] * 1.4
-				sphere.radial_segments = 8
-				sphere.rings = 4
-				bulb.mesh = sphere
-				bulb.material_override = spec[1]
-				bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-				bulb.position = Vector3(side, 0.72, spec[0])
-				lamps.add_child(bulb)
-	lamps.visible = on and not destroyed
-	var wants_spot := on and driver != null and not destroyed
+	var lit := on and not destroyed
+	lamps.visible = lit
+	if lit != lights_on:
+		lights_on = lit
+		for slot in light_slots:
+			if slot[2] in ["head", "tail"]:
+				(slot[0] as MeshInstance3D).set_surface_override_material(int(slot[1]), _light_material(str(slot[2])) if lit else null)
+	var wants_spot := lit and driver != null
 	if wants_spot and headlight == null:
 		headlight = SpotLight3D.new()
 		headlight.light_color = Color("fff1d6")
@@ -447,11 +534,45 @@ func set_headlights(on: bool) -> void:
 		headlight.spot_range = 38.0
 		headlight.spot_angle = 32.0
 		headlight.spot_attenuation = 0.8
-		headlight.position = Vector3(0, 0.9, -2.2)
+		headlight.position = Vector3(0, 0.75, car_front_z + 0.15)
 		headlight.rotation_degrees = Vector3(-6.0, 0.0, 0.0)
 		add_child(headlight)
 	if headlight != null:
 		headlight.visible = wants_spot
+
+
+## Shared emissive materials for lamp surfaces (one set for every car).
+static func _light_material(kind: String) -> StandardMaterial3D:
+	if light_materials.has(kind):
+		return light_materials[kind]
+	var colours := {"head": Color("fff4d6"), "tail": Color("ff2a1c"), "blue": Color("2f6bff"), "red": Color("ff2020"), "white": Color("ffffff")}
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = colours.get(kind, Color.WHITE)
+	mat.emission_enabled = true
+	mat.emission = colours.get(kind, Color.WHITE)
+	mat.emission_energy_multiplier = 2.6 if kind == "head" else 2.0
+	light_materials[kind] = mat
+	return mat
+
+
+## Patrol cars flash their light bar while chasing (blue/red alternate).
+func _update_siren(delta: float) -> void:
+	if light_slots.is_empty() or not variant.begins_with("police"):
+		return
+	var flashing := (pursuing or beacon) and not destroyed
+	if not flashing and not siren_on:
+		return
+	siren_timer -= delta
+	if siren_timer > 0.0 and flashing == siren_on:
+		return
+	siren_timer = 0.22
+	siren_phase = not siren_phase
+	siren_on = flashing
+	for slot in light_slots:
+		var kind := str(slot[2])
+		if kind in ["blue", "red", "white"]:
+			var lit := flashing and ((kind == "blue") == siren_phase or kind == "white" and siren_phase)
+			(slot[0] as MeshInstance3D).set_surface_override_material(int(slot[1]), _light_material(kind) if lit else null)
 
 
 ## A car never rides on another car's roof or on top of street furniture (palms,
@@ -460,6 +581,7 @@ func set_headlights(on: bool) -> void:
 var airborne_time := 0.0
 var fall_speed := 0.0
 var _last_tick_position := Vector3.INF
+var _climb_history: Array[float] = []
 
 
 func _slide_off_cars() -> void:
@@ -504,6 +626,20 @@ func _tilt_to_ground(delta: float) -> void:
 	var target := Quaternion(Vector3.UP, local)
 	model_tilt = model_tilt.slerp(target, minf(1.0, 8.0 * delta))
 	model.basis = Basis(model_tilt) * Basis(Vector3.UP, model_yaw)
+	# Suspension: a kerb or pothole lifts the body 10–15 cm in one tick. The body
+	# collider must follow at once, but the visible car soaks the step up and
+	# settles over a few frames instead of jerking.
+	if _last_body_y != INF and is_on_floor():
+		var rise := global_position.y - _last_body_y
+		var bump := rise - _last_rise
+		if absf(bump) > 0.04 and absf(bump) < 0.5:
+			suspension_y -= bump
+		_last_rise = rise
+	else:
+		_last_rise = 0.0
+	_last_body_y = global_position.y
+	suspension_y = clampf(suspension_y * exp(-9.0 * delta), -0.3, 0.3)
+	model.position.y = model_base_y + suspension_y - (0.1 if tyres_burst else 0.0)
 
 
 func _deep_water(at: Vector3) -> bool:
@@ -592,9 +728,18 @@ func _explode() -> void:
 	destroyed_vehicle.emit()
 
 
+func burst_tyres() -> void:
+	if tyres_burst or destroyed or boat:
+		return
+	tyres_burst = true
+	speed = minf(speed, BURST_MAX_SPEED + 3.0) if speed > 0.0 else speed
+	tyres_burst_signal.emit()
+
+
 ## Back to factory condition (used when the mission car is reset after death/arrest).
 func repair() -> void:
 	health = MAX_HEALTH
+	tyres_burst = false
 	destroyed = false
 	burn_timer = -1.0
 	damage_fx.set_stage(0)
@@ -614,14 +759,14 @@ func _drive_from_input(delta: float) -> void:
 	var rate := DRAG
 	if absf(throttle) > 0.05:
 		# Pressing against the direction of travel brakes harder before reversing.
-		rate = BRAKE_DECELERATION if throttle * speed < -0.1 else ACCELERATION
+		rate = BRAKE_DECELERATION * wet_grip if throttle * speed < -0.1 else ACCELERATION
 	speed = move_toward(speed, target_speed, rate * delta)
 	if handbrake:
-		speed = move_toward(speed, 0.0, HANDBRAKE_DECELERATION * delta)
+		speed = move_toward(speed, 0.0, HANDBRAKE_DECELERATION * wet_grip * delta)
 	steer_input = move_toward(steer_input, Input.get_axis("move_left", "move_right"), STEER_RESPONSE * delta)
 	var speed_factor := clampf(absf(speed) / 5.0, 0.0, 1.0)
 	var high_speed_scale := lerpf(1.0, 0.62, clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0))
-	var handbrake_scale := 1.45 if handbrake and absf(speed) > 6.0 else 1.0
+	var handbrake_scale := (1.45 + 0.4 * (1.0 - wet_grip)) if handbrake and absf(speed) > 6.0 else 1.0  # wet: the tail steps out more
 	rotation.y -= steer_input * TURN_RATE * speed_factor * high_speed_scale * handbrake_scale * signf(speed) * delta
 
 

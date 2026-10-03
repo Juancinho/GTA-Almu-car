@@ -1,6 +1,8 @@
 class_name VehicleDamageFx
 extends Node3D
 
+const SoftParticle = preload("res://scripts/soft_particle.gd")
+
 ## Smoke, fire and explosion visuals for a damaged vehicle (CPU particles, which the
 ## Compatibility renderer supports everywhere). State only; damage rules live in vehicle.gd.
 
@@ -35,12 +37,7 @@ func _emitter(label: String, color: Color, size: float, lifetime: float, amount:
 	particles.scale_amount_max = size * 2.2
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	quad.material = mat
+	quad.material = SoftParticle.material(color)
 	particles.mesh = quad
 	var fade := Gradient.new()
 	fade.set_color(0, Color(1, 1, 1, 1))

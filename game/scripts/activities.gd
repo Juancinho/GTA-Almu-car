@@ -7,7 +7,10 @@ extends Node3D
 ##   paid with a speed bonus, and the next fare appears. Leaving the cab ends it.
 ## - Street race: drive any car into the chequered column on the Paseo del Altillo
 ##   to start a timed run through the checkpoints; beating the par time pays more.
-## Both show a column in the world and a GPS route on the minimap.
+## - Vigilante: in a police car press T. A wanted suspect flees by car; wreck or
+##   stop it, then take down the armed driver. Each arrest pays more and the next
+##   suspect is faster. Losing the suspect (400 m) or the 3-minute clock ends it.
+## All show a column in the world and a GPS route on the minimap.
 
 signal activity_changed(label: String)
 
@@ -32,6 +35,12 @@ var column: MeshInstance3D
 var start_column: MeshInstance3D
 var rng := RandomNumberGenerator.new()
 var cooldown := 0.0
+var suspect: DriveableVehicle
+var suspect_driver: Pedestrian
+var vigilante_level := 0
+var flee_timer := 0.0
+const VehicleScript = preload("res://scripts/vehicle.gd")
+const SUSPECT_CARS := ["sports_orange", "suv_sand", "sedan_teal", "sports_white"]
 
 
 func configure(target_world: SectorWorld, target_player: PlayerController) -> void:
@@ -84,6 +93,8 @@ func label() -> String:
 			return "TAXI · " + ("Recoge al cliente marcado y para a su lado" if stage == "pickup" else "Lleva al cliente a su destino")
 		"race":
 			return "CARRERA · Punto de control %d de %d" % [race_index + 1, race_points.size()]
+		"vigilante":
+			return "VIGILANTE · " + ("Abate al sospechoso armado" if stage == "takedown" else "Detén el coche del sospechoso (destrózalo)")
 	return ""
 
 
@@ -92,6 +103,8 @@ func status_text() -> String:
 		return "TAXÍMETRO %d s · servicios %d" % [int(ceil(time_left)), fares_done]
 	if active == "race":
 		return "TIEMPO %.1f s%s" % [race_time, ("  · récord %.1f s" % best_race) if best_race > 0.0 else ""]
+	if active == "vigilante":
+		return "NIVEL %d · TIEMPO %d s" % [vigilante_level, int(ceil(time_left))]
 	return ""
 
 
@@ -101,6 +114,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			stop("Servicio de taxi terminado.")
 		elif active == "" and player.driving_vehicle.variant == "taxi":
 			start_taxi()
+		elif active == "vigilante":
+			stop("Patrulla terminada.")
+		elif active == "" and player.driving_vehicle.variant.begins_with("police"):
+			start_vigilante()
 
 
 func start_taxi() -> void:
@@ -144,6 +161,8 @@ func _process(delta: float) -> void:
 			_taxi(delta, car)
 		"race":
 			_race(delta, car)
+		"vigilante":
+			_vigilante(delta)
 	column.visible = active != "" and target != Vector3.INF
 	if column.visible:
 		column.global_position = target + Vector3(0, 4.0, 0)
@@ -230,7 +249,108 @@ func _race(delta: float, car: DriveableVehicle) -> void:
 		activity_changed.emit(label())
 
 
+# --- Vigilante -------------------------------------------------------------------
+
+func start_vigilante() -> void:
+	active = "vigilante"
+	vigilante_level = 0
+	_say("Central: Atención unidades, sospechoso armado a la fuga. Deténgalo.")
+	_next_suspect()
+
+
+func _next_suspect() -> void:
+	vigilante_level += 1
+	stage = "chase"
+	time_left = 180.0
+	suspect_driver = null
+	var here := player.global_position
+	var network := world.road_network
+	var best := -1
+	var best_score := INF
+	for i in range(network.nodes.size()):
+		var d := Vector2(network.nodes[i].x - here.x, network.nodes[i].z - here.z).length()
+		if d < 110.0 or d > 230.0 or (network.edges.get(i, []) as Array).is_empty():
+			continue
+		var lane: Dictionary = network.nearest(network.nodes[i], true)
+		if lane.is_empty() or (lane["point"] as Vector3).distance_to(network.nodes[i]) > 2.0:
+			continue
+		var score := absf(d - 160.0) + rng.randf() * 40.0
+		if score < best_score:
+			best_score = score
+			best = i
+	if best < 0:
+		stop("No hay sospechosos en la zona.")
+		return
+	suspect = VehicleScript.new() as DriveableVehicle
+	suspect.name = "Sospechoso_%d" % vigilante_level
+	suspect.variant = SUSPECT_CARS[rng.randi() % SUSPECT_CARS.size()]
+	var at: Vector3 = network.nodes[best]
+	suspect.position = Vector3(at.x, world.height_at(at.x, at.z) + 0.5, at.z)
+	world.add_child(suspect)
+	suspect.set_occupant("male_longsleeve")
+	suspect.road_network = network
+	suspect.health = 700.0 + vigilante_level * 100.0
+	suspect.pursuit_target = _on_road(suspect.global_position + (suspect.global_position - here).normalized() * 160.0)
+	suspect.pursuit_speed = minf(15.0 + vigilante_level * 1.5, 22.0)
+	suspect.pursuing = true
+	flee_timer = 2.0
+	target = suspect.global_position
+	activity_changed.emit(label())
+
+
+func _vigilante(delta: float) -> void:
+	time_left -= delta
+	if time_left <= 0.0:
+		stop("Se acabó el tiempo: el sospechoso ha escapado.")
+		return
+	if stage == "chase":
+		if suspect == null or not is_instance_valid(suspect):
+			stop("El sospechoso ha escapado.")
+			return
+		target = suspect.global_position
+		if suspect.global_position.distance_to(player.global_position) > 400.0:
+			stop("Has perdido al sospechoso.")
+			return
+		flee_timer -= delta
+		if flee_timer <= 0.0:
+			flee_timer = 2.0
+			# Run from the patrol: aim at a road point on the far side.
+			var away := suspect.global_position - player.global_position
+			away.y = 0.0
+			suspect.pursuit_target = _on_road(suspect.global_position + away.normalized() * 160.0)
+		if suspect.destroyed or suspect.health <= 300.0:
+			suspect.pursuing = false
+			suspect.speed = 0.0
+			suspect_driver = suspect.eject_occupant()
+			if suspect_driver != null:
+				suspect_driver.enemy = true
+				suspect_driver.armed = true
+				suspect_driver.display_name = "Sospechoso"
+				suspect_driver.start_fight(999.0)
+			stage = "takedown"
+			_say("Central: El sospechoso ha salido del coche. Va armado.")
+			activity_changed.emit(label())
+		return
+	if suspect_driver == null or not is_instance_valid(suspect_driver) or suspect_driver.dead or suspect_driver.defeated:
+		var pay := 300 + vigilante_level * 200
+		var main := get_parent()
+		if main != null and main.has_method("add_money"):
+			main.add_money(pay)
+			if "hud" in main:
+				main.hud.show_banner("SOSPECHOSO ABATIDO  +%d €" % pay, Color("6fb3ff"))
+		_say("Central: Buen trabajo. Hay otro sospechoso en la zona.")
+		_next_suspect()
+		return
+	target = suspect_driver.global_position
+
+
 func stop(message: String) -> void:
+	if active == "vigilante":
+		if suspect != null and is_instance_valid(suspect) and suspect.pursuing:
+			suspect.pursuing = false
+			suspect.queue_free()
+		suspect = null
+		suspect_driver = null
 	if active == "taxi" and fare != null and is_instance_valid(fare):
 		fare.visible = true
 		fare.process_mode = Node.PROCESS_MODE_INHERIT

@@ -36,6 +36,14 @@ var jewellery_robbed := false
 var cigarettes := 0
 var estanco_robbed_until := 0
 var smoking: Node  # SmokingSystem
+var collectibles: Node  # hidden Phoenician amphorae
+var radio: Node  # car radio stations
+var stunt_jumps: Node  # beach ramps
+var throwables: Node  # grenades and molotovs
+var weapon_wheel: Node  # TAB radial selector
+var street_events: Node  # random muggings, car thefts, cash vans
+var phone: Node  # ↑ contacts, quick save, stats
+var weather: Node  # clouds, rain, wet roads
 var stash_ready_at := 0
 var discoveries: Dictionary = {}
 var _warm_resources: Array = []  # scenes loaded up front: no hitch when police or weapons first appear
@@ -137,6 +145,45 @@ func _ready() -> void:
 	smoking.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(smoking)
 	smoking.call("configure", player, self)
+	collectibles = (load("res://scripts/collectibles.gd") as GDScript).new()
+	collectibles.name = "Collectibles"
+	collectibles.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(collectibles)
+	collectibles.call("configure", player, self, world)
+	radio = (load("res://scripts/radio.gd") as GDScript).new()
+	radio.name = "Radio"
+	radio.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(radio)
+	radio.call("configure", player)
+	stunt_jumps = (load("res://scripts/stunt_jumps.gd") as GDScript).new()
+	stunt_jumps.name = "StuntJumps"
+	stunt_jumps.process_mode = Node.PROCESS_MODE_PAUSABLE
+	world.add_child(stunt_jumps)
+	stunt_jumps.call("configure", player, self, world.data)
+	throwables = (load("res://scripts/throwables.gd") as GDScript).new()
+	throwables.name = "Throwables"
+	throwables.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(throwables)
+	throwables.call("configure", player, wanted)
+	weapon_wheel = (load("res://scripts/weapon_wheel.gd") as GDScript).new()
+	weapon_wheel.name = "WeaponWheel"
+	add_child(weapon_wheel)
+	weapon_wheel.call("configure", player, weapons, throwables)
+	street_events = (load("res://scripts/street_events.gd") as GDScript).new()
+	street_events.name = "StreetEvents"
+	street_events.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(street_events)
+	street_events.call("configure", player, self, world, wanted)
+	hud.minimap.events = street_events
+	phone = (load("res://scripts/phone.gd") as GDScript).new()
+	phone.name = "Phone"
+	add_child(phone)
+	phone.call("configure", self, player)
+	weather = (load("res://scripts/weather.gd") as GDScript).new()
+	weather.name = "Weather"
+	weather.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(weather)
+	weather.call("configure", player, day_night, world)
 	perf_monitor = PerfMonitorScript.new()
 	perf_monitor.name = "PerfMonitor"
 	perf_monitor.context_provider = _perf_context
@@ -458,7 +505,10 @@ func _on_block_action(block_id: String, action: String) -> void:
 			weapons.give("bat", 0)
 			weapons.give("pistol", 36)
 			cigarettes += 20
-			mission._show_dialogue("Alijo: la pistola con 36 balas, el bate y un paquete de tabaco.")
+			player.armor = PlayerController.MAX_ARMOR
+			throwables.call("add", "grenade", 3)
+			throwables.call("add", "molotov", 2)
+			mission._show_dialogue("Alijo: la pistola con 36 balas, el bate, un chaleco antibalas, tres granadas, dos molotov y un paquete de tabaco.")
 		"heist":
 			var office: Node = world.apartments.get(block_id)
 			if office == null or not office.can_burgle("office_safe"):
@@ -663,6 +713,12 @@ func _configure_input() -> void:
 	_add_key("map_toggle", KEY_M)
 	_add_key("smoke", KEY_X)
 	_add_key("activity", KEY_T)
+	_add_key("radio_next", KEY_Q)
+	_add_key("throwable", KEY_G)
+	_add_key("throwable_switch", KEY_H)
+	_add_key("weapon_wheel", KEY_TAB)
+	_add_key("phone", KEY_UP)
+	_add_joy_button("weapon_wheel", JOY_BUTTON_DPAD_UP)
 	_add_joy_button("map_toggle", JOY_BUTTON_BACK)
 	for action in ["look_left", "look_right", "look_up", "look_down"]:
 		if not InputMap.has_action(action):
@@ -735,6 +791,12 @@ func _save_game() -> void:
 		"jewellery_robbed": jewellery_robbed,
 		"garages": _garage_state(),
 		"cigarettes": cigarettes,
+		"armor": player.armor,
+		"stunt_jumps": stunt_jumps.call("to_save") if stunt_jumps != null else {},
+		"throwables": throwables.call("to_save") if throwables != null else {},
+		"street_events": street_events.call("to_save") if street_events != null else {},
+		"weather": weather.call("to_save") if weather != null else {},
+		"amphorae": collectibles.call("to_save") if collectibles != null else [],
 		"discoveries": discoveries,
 		"weapons": weapons.to_save(),
 		"broken_glass": weapons.ballistics.glass_to_save(),
@@ -794,6 +856,17 @@ func _load_game() -> void:
 	for block in world.apartments.values():
 		block.restore_garage(str((data.get("garages", {}) as Dictionary).get(block.block_id, "")))
 	cigarettes = maxi(0, int(data.get("cigarettes", 0)))
+	player.armor = clampf(float(data.get("armor", 0.0)), 0.0, PlayerController.MAX_ARMOR)
+	if stunt_jumps != null:
+		stunt_jumps.call("from_save", data.get("stunt_jumps", {}))
+	if throwables != null:
+		throwables.call("from_save", data.get("throwables", {}))
+	if street_events != null:
+		street_events.call("from_save", data.get("street_events", {}))
+	if weather != null:
+		weather.call("from_save", data.get("weather", {}))
+	if collectibles != null:
+		collectibles.call("from_save", data.get("amphorae", []))
 	discoveries = data.get("discoveries", {}) if data.get("discoveries", {}) is Dictionary else {}
 	for venue in world.venues.values():
 		(venue as VenueInterior).restore_discoveries(discoveries)

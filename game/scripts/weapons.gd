@@ -23,6 +23,7 @@ var current := "fists"
 var cooldown := 0.0
 var reload_timer := 0.0
 var aiming := false
+const SUPPLIES := ["armor", "health", "grenade", "molotov"]
 var pickups: Array[Dictionary] = []  # {weapon, ammo, node, respawn_s, timer}
 var sounds: Dictionary = {}
 var flash: OmniLight3D
@@ -634,8 +635,10 @@ func _add_pickup(spec: Dictionary) -> void:
 	node.top_level = true
 	add_child(node)
 	node.global_position = point
-	var body: Node3D = weapon_model(str(spec["weapon"]))
-	if body == null:  # the bat: a simple turned-wood shape
+	var body: Node3D = null if str(spec["weapon"]) in SUPPLIES else weapon_model(str(spec["weapon"]))
+	if str(spec["weapon"]) in SUPPLIES:
+		body = _supply_model(str(spec["weapon"]))
+	elif body == null:  # the bat: a simple turned-wood shape
 		var bat := MeshInstance3D.new()
 		var shape := CylinderMesh.new()
 		shape.top_radius = 0.035
@@ -665,7 +668,7 @@ func _add_pickup(spec: Dictionary) -> void:
 	halo.position.y = 0.08
 	node.add_child(halo)
 	var label := Label3D.new()
-	label.text = str(defs.get(str(spec["weapon"]), {}).get("name", spec["weapon"])).to_upper()
+	label.text = {"armor": "CHALECO", "health": "BOTIQUÍN", "grenade": "GRANADAS", "molotov": "MOLOTOV"}.get(str(spec["weapon"]), str(defs.get(str(spec["weapon"]), {}).get("name", spec["weapon"])).to_upper())
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.font_size = 36
 	label.outline_size = 10
@@ -675,6 +678,52 @@ func _add_pickup(spec: Dictionary) -> void:
 	label.visibility_range_end = 45.0
 	node.add_child(label)
 	pickups.append({"weapon": str(spec["weapon"]), "ammo": int(spec.get("ammo", 0)), "node": node, "respawn_s": float(spec.get("respawn_s", 90.0)), "timer": 0.0})
+
+
+## Vest (navy block with a front plate) or first-aid kit (white box, red cross);
+## grenades are an olive crate, Molotovs a bottle with a rag.
+func _supply_model(kind: String) -> Node3D:
+	var root := Node3D.new()
+	if kind == "grenade" or kind == "molotov":
+		var item := MeshInstance3D.new()
+		var mat := StandardMaterial3D.new()
+		if kind == "grenade":
+			var egg := SphereMesh.new()
+			egg.radius = 0.12
+			egg.height = 0.28
+			item.mesh = egg
+			mat.albedo_color = Color("4a5a36")
+		else:
+			var bottle := CylinderMesh.new()
+			bottle.top_radius = 0.04
+			bottle.bottom_radius = 0.08
+			bottle.height = 0.4
+			item.mesh = bottle
+			mat.albedo_color = Color("5f8a4a")
+		item.material_override = mat
+		root.add_child(item)
+		return root
+	var box := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.5, 0.6, 0.18) if kind == "armor" else Vector3(0.45, 0.32, 0.2)
+	box.mesh = mesh
+	var paint := StandardMaterial3D.new()
+	paint.albedo_color = Color("27406a") if kind == "armor" else Color("f2f2ee")
+	box.material_override = paint
+	root.add_child(box)
+	var mark_colour := Color("c9d3df") if kind == "armor" else Color("d0302a")
+	var sizes: Array = [Vector3(0.34, 0.24, 0.02)] if kind == "armor" else [Vector3(0.22, 0.07, 0.02), Vector3(0.07, 0.22, 0.02)]
+	for size in sizes:
+		var mark := MeshInstance3D.new()
+		var plate := BoxMesh.new()
+		plate.size = size
+		mark.mesh = plate
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = mark_colour
+		mark.material_override = mat
+		mark.position = Vector3(0, 0.02 if kind == "armor" else 0.0, 0.1)
+		root.add_child(mark)
+	return root
 
 
 func _update_pickups(delta: float) -> void:
@@ -687,6 +736,30 @@ func _update_pickups(delta: float) -> void:
 			continue
 		(node.get_child(0) as Node3D).rotation.y += delta * 2.0
 		if player.driving_vehicle == null and not player.dead and node.global_position.distance_to(player.global_position) < 1.7:
+			var kind := str(pickup["weapon"])
+			if kind == "grenade" or kind == "molotov":
+				var thrown := get_tree().get_first_node_in_group("throwables")
+				if thrown == null or int(thrown.get("counts")[kind]) >= 10:
+					continue
+				node.visible = false
+				pickup["timer"] = float(pickup["respawn_s"])
+				thrown.call("add", kind, int(pickup["ammo"]))
+				_play("reload")
+				get_tree().call_group("mission_controller", "_show_dialogue", "Has cogido: %d %s (G para lanzar, H para cambiar)" % [int(pickup["ammo"]), "granadas" if kind == "grenade" else "cócteles molotov"])
+				continue
+			if kind == "armor" or kind == "health":
+				# Like any open-world pickup: left in place if you do not need it.
+				if (kind == "armor" and player.armor >= PlayerController.MAX_ARMOR) or (kind == "health" and player.health >= PlayerController.MAX_HEALTH):
+					continue
+				node.visible = false
+				pickup["timer"] = float(pickup["respawn_s"])
+				if kind == "armor":
+					player.armor = PlayerController.MAX_ARMOR
+				else:
+					player.heal(PlayerController.MAX_HEALTH)
+				_play("reload")
+				get_tree().call_group("mission_controller", "_show_dialogue", "Chaleco antibalas puesto." if kind == "armor" else "Botiquín: salud recuperada.")
+				continue
 			node.visible = false
 			pickup["timer"] = float(pickup["respawn_s"])
 			give(str(pickup["weapon"]), int(pickup["ammo"]))

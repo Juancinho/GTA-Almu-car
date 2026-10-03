@@ -1,5 +1,5 @@
 {
-  "description": "Weapon tuning and world pickups. Damage is per hit (pedestrians have 100 health, vehicles 1000). Pickups snap to the nearest walkable way and respawn after 'respawn_s'.",
+  "description": "Weapon tuning and world pickups. Damage is per hit (pedestrians have 100 health, vehicles 1000). Pickups snap to the nearest walkable way and respawn after 'respawn_s'. 'armor' and 'health' pickups are the vest and the first-aid kit.",
   "order": [
     "fists",
     "bat",
@@ -209,6 +209,105 @@
         -380.0
       ],
       "respawn_s": 150
+    },
+    {
+      "weapon": "armor",
+      "ammo": 0,
+      "at": [
+        -60.0,
+        -286.0
+      ],
+      "respawn_s": 180
+    },
+    {
+      "weapon": "armor",
+      "ammo": 0,
+      "at": [
+        206.0,
+        -14.0
+      ],
+      "respawn_s": 180
+    },
+    {
+      "weapon": "armor",
+      "ammo": 0,
+      "at": [
+        -400.0,
+        46.0
+      ],
+      "respawn_s": 180
+    },
+    {
+      "weapon": "health",
+      "ammo": 0,
+      "at": [
+        146.0,
+        -208.0
+      ],
+      "respawn_s": 90
+    },
+    {
+      "weapon": "health",
+      "ammo": 0,
+      "at": [
+        -36.0,
+        78.0
+      ],
+      "respawn_s": 90
+    },
+    {
+      "weapon": "health",
+      "ammo": 0,
+      "at": [
+        118.0,
+        -62.0
+      ],
+      "respawn_s": 90
+    },
+    {
+      "weapon": "health",
+      "ammo": 0,
+      "at": [
+        -150.0,
+        92.0
+      ],
+      "respawn_s": 90
+    },
+    {
+      "weapon": "grenade",
+      "ammo": 3,
+      "at": [
+        -120.0,
+        -300.0
+      ],
+      "respawn_s": 240
+    },
+    {
+      "weapon": "grenade",
+      "ammo": 3,
+      "at": [
+        180.0,
+        -150.0
+      ],
+      "respawn_s": 240
+    },
+    {
+      "weapon": "molotov",
+      "ammo": 3,
+      "at": [
+        -380.0,
+        70.0
+      ],
+      "respawn_s": 200
+    },
+    {
+      "weapon": "molotov",
+      "ammo": 3,
+      "at": [
+        60.0,
+        20.0
+      ],
+      "respawn_s": 200
     }
   ]
 }

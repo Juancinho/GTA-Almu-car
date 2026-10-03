@@ -27,6 +27,7 @@ var money_delta_label: Label
 var bank_label: Label
 var health_back: ColorRect
 var health_fill: ColorRect
+var armor_fill: ColorRect
 var banner_label: Label
 var banner_timer := 0.0
 var objective_flash: Label
@@ -40,6 +41,7 @@ var credits: Label
 var credits_timer := 0.0
 var pause_missions: Label
 var weapon_label: Label
+var throw_label: Label  # grenades / Molotovs under the weapon
 var crosshair: Label
 var money_delta_timer := 0.0
 var objective_panel: PanelContainer
@@ -95,7 +97,7 @@ func _ready() -> void:
 	health_back = ColorRect.new()
 	health_back.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	health_back.position = Vector2(-204, 242)
-	health_back.size = Vector2(186, 12)
+	health_back.size = Vector2(186, 16)
 	health_back.color = Color(0.05, 0.1, 0.1, 0.8)
 	root.add_child(health_back)
 	health_fill = ColorRect.new()
@@ -103,9 +105,14 @@ func _ready() -> void:
 	health_fill.size = Vector2(182, 8)
 	health_fill.color = Color("6fbf73")
 	health_back.add_child(health_fill)
+	armor_fill = ColorRect.new()  # bulletproof vest under the health bar
+	armor_fill.position = Vector2(2, 11)
+	armor_fill.size = Vector2(0, 3)
+	armor_fill.color = Color("5aa0e6")
+	health_back.add_child(armor_fill)
 	money_label = Label.new()
 	money_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	money_label.position = Vector2(-204, 258)
+	money_label.position = Vector2(-204, 262)
 	money_label.custom_minimum_size = Vector2(186, 30)
 	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	money_label.add_theme_font_size_override("font_size", 24)
@@ -114,7 +121,7 @@ func _ready() -> void:
 	root.add_child(money_label)
 	money_delta_label = Label.new()
 	money_delta_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	money_delta_label.position = Vector2(-204, 288)
+	money_delta_label.position = Vector2(-204, 292)
 	money_delta_label.custom_minimum_size = Vector2(186, 26)
 	money_delta_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	money_delta_label.add_theme_font_size_override("font_size", 20)
@@ -137,8 +144,18 @@ func _ready() -> void:
 	weapon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	weapon_label.add_theme_font_size_override("font_size", 22)
 	weapon_label.add_theme_color_override("font_color", Color("f4ecd8"))
+	throw_label = Label.new()
+	throw_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	throw_label.position = Vector2(-300, 384)
+	throw_label.custom_minimum_size = Vector2(282, 22)
+	throw_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	throw_label.add_theme_font_size_override("font_size", 16)
+	throw_label.add_theme_color_override("font_color", Color("e8d27a"))
+	throw_label.visible = false
 	_outline(weapon_label)
 	root.add_child(weapon_label)
+	_outline(throw_label)
+	root.add_child(throw_label)
 	crosshair = Label.new()
 	crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	crosshair.position = Vector2(-20, -24)
@@ -343,7 +360,7 @@ func _on_mission_started(title: String) -> void:
 func update_settings(quality: int, volume: int) -> void:
 	var quality_text: String = ["Baja · 3D 67 %", "Media · 3D 85 %", "Alta · 3D 100 %"][quality]
 	var volume_text: String = ["40 %", "70 %", "100 %"][volume]
-	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar partida\nF5 guardar · F9 cargar\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
+	pause_label.text = "PAUSA\nEscape continuar · M mapa · R reiniciar partida\nF5 guardar · F9 cargar · ↑ móvil · TAB armas · G/H granadas · Q radio · X fumar · T actividad\nF3 gráficos: %s · F4 volumen: %s\nF2 rendimiento · F6 informe · F11 pantalla completa\n\nMap data © OpenStreetMap contributors · ODbL\nModelos Quaternius · Texturas ambientCG y Poly Haven (CC0)" % [quality_text, volume_text]
 
 
 func _process(delta: float) -> void:
@@ -373,6 +390,7 @@ func _process(delta: float) -> void:
 	var ratio := clampf(player.health / PlayerController.MAX_HEALTH, 0.0, 1.0)
 	health_fill.size.x = 182.0 * ratio
 	health_fill.color = Color("6fbf73") if ratio > 0.35 else Color("d9534a")
+	armor_fill.size.x = 182.0 * clampf(player.armor / PlayerController.MAX_ARMOR, 0.0, 1.0)
 	var main := get_parent()
 	if main != null and "money" in main:
 		money_label.text = "%d €" % int(main.money)
@@ -425,6 +443,8 @@ func _process(delta: float) -> void:
 		prompt_label.text = "WASD conducir · Espacio freno de mano · E salir  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
 		if player.driving_vehicle.variant == "taxi" and main != null and "activities" in main and str(main.activities.active) == "":
 			prompt_label.text = "T · Empezar servicio de taxi  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
+		elif player.driving_vehicle.variant.begins_with("police") and main != null and "activities" in main and str(main.activities.active) == "":
+			prompt_label.text = "T · Misión de vigilante  |  %d km/h" % int(absf(player.driving_vehicle.speed) * 3.6)
 	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.service_point) < 2.8:
 		prompt_label.text = "E · Reparar coche aparcado (75 €)"
 	elif workshop != null and in_workshop and player.global_position.distance_to(workshop.inside_entry) < 2.8:
@@ -488,11 +508,11 @@ func _process(delta: float) -> void:
 	else:
 		var weapons: WeaponScript = main.weapons if main != null and "weapons" in main else null
 		if weapons != null and weapons.is_gun():
-			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · 1-6 / rueda: armas"
+			prompt_label.text = "Clic dcho. apuntar · Clic disparar · R recargar · TAB armas · G lanzar"
 		elif weapons != null and weapons.current == "bat":
-			prompt_label.text = "Clic / F golpear con el bate · 1-6 / rueda: armas · M mapa"
+			prompt_label.text = "Clic / F golpear con el bate · TAB armas · ↑ móvil · M mapa"
 		else:
-			prompt_label.text = "WASD caminar · Shift correr · Espacio saltar · F puñetazo · M mapa"
+			prompt_label.text = "WASD caminar · Shift correr · F puñetazo · TAB armas · ↑ móvil · M mapa"
 
 
 func _update_weapon() -> void:
@@ -514,6 +534,9 @@ func _update_weapon() -> void:
 		text += "   " + weapons.ammo_text()
 		if weapons.reload_timer > 0.0:
 			text += "  · recargando"
+	var thrown: String = main.throwables.call("hud_text") if "throwables" in main and main.throwables != null else ""
+	throw_label.visible = thrown != "" and weapon_label.visible
+	throw_label.text = thrown + "   G"
 	weapon_label.text = text
 	crosshair.visible = weapons.is_gun() and player.driving_vehicle == null and not player.dead
 	crosshair.add_theme_color_override("font_color", Color("ffffff") if weapons.aiming else Color(1, 1, 1, 0.45))

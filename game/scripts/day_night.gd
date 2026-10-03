@@ -22,6 +22,8 @@ var lamp_lights: Array[OmniLight3D] = []
 var lamp_timer := 0.0
 var lamp_material: StandardMaterial3D
 var night := 0.0  # 0 day … 1 full night
+var overcast := 0.0  # 0 clear … 1 storm clouds (set by WeatherSystem)
+var _base_fog := -1.0
 
 
 func configure(target_world: SectorWorld, target_player: PlayerController) -> void:
@@ -96,11 +98,21 @@ func apply() -> void:
 	var night_horizon := Color("1c2438")
 	var top := day_top.lerp(dusk_top, dusk).lerp(night_top, night)
 	var horizon := day_horizon.lerp(dusk_horizon, dusk * (1.0 - night)).lerp(night_horizon, night)
+	if overcast > 0.0:
+		# Cloud cover: a flat grey sky, weak sun without hard shadows, thicker haze.
+		top = top.lerp(Color("5d6670").lerp(night_top, night), overcast * 0.85)
+		horizon = horizon.lerp(Color("8d969b").lerp(night_horizon, night), overcast * 0.85)
+		sun.light_energy *= 1.0 - 0.7 * overcast
+		if overcast > 0.5:
+			sun.shadow_enabled = false
 	sky.sky_top_color = top
 	sky.sky_horizon_color = horizon
 	sky.ground_horizon_color = horizon.darkened(0.1)
 	sky.ground_bottom_color = Color("56707a").lerp(Color("0b1018"), night)
-	env.ambient_light_energy = lerpf(0.75, 0.22, night)
+	env.ambient_light_energy = lerpf(0.75, 0.22, night) * (1.0 - 0.2 * overcast)
+	if _base_fog < 0.0:
+		_base_fog = env.fog_density
+	env.fog_density = _base_fog + 0.0016 * overcast
 	env.ambient_light_color = Color("e3d8c6").lerp(Color("6f82a8"), night)
 	env.fog_light_color = Color("bfd0da").lerp(Color("e8a878"), dusk * 0.5 * (1.0 - night)).lerp(Color("141a28"), night)
 	var facade := world.mats.facade_detail()

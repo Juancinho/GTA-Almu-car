@@ -92,8 +92,8 @@ func _define_kinds(mats: SectorMaterials) -> void:
 	var blob := SphereMesh.new()
 	blob.radius = 0.5
 	blob.height = 1.0
-	blob.radial_segments = 7
-	blob.rings = 4
+	blob.radial_segments = 6  # thousands of geranium/bougainvillea blobs: keep them cheap
+	blob.rings = 3
 	var plaster := mats.textured("rooftop_plaster", "plaster003", Color.WHITE, 3.0, 0.92, true)
 	var awning := ShaderMaterial.new()
 	awning.shader = load("res://shaders/awning.gdshader") as Shader
@@ -105,7 +105,7 @@ func _define_kinds(mats: SectorMaterials) -> void:
 		"WallAC": [box, _tinted(mats, "prop_paint", 0.55), 190.0, false],
 		"Awning": [_awning_mesh(), awning, 300.0, true],
 		"Pot": [box, _tinted(mats, "prop_clay", 0.9), 150.0, false],
-		"Foliage": [blob, _tinted(mats, "prop_foliage", 0.95), 260.0, false],
+		"Foliage": [blob, _tinted(mats, "prop_foliage", 0.95), 170.0, false],
 		"Container": [box, _tinted(mats, "prop_plastic", 0.6), 260.0, true],
 		"Zebra": [box, _tinted(mats, "prop_road_paint", 0.7), 170.0, false],
 		"UmbrellaPole": [thin, _tinted(mats, "prop_metal", 0.5, 0.6), 260.0, false],

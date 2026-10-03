@@ -7,6 +7,7 @@ signal crime_reported(kind: String, witnessed: bool)
 
 const VehicleScript = preload("res://scripts/vehicle.gd")
 const OfficerScript = preload("res://scripts/police_officer.gd")
+const EscalationScript = preload("res://scripts/police_escalation.gd")
 const MAX_LEVEL := 5
 const OFFICER_DEPLOY_RANGE := 18.0
 const OFFICERS_PER_CAR := 2
@@ -37,6 +38,7 @@ var officers: Array[Node] = []
 var reinforce_timer := 0.0
 var stopped_time := 0.0
 var spawn_serial := 0
+var escalation: Node3D  # roadblocks (3+ stars) and the helicopter (4+)
 var restricted_zones: Array = []  # [{name, x, z, radius}] from the sector data
 
 
@@ -44,6 +46,20 @@ func configure(target: PlayerController, network: RoadNetwork = null) -> void:
 	player = target
 	road_network = network
 	add_to_group("wanted_system")
+	escalation = EscalationScript.new()
+	escalation.name = "PoliceEscalation"
+	add_child(escalation)
+	escalation.call("configure", self, player, network)
+
+
+## Another police eye (the helicopter, a roadblock) has the player in sight.
+func notify_sighting(at: Vector3) -> void:
+	if level == 0:
+		return
+	last_known = at
+	unseen_timer = 0.0
+	search_timer = 0.0
+	_set_phase("pursuit")
 
 
 ## Any player crime (assault, running someone over, carjacking seen by police...).

@@ -24,6 +24,8 @@ const SWIM_SPEED := 3.4
 const DIVE_SPEED := 2.7
 const MAX_BREATH := 16.0
 
+const MAX_ARMOR := 100.0
+var armor := 0.0  # bulletproof vest (pickups, safehouse stash)
 var camera_pivot: Node3D
 var camera_height := 1.55
 var _last_tick_position := Vector3.INF
@@ -334,6 +336,13 @@ func board_vehicle(car: DriveableVehicle) -> void:
 func take_damage(amount: float, source: String = "") -> void:
 	if dead or amount <= 0.0:
 		return
+	# The vest soaks hits and blasts first; drowning and falls go straight through.
+	if armor > 0.0 and source not in ["drowning", "fall"]:
+		var absorbed := minf(armor, amount)
+		armor -= absorbed
+		amount -= absorbed
+		if amount <= 0.0:
+			return
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health)
 	if health <= 0.0:

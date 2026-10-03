@@ -1,0 +1,31 @@
+{
+  "generator": "tools/audio/radio.py",
+  "sample_rate": 22050,
+  "license": "original project-generated",
+  "files": [
+    {
+      "file": "costa_rumba_paseo.ogg",
+      "seconds": 73.8
+    },
+    {
+      "file": "costa_levante.ogg",
+      "seconds": 68.6
+    },
+    {
+      "file": "poniente_cotobro.ogg",
+      "seconds": 73.0
+    },
+    {
+      "file": "poniente_marina.ogg",
+      "seconds": 70.0
+    },
+    {
+      "file": "sexi_penon.ogg",
+      "seconds": 72.7
+    },
+    {
+      "file": "sexi_castillo.ogg",
+      "seconds": 77.4
+    }
+  ]
+}
