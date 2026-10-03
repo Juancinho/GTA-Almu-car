@@ -13,10 +13,11 @@ if (-not (Test-Path -LiteralPath $godot)) {
 }
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 
-# Refresh Godot's global GDScript class registry after scripts are added or moved.
+# Import new assets (sounds, models) and refresh the global GDScript class
+# registry; --import waits until every resource is imported before quitting.
 $stdout = Join-Path $logs 'launch_import.out.log'
 $stderr = Join-Path $logs 'launch_import.err.log'
-$import = Start-Process -FilePath $godot -ArgumentList @('--headless', '--editor', '--path', ('"' + $gamePath + '"'), '--quit') -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+$import = Start-Process -FilePath $godot -ArgumentList @('--headless', '--import', '--path', ('"' + $gamePath + '"')) -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
 $errors = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
 if ($import.ExitCode -ne 0 -or $errors -match '(?m)^(SCRIPT ERROR:|ERROR:)') {
     throw "Godot import failed; see $stdout and $stderr"

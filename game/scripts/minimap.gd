@@ -23,6 +23,7 @@ var offers: Array = []
 var activities: Node  # ActivitySystem: its target takes over the GPS while active
 var events: Node  # StreetEvents: its blip_target is drawn as a pulsing red dot
 var waypoint := Vector3.INF  # player-chosen destination from the full map
+var miradores: Node  # viewpoints: cyan binoculars until discovered, grey after
 var waypoint_path := PackedVector3Array()
 var waypoint_from := Vector3.INF
 
@@ -156,6 +157,7 @@ func _draw() -> void:
 			var marker_color := Color("7bd88f") if kind == "piso_franco" else Color("63b5e3") if kind == "supermarket" else Color("ecaa73") if kind in ["restaurant", "cafe", "palm_restaurant"] else Color("d7c46e") if kind == "bank" else Color("d89cc9")
 			draw_circle(venue_pos, 5.0, marker_color)
 	var font := ThemeDB.fallback_font
+	_draw_miradores(center, map_center, scale, bounds)
 	for offer in offers:
 		var p: Vector3 = offer["position"]
 		var at := _edge_clamp(_to_map(Vector2(p.x, p.z), center, map_center, scale), 10.0)
@@ -198,6 +200,27 @@ func _draw() -> void:
 	var tip := map_center + heading * 9.0
 	draw_colored_polygon(PackedVector2Array([tip, map_center - heading * 6.0 + across * 6.5, map_center - heading * 3.0, map_center - heading * 6.0 - across * 6.5]), Color("61d0d7"))
 	draw_rect(bounds, Color("99c5be"), false, 2.0)
+
+
+func _draw_miradores(center: Vector2, map_center: Vector2, scale: float, bounds: Rect2) -> void:
+	if miradores == null:
+		return
+	var seen: Dictionary = miradores.get("found")
+	for spot in miradores.get("spots"):
+		var p: Vector3 = spot["at"]
+		var at := _to_map(Vector2(p.x, p.z), center, map_center, scale)
+		if bounds.grow(-6.0).has_point(at):
+			draw_mirador_icon(self, at, 1.0, seen.has(str(spot["id"])))
+
+
+## Binoculars in a disc: cyan while undiscovered, grey once seen (also used by the full map).
+static func draw_mirador_icon(canvas: CanvasItem, at: Vector2, size: float, discovered: bool) -> void:
+	canvas.draw_circle(at, 7.0 * size, Color(0.05, 0.05, 0.05, 0.85))
+	canvas.draw_circle(at, 5.6 * size, Color("8d9a96") if discovered else Color("5fe0f0"))
+	var ink := Color("12302f")
+	canvas.draw_circle(at + Vector2(-2.2, 0.8) * size, 1.9 * size, ink)
+	canvas.draw_circle(at + Vector2(2.2, 0.8) * size, 1.9 * size, ink)
+	canvas.draw_rect(Rect2(at + Vector2(-1.2, -2.6) * size, Vector2(2.4, 2.6) * size), ink, true)
 
 
 func _edge_clamp(p: Vector2, inset: float) -> Vector2:

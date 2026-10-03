@@ -1,6 +1,8 @@
 class_name PoliceOfficer
 extends Pedestrian
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 ## A local police officer who gets out of a patrol car near a wanted player.
 ## Level 1: closes in to arrest. From level 2, or when the player draws a gun,
 ## officers keep their distance and shoot; accuracy falls with range and speed.
@@ -14,18 +16,20 @@ var car: DriveableVehicle
 var shoot_timer := 1.4
 var aim_rng := RandomNumberGenerator.new()
 var shot_audio: AudioStreamPlayer3D
+var guardia := false  # Guardia Civil (five stars): green uniform and cap, steadier aim
 
 
 func _ready() -> void:
 	model_name = "male_suit"
-	display_name = "Policía"
+	guardia = car != null and car.variant == "police_guardia"
+	display_name = "Guardia Civil" if guardia else "Policía"
 	super._ready()
 	armed = true
 	equip_firearm()
 	add_to_group("police_officers")
 	aim_rng.seed = get_instance_id()
 	shot_audio = AudioStreamPlayer3D.new()
-	shot_audio.stream = load("res://assets/audio/pistol_shot.wav") as AudioStream
+	shot_audio.stream = AudioUtil.stream("res://assets/audio/pistol_shot.wav")
 	shot_audio.bus = "SFX"
 	shot_audio.max_distance = 140.0
 	shot_audio.unit_size = 8.0
@@ -38,6 +42,8 @@ func _ready() -> void:
 ## whose FBX armature is itself scaled ×100, so attachments must undo the
 ## skeleton's real global scale (a fixed factor made the cap a giant disc in the sky).
 const UNIFORM := {"Shirt": "1d2b4f", "Pants": "18223d", "TieTexture": "9ec0e6", "Details": "d8c94a"}
+## Guardia Civil: olive-green uniform and cap with a red-and-gold band.
+const GUARDIA_UNIFORM := {"Shirt": "45573a", "Pants": "3a4a31", "TieTexture": "6d7f58", "Details": "c9a640"}
 
 
 func _add_cap() -> void:
@@ -46,9 +52,10 @@ func _add_cap() -> void:
 		for surface in range(mesh.mesh.get_surface_count()):
 			var source := mesh.mesh.surface_get_material(surface)
 			var key := source.resource_name if source != null else ""
-			if UNIFORM.has(key):
+			var colours: Dictionary = GUARDIA_UNIFORM if guardia else UNIFORM
+			if colours.has(key):
 				var cloth := StandardMaterial3D.new()
-				cloth.albedo_color = Color(str(UNIFORM[key]))
+				cloth.albedo_color = Color(str(colours[key]))
 				cloth.roughness = 0.8
 				mesh.set_surface_override_material(surface, cloth)
 	var skeletons := human.find_children("*", "Skeleton3D", true, false)
@@ -65,9 +72,9 @@ func _add_cap() -> void:
 	cap.position = Vector3(0, 0.19, 0.01) * undo
 	attach.add_child(cap)
 	var navy := StandardMaterial3D.new()
-	navy.albedo_color = Color("16223f")
+	navy.albedo_color = Color("3e5034") if guardia else Color("16223f")
 	var band := StandardMaterial3D.new()
-	band.albedo_color = Color("e9edf2")
+	band.albedo_color = Color("b0332a") if guardia else Color("e9edf2")
 	var crown := MeshInstance3D.new()
 	var crown_mesh := CylinderMesh.new()
 	crown_mesh.top_radius = 0.13
@@ -144,7 +151,7 @@ func _physics_process(delta: float) -> void:
 	human.hold_pose("punch", 0.26)
 	var moving := wanted.player_speed()
 	get_tree().call_group("weapon_system", "fire_remote", self, target + Vector3.UP * 1.1,
-		7.0 + wanted.level, 35.0, 0.006 + distance * 0.0004 + moving * 0.001, aim_rng, "police")
+		7.0 + wanted.level, 35.0, (0.006 + distance * 0.0004 + moving * 0.001) * (0.75 if guardia else 1.0), aim_rng, "police")
 
 
 func _clear_line(target: Vector3) -> bool:

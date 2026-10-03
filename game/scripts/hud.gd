@@ -48,6 +48,11 @@ var objective_panel: PanelContainer
 var info_panel: PanelContainer
 var prompt_panel: PanelContainer
 var dialogue_panel: PanelContainer
+var notice_panel: PanelContainer  # phone calls and texts (scripts/phone.gd)
+var notice_label: Label
+var notice_icon: Control
+var notice_timer := 0.0
+var notice_ringing := false
 
 
 func _ready() -> void:
@@ -274,6 +279,68 @@ func _ready() -> void:
 	dialogue_panel = _text_panel(root, dialogue_label, 880.0, Vector2.ZERO, 125.0)
 	for label in [pause_label, pause_missions, credits, title_label, banner_label]:
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_build_notice(root)
+
+
+## Phone notification under the status column: a drawn handset (shaking while
+## it rings) and one line of text.
+func _build_notice(root: Control) -> void:
+	notice_panel = PanelContainer.new()
+	notice_panel.name = "PhoneNotice"
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.09, 0.12, 0.88)
+	style.border_color = Color("f2c14e")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 10.0
+	style.content_margin_right = 12.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
+	notice_panel.add_theme_stylebox_override("panel", style)
+	notice_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	notice_panel.position = Vector2(18, 190)
+	notice_panel.size.x = 360.0
+	notice_panel.visible = false
+	root.add_child(notice_panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	notice_panel.add_child(row)
+	notice_icon = Control.new()
+	notice_icon.custom_minimum_size = Vector2(22, 34)
+	notice_icon.draw.connect(_draw_notice_icon)
+	row.add_child(notice_icon)
+	notice_label = Label.new()
+	notice_label.add_theme_font_size_override("font_size", 16)
+	notice_label.add_theme_color_override("font_color", Color("f4ecd8"))
+	notice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	notice_label.custom_minimum_size = Vector2(290, 0)
+	notice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	notice_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_child(notice_label)
+
+
+func show_notification(text: String, seconds: float, ringing: bool = false) -> void:
+	notice_label.text = text
+	notice_timer = seconds
+	notice_ringing = ringing
+	notice_panel.visible = true
+
+
+func hide_notification() -> void:
+	notice_timer = 0.0
+	notice_ringing = false
+	notice_panel.visible = false
+
+
+func _draw_notice_icon() -> void:
+	var shake := sin(Time.get_ticks_msec() * 0.05) * 2.0 if notice_ringing and int(Time.get_ticks_msec() / 500) % 2 == 0 else 0.0
+	var body := Rect2(Vector2(3 + shake, 3), Vector2(16, 28))
+	notice_icon.draw_rect(body, Color("f2c14e"), true)
+	notice_icon.draw_rect(Rect2(body.position + Vector2(2, 4), Vector2(12, 17)), Color("14202a"), true)
+	notice_icon.draw_circle(body.position + Vector2(8, 25), 1.6, Color("14202a"))
+	if notice_ringing:
+		for k in range(2):
+			notice_icon.draw_arc(body.position + Vector2(8, 12), 11.0 + k * 4.0, -0.7, 0.7, 6, Color(0.95, 0.76, 0.3, 0.8), 1.5)
 
 
 func _text_panel(root: Control, label: Label, width: float, at: Vector2, bottom: float = 0.0) -> PanelContainer:
@@ -398,6 +465,11 @@ func _process(delta: float) -> void:
 		clock_text = main.day_night.clock_text()
 	banner_timer -= delta
 	banner_label.visible = banner_timer > 0.0
+	if notice_panel != null and notice_panel.visible:
+		notice_timer -= delta
+		notice_panel.visible = notice_timer > 0.0
+		notice_panel.position.y = timer_label.position.y - 4.0 + (timer_label.size.y + 6.0 if timer_label.visible else 0.0)
+		notice_icon.queue_redraw()
 	credits_timer -= delta
 	credits.visible = credits_timer > 0.0
 	title_timer -= delta
@@ -434,7 +506,7 @@ func _process(delta: float) -> void:
 		bank_label.text = "Saldo bancario: %d €" % int(main.bank_balance)
 	var movement_label := "A pie"
 	if player.driving_vehicle != null:
-		movement_label = "En coche"
+		movement_label = "En " + _vehicle_noun(player.driving_vehicle)
 	elif player.swimming:
 		movement_label = "Buceando" if player.diving else "Nadando"
 	info_label.text = "BRISA DE PONIENTE   %s\n%s · %s" % [clock_text, street if street != "" else "Paseo del Altillo", movement_label]
@@ -497,6 +569,8 @@ func _process(delta: float) -> void:
 		prompt_label.text = "E · Pedir menú en " + _nearby_beach_bar().bar_name + " (35 €)"
 	elif player.swimming:
 		prompt_label.text = "WASD nadar · C bucear · Espacio subir  |  Aire %.0f s" % player.breath
+	elif main != null and "miradores" in main and main.miradores != null and str(main.miradores.call("prompt_text")) != "":
+		prompt_label.text = str(main.miradores.call("prompt_text"))
 	elif player.nearby_contact() != null:
 		var contact := player.nearby_contact()
 		var offer := mission.offer_of(str(contact.name))
@@ -504,7 +578,8 @@ func _process(delta: float) -> void:
 		if offer != "" and (offer != mission.mission_id or mission.stage == 0):
 			prompt_label.text += "  ·  Misión: " + str(mission._titles.get(offer, offer))
 	elif player.nearby_vehicle() != null:
-		prompt_label.text = "E · Entrar en el coche"
+		var noun := _vehicle_noun(player.nearby_vehicle())
+		prompt_label.text = "E · Subir al scooter" if noun == "scooter" else "E · Subir a la moto" if noun == "moto" else "E · Entrar en el " + noun
 	else:
 		var weapons: WeaponScript = main.weapons if main != null and "weapons" in main else null
 		if weapons != null and weapons.is_gun():
@@ -513,6 +588,13 @@ func _process(delta: float) -> void:
 			prompt_label.text = "Clic / F golpear con el bate · TAB armas · ↑ móvil · M mapa"
 		else:
 			prompt_label.text = "WASD caminar · Shift correr · F puñetazo · TAB armas · ↑ móvil · M mapa"
+
+
+## "coche", "moto" or "scooter" (models.json "display_name" for bikes).
+func _vehicle_noun(vehicle: DriveableVehicle) -> String:
+	if not vehicle.bike:
+		return "barco" if vehicle.boat else "coche"
+	return str(DriveableVehicle.variant_spec(vehicle.variant).get("display_name", "Moto")).to_lower()
 
 
 func _update_weapon() -> void:

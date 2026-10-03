@@ -38,7 +38,7 @@ function Invoke-Godot([string]$Name, [string[]]$Arguments) {
     }
 }
 
-Invoke-Godot 'import' @('--headless', '--editor', '--path', ('"' + $gamePath + '"'), '--quit')
+Invoke-Godot 'import' @('--headless', '--import', '--path', ('"' + $gamePath + '"'))
 Invoke-Godot 'smoke' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/smoke.gd')
 Invoke-Godot 'damage' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/damage_test.gd')
 Invoke-Godot 'jaime_mission' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/jaime_mission.gd')
@@ -72,6 +72,10 @@ Invoke-Godot 'street_events' @('--headless', '--path', ('"' + $gamePath + '"'), 
 Invoke-Godot 'phone' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/phone.gd')
 Invoke-Godot 'weather' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/weather.gd')
 Invoke-Godot 'kerbs' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/kerbs.gd')
+Invoke-Godot 'chapter2' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/chapter2.gd')
+Invoke-Godot 'motorbike' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/motorbike.gd')
+Invoke-Godot 'miradores' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/miradores.gd')
+Invoke-Godot 'phone_calls' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/phone_calls.gd')
 Invoke-Godot 'traffic' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_soak.gd')
 Invoke-Godot 'traffic_obstacles' @('--headless', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/traffic_obstacles.gd')
 Invoke-Godot 'route' @('--headless', '--fixed-fps', '60', '--path', ('"' + $gamePath + '"'), '--script', 'res://tests/route_trial.gd')

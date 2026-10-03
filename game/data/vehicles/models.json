@@ -1,5 +1,5 @@
 {
-  "description": "Vehicle visual variants. Models are CC0 Quaternius (assets/third_party). 'paint' recolours the named surfaces; 'yaw_degrees' aligns the model with gameplay forward (-Z). 'scale' resizes a model; 'boat' vehicles move only on deep water (see vehicle.gd).",
+  "description": "Vehicle visual variants. Models are CC0 Quaternius (assets/third_party). 'paint' recolours the named surfaces; 'yaw_degrees' aligns the model with gameplay forward (-Z). 'scale' resizes a model; 'boat' vehicles move only on deep water (see vehicle.gd). 'bike' ('moto' | 'scooter') builds a procedural single-track motorbike (scripts/bike_model.gd, named as its 'scene'); 'colors' is its paint palette, 'max_speed'/'acceleration'/'turn_rate' tune handling (cars default to 22 / 16 / 1.6). 'traffic_bikes' joins the traffic mix at a low share.",
   "variants": {
     "mission_red": {
       "scene": "res://assets/third_party/quaternius/cars/normal_car_1.fbx",
@@ -103,6 +103,54 @@
       "scale": 5.0,
       "boat": true,
       "max_speed": 19.0
+    },
+    "moto_naked": {
+      "scene": "res://scripts/bike_model.gd",
+      "bike": "moto",
+      "display_name": "Moto",
+      "colors": [
+        "#b8352a",
+        "#1c1d22",
+        "#2a56a8",
+        "#e0a52a",
+        "#e9e7e1"
+      ],
+      "max_speed": 30.0,
+      "acceleration": 21.0,
+      "turn_rate": 2.3,
+      "driver": {
+        "scale": 0.95
+      }
+    },
+    "scooter": {
+      "scene": "res://scripts/bike_model.gd",
+      "bike": "scooter",
+      "display_name": "Scooter",
+      "colors": [
+        "#9fd3c0",
+        "#e8dcc0",
+        "#8fb8de",
+        "#c8352e",
+        "#f1efe8"
+      ],
+      "max_speed": 18.0,
+      "acceleration": 17.0,
+      "turn_rate": 2.5,
+      "driver": {
+        "scale": 0.95
+      }
+    },
+    "police_guardia": {
+      "scene": "res://assets/third_party/quaternius/cars/cop_suv.fbx",
+      "paint": {
+        "Black": "#2d5b3b"
+      },
+      "yaw_degrees": 180,
+      "driver": {
+        "height": 0.09,
+        "scale": 0.95
+      },
+      "label": "Guardia Civil"
     }
   },
   "traffic": [
@@ -111,5 +159,9 @@
     "taxi",
     "sports_orange",
     "sports_white"
+  ],
+  "traffic_bikes": [
+    "scooter",
+    "moto_naked"
   ]
 }

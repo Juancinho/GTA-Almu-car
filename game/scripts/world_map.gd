@@ -19,6 +19,7 @@ var world: SectorWorld
 var mission: MissionController
 var player: PlayerController
 var minimap: DistrictMinimap
+var miradores: Node  # viewpoints (scripts/miradores.gd)
 var zoom := 0.9  # pixels per metre
 var center := Vector2.ZERO  # world x/z shown at the middle of the screen
 var land := PackedVector2Array()
@@ -182,6 +183,7 @@ func _draw() -> void:
 			draw_string(font, Vector2(-width * 0.5, 4), text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px, Color("f4ecd8"))
 			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_services(font)
+	_draw_miradores(font)
 	var route := minimap.waypoint_path if minimap != null else PackedVector3Array()
 	if route.size() >= 2:
 		var line := PackedVector2Array()
@@ -240,12 +242,30 @@ func _draw_services(font: Font) -> void:
 			draw_string(font, at + Vector2(9, 4), str(service[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, (service[2] as Color).lightened(0.3))
 
 
+func _draw_miradores(font: Font) -> void:
+	if miradores == null:
+		return
+	var seen: Dictionary = miradores.get("found")
+	for spot in miradores.get("spots"):
+		var p: Vector3 = spot["at"]
+		var at := to_screen(Vector2(p.x, p.z))
+		if not Rect2(Vector2.ZERO, size).has_point(at):
+			continue
+		var discovered := seen.has(str(spot["id"]))
+		DistrictMinimap.draw_mirador_icon(self, at, 1.4, discovered)
+		if zoom >= 0.8:
+			var text := "Mirador " + str(spot["name"]).get_slice(" · ", 0)
+			draw_string_outline(font, at + Vector2(13, 5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0, 0, 0, 0.9))
+			draw_string(font, at + Vector2(13, 5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("b8c4c0") if discovered else Color("8feaf4"))
+
+
 func _draw_legend(font: Font) -> void:
-	var box := Rect2(Vector2(20, size.y - 132), Vector2(430, 112))
+	var box := Rect2(Vector2(20, size.y - 151), Vector2(430, 131))
 	draw_rect(box, Color(0.05, 0.12, 0.14, 0.85), true)
 	var lines := [
 		"MAPA DE ALMUÑÉCAR",
 		"Letras: misiones disponibles · Amarillo: objetivo actual",
+		"Prismáticos: miradores (cian por descubrir · gris vistos)",
 		"Clic: marcar destino (ruta morada) · Clic dcho.: quitarlo",
 		"Rueda: zoom · WASD o arrastrar: mover · M / Esc: cerrar",
 		"Map data © OpenStreetMap contributors · ODbL",

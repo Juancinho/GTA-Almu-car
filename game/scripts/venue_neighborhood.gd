@@ -1,5 +1,7 @@
 extends RefCounted
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 ## Reusable textured furnishings; physical circulation remains free of counters.
 static func build(v: VenueInterior, o: Vector3, wood: Material, metal: Material, accent: Material, mats: SectorMaterials) -> void:
 	v._box("ServiceCounter", Vector3(4.5, 1.0, 0.8), o + Vector3(4, 0.5, -5.5), wood, true)
@@ -35,7 +37,7 @@ static func build(v: VenueInterior, o: Vector3, wood: Material, metal: Material,
 	if v.kind == "record_shop":
 		var audio := AudioStreamPlayer3D.new()
 		audio.name = "ListeningStation"
-		audio.stream = load("res://assets/audio/coastal_session.wav") as AudioStream
+		audio.stream = AudioUtil.stream("res://assets/audio/coastal_session.wav")
 		audio.max_distance = 14.0
 		audio.volume_db = -13.0
 		audio.position = o + Vector3(4, 1.2, -5.5)

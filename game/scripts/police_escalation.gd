@@ -1,5 +1,7 @@
 extends Node3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 ## What a big wanted level adds on top of patrol cars:
 ## - 3+ stars: roadblocks. Two patrol cars parked across the road ahead of the
 ##   player's direction of travel, with armed officers behind them.
@@ -133,7 +135,7 @@ func _place_roadblock(point: Vector3) -> Dictionary:
 	for side: float in [-1.0, 1.0]:
 		var car := VehicleScript.new() as DriveableVehicle
 		car.name = "Control_%d" % rng.randi()
-		car.variant = "police_suv" if side > 0.0 else "police_local"
+		car.variant = ("police_guardia" if int(wanted.get("level")) >= 5 else "police_suv") if side > 0.0 else "police_local"
 		var spot := point + across * side * 2.4
 		var ground: float = player.sector_data.height_at(spot.x, spot.z) if player.sector_data != null else spot.y
 		car.position = Vector3(spot.x, ground + 0.6, spot.z)
@@ -402,7 +404,7 @@ func _spawn_helicopter(target: Vector3) -> void:
 	heli_beam.visible = false
 	helicopter.add_child(heli_beam)
 	heli_audio = AudioStreamPlayer3D.new()
-	heli_audio.stream = load("res://assets/audio/engine_loop.wav") as AudioStream
+	heli_audio.stream = AudioUtil.stream("res://assets/audio/engine_loop.wav")
 	if heli_audio.stream is AudioStreamWAV:
 		(heli_audio.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	heli_audio.pitch_scale = 0.45
@@ -412,7 +414,7 @@ func _spawn_helicopter(target: Vector3) -> void:
 	heli_audio.bus = "SFX"
 	helicopter.add_child(heli_audio)
 	heli_shot_audio = AudioStreamPlayer3D.new()
-	heli_shot_audio.stream = load("res://assets/audio/pistol_shot.wav") as AudioStream
+	heli_shot_audio.stream = AudioUtil.stream("res://assets/audio/pistol_shot.wav")
 	heli_shot_audio.unit_size = 25.0
 	heli_shot_audio.max_distance = 300.0
 	heli_shot_audio.bus = "SFX"

@@ -308,6 +308,8 @@ func _spawn_police_car(index: int) -> void:
 	spawn_serial += 1
 	car.body_color = Color("344d67")
 	car.variant = "police_suv" if level >= 3 and spawn_serial % 2 == 0 else "police_local"
+	if level >= MAX_LEVEL and spawn_serial % 2 == 1:
+		car.variant = "police_guardia"  # five stars: the Guardia Civil joins the hunt
 	var spawn := _spawn_point(last_known, index)
 	car.position = spawn + Vector3(0, 0.6, 0)
 	var facing := last_known - spawn

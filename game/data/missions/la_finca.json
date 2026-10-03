@@ -1,0 +1,198 @@
+{
+  "id": "la_finca",
+  "title": "Oro verde",
+  "reward": 2500,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Curro: Los de Cifuentes siguen arriba con el dinero en las cajas. Vuelve a subir a la finca.",
+  "setting": "Capítulo 2, misión 2. Calle Virgen del Carmen -> Finca El Aguacatal en lo alto (almacén vigilado por hombres armados de Altamar) -> huida con el todoterreno cargado y vuelta con Curro.",
+  "spawns": [
+    {
+      "id": "farm_van",
+      "kind": "vehicle",
+      "variant": "suv_sand",
+      "at": [
+        209.0,
+        -550.0
+      ],
+      "on_road": false,
+      "yaw": 180,
+      "health": 1300,
+      "when": "start"
+    },
+    {
+      "id": "capataz",
+      "kind": "enemy",
+      "display": "Capataz de Altamar",
+      "model": "male_shirt",
+      "armed": true,
+      "toughness": 4,
+      "at": [
+        222.0,
+        -552.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "guarda_1",
+      "kind": "enemy",
+      "display": "Guarda de la finca",
+      "model": "male_longsleeve",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        205.0,
+        -548.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "guarda_2",
+      "kind": "enemy",
+      "display": "Guarda de la finca",
+      "model": "male_casual",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        228.0,
+        -545.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "guarda_3",
+      "kind": "enemy",
+      "display": "Guarda de la finca",
+      "model": "male_longsleeve",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        218.0,
+        -562.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "guarda_4",
+      "kind": "enemy",
+      "display": "Guarda de la finca",
+      "model": "male_shirt",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        236.0,
+        -556.0
+      ],
+      "when": "objective"
+    },
+    {
+      "id": "guarda_5",
+      "kind": "enemy",
+      "display": "Guarda de la finca",
+      "model": "male_casual",
+      "armed": true,
+      "toughness": 3,
+      "at": [
+        200.0,
+        -560.0
+      ],
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Curro",
+      "text": "Habla con Curro en la Calle Virgen del Carmen",
+      "dialogue": [
+        "Curro: Tres generaciones cultivando aguacates ahí arriba, y un papel del Ayuntamiento de Ferrer me lo quitó en una mañana. 'Interés general', decían.",
+        "Curro: Ahora la finca es de Altamar. Los aguacates salen para Málaga en cajas... y las cajas pesan más que los aguacates.",
+        "Curro: El jueves sale el camión. Hoy lo están cargando. Sube por la calle hasta el final y verás el almacén. Llevan escopetas: ve con algo más que buenas intenciones."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        212.0,
+        -520.0
+      ],
+      "radius": 25,
+      "text": "Sube hasta la Finca El Aguacatal, al final de la Calle Virgen del Carmen",
+      "give_weapon": {
+        "weapon": "smg",
+        "ammo": 150
+      },
+      "spawn": [
+        "capataz",
+        "guarda_1",
+        "guarda_2",
+        "guarda_3",
+        "guarda_4",
+        "guarda_5"
+      ],
+      "dialogue": [
+        "Capataz: ¡Eh! Esto es propiedad privada. ¿Te manda el viejo?",
+        "Capataz: ¡A por él! ¡Que no se acerque al almacén!"
+      ]
+    },
+    {
+      "type": "beat_up",
+      "targets": [
+        "capataz",
+        "guarda_1",
+        "guarda_2",
+        "guarda_3",
+        "guarda_4",
+        "guarda_5"
+      ],
+      "marker": [
+        220.0,
+        -550.0
+      ],
+      "text": "Limpia la finca: acaba con el capataz y los guardas de Altamar",
+      "dialogue": "Solo se oyen las chicharras. El almacén está abierto."
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        222.0,
+        -556.0
+      ],
+      "radius": 4,
+      "requires_on_foot": true,
+      "text": "Registra las cajas de aguacates del almacén",
+      "dialogue": [
+        "Bajo la primera capa de aguacates: fajos de billetes envasados al vacío. En cada caja.",
+        "Y los albaranes: 'Inversiones Altamar · exportación de fruta tropical'. Fruta a 4.000 € el kilo."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "farm_van",
+      "text": "Cárgalo todo en el todoterreno de la finca y arranca",
+      "set_wanted": 2,
+      "wrecked_text": "El todoterreno con el dinero ha quedado destrozado."
+    },
+    {
+      "type": "escape_police",
+      "vehicle": "farm_van",
+      "text": "¡La patrulla del sargento Robles sube por la cuesta! Despístala sin perder el todoterreno",
+      "wrecked_text": "El todoterreno con el dinero ha quedado destrozado.",
+      "dialogue": "Ni rastro de los guardias. Robles va a tener que dar muchas explicaciones."
+    },
+    {
+      "type": "reach_area",
+      "vehicle": "farm_van",
+      "requires_vehicle": true,
+      "requires_no_wanted": true,
+      "marker_contact": "Curro",
+      "radius": 12,
+      "text": "Lleva el todoterreno cargado a Curro",
+      "wrecked_text": "El todoterreno con el dinero ha quedado destrozado.",
+      "dialogue": [
+        "Curro: ¿Todo eso iba en mis cajas? Mi padre se levantaría de la tumba... para contarlo.",
+        "Curro: Una parte para ti, otra para los jornaleros que echaron. El resto se lo damos a Rocío con los albaranes.",
+        "Rocío (teléfono): Cifuentes se ha enterado. Está vaciando la marina. Ven en cuanto puedas."
+      ]
+    }
+  ]
+}

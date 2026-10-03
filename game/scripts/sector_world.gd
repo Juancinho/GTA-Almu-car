@@ -54,6 +54,7 @@ func _ready() -> void:
 	_create_venues()
 	_create_apartments()
 	_create_vehicle()
+	_create_parked_bikes()
 	_create_boats()
 	_create_people()
 	_create_traffic(TRAFFIC_COUNT)
@@ -149,6 +150,29 @@ func _create_vehicle() -> void:
 	car.rotation.y = _road_heading(spot)
 	add_child(car)
 	vehicle_spawns[car.name] = car.transform
+
+
+## Motorbikes and scooters parked on the paseo paving west of the start, ready to
+## steal: [x, z, yaw, variant, palette index]. Kept off the player's first steps.
+const PARKED_BIKES := [
+	[-13.6, 31.2, 0.25, "scooter", 0],
+	[-15.0, 31.5, 0.25, "moto_naked", 0],
+	[-16.4, 31.8, 0.25, "scooter", 3],
+	[-17.8, 32.1, 0.25, "moto_naked", 1],
+]
+
+
+func _create_parked_bikes() -> void:
+	for i in range(PARKED_BIKES.size()):
+		var spec: Array = PARKED_BIKES[i]
+		var bike := VehicleScript.new() as DriveableVehicle
+		bike.name = "MotoAparcada_%d" % i
+		bike.variant = str(spec[3])
+		bike.body_color = DriveableVehicle.palette_color(bike.variant, int(spec[4]))
+		bike.position = Vector3(float(spec[0]), data.height_at(float(spec[0]), float(spec[1])) + 0.35, float(spec[1]))
+		bike.rotation.y = float(spec[2])
+		add_child(bike)
+		vehicle_spawns[bike.name] = bike.transform
 
 
 ## Boats moored just off the Puerta del Mar and Altillo beaches, bows to the sea.
@@ -270,6 +294,7 @@ func _create_traffic(count: int) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7403
 	var variants := DriveableVehicle.traffic_variants()
+	var bikes := DriveableVehicle.traffic_bike_variants()
 	var used: Array[Vector3] = []
 	var created := 0
 	var attempts := 0
@@ -298,6 +323,9 @@ func _create_traffic(count: int) -> void:
 		car.name = "Traffic_%02d" % created
 		if not variants.is_empty():
 			car.variant = str(variants[created % variants.size()])
+		if not bikes.is_empty() and created % 7 == 5:  # ~15% of traffic rides two wheels
+			car.variant = str(bikes[created / 7 % bikes.size()])
+			car.body_color = DriveableVehicle.palette_color(car.variant, created)
 		car.position = Vector3(spot.x, data.height_at(spot.x, spot.z) + 0.4, spot.z)
 		car.rotation.y = atan2(-direction.x, -direction.z)
 		add_child(car)

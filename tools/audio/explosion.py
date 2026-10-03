@@ -53,3 +53,11 @@ loop = rain[:n].copy()
 loop[:SR] = rain[:SR] * fade + rain[n:n + SR] * (1 - fade)
 save("rain_loop.wav", loop * 0.8)
 print("rain ok")
+
+# Thunder (4.5 s): a sharp crack followed by a long low rolling rumble.
+t = np.arange(int(4.5 * SR)) / SR
+crack = (rng.uniform(-1, 1, len(t)) - lp(rng.uniform(-1, 1, len(t)), 1500)) * np.exp(-t * 14) * 0.7
+roll = lp(rng.uniform(-1, 1, len(t)), 140) * 5.0
+roll *= (0.55 + 0.45 * np.sin(2 * np.pi * 0.9 * t + 1.0) ** 2) * np.exp(-t * 0.75) * (1 - np.exp(-t * 6))
+save("thunder.wav", np.tanh((crack + roll) * 1.4))
+print("thunder ok")

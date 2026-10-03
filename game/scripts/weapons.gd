@@ -1,6 +1,8 @@
 class_name WeaponSystem
 extends Node3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 ## Data-defined arsenal. Camera aim chooses a target, then shared ballistics casts
 ## from the physical muzzle, with cover and glass attenuation for every shooter.
 ## Pedestrians react, vehicles/props receive damage or impulses and witnesses
@@ -76,7 +78,7 @@ func configure(target_player: PlayerController, target_world: SectorWorld, targe
 	for id in ["pistol_shot", "smg_shot", "bat_hit", "dry_click", "reload"]:
 		var audio := AudioStreamPlayer3D.new()
 		audio.name = "Sound_" + id
-		audio.stream = load("res://assets/audio/%s.wav" % id) as AudioStream
+		audio.stream = AudioUtil.stream("res://assets/audio/%s.wav" % id)
 		audio.bus = "SFX"
 		audio.max_distance = 140.0
 		audio.unit_size = 8.0
@@ -123,13 +125,46 @@ func _build_gun_visual() -> void:
 	gun_holder.name = "HeldWeapon"
 	player.visual.add_child(gun_holder)
 	for id in defs:
-		if defs[id].has("model"):
-			var model := weapon_model(id)
-			if model != null:
-				model.visible = false
-				gun_holder.add_child(model)
-				gun_models[id] = model
+		var model: Node3D = weapon_model(id) if defs[id].has("model") else (bat_model() if id == "bat" else null)
+		if model != null:
+			model.visible = false
+			gun_holder.add_child(model)
+			gun_models[id] = model
 	gun_visual = null
+
+
+## Wooden baseball bat held by the handle: the barrel runs along -Z from the
+## hand (the same frame as the guns), with black grip tape and a knob.
+func bat_model() -> Node3D:
+	var pivot := Node3D.new()
+	pivot.name = "Model_bat"
+	var wood := StandardMaterial3D.new()
+	wood.albedo_color = Color("c09060")
+	wood.roughness = 0.6
+	var tape := StandardMaterial3D.new()
+	tape.albedo_color = Color("1c1c1e")
+	tape.roughness = 0.9
+	var parts := [
+		[0.032, 0.018, 0.62, -0.42, wood],  # barrel tapering to the handle
+		[0.018, 0.017, 0.24, -0.02, tape],  # taped handle through the fist
+		[0.026, 0.026, 0.025, 0.105, tape],  # knob
+		[0.03, 0.032, 0.05, -0.75, wood],  # rounded end cap
+	]
+	for spec in parts:
+		var part := MeshInstance3D.new()
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = spec[0]
+		mesh.bottom_radius = spec[1]
+		mesh.height = spec[2]
+		mesh.radial_segments = 12
+		mesh.rings = 1
+		part.mesh = mesh
+		part.material_override = spec[4]
+		part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		part.rotation.x = -PI * 0.5  # cylinder +Y (its top) along -Z
+		part.position.z = spec[3]
+		pivot.add_child(part)
+	return pivot
 
 
 ## A correctly oriented (barrel along -Z, grip down), scaled and coloured model.
@@ -196,8 +231,18 @@ func _pose_gun(_delta: float) -> void:
 	if grip == Vector3.INF or shoulder == Vector3.INF:
 		grip = player.visual.global_position + body * Vector3(0.2, 1.3, -0.4)
 		shoulder = player.visual.global_position + body * Vector3(0.2, 1.45, 0.0)
-	var raised := aiming or cooldown > 0.0
+	var raised := (aiming or cooldown > 0.0) and is_gun()
 	var basis := body * Basis(Vector3.RIGHT, player.camera_pitch if raised else deg_to_rad(-30.0 if long else -65.0))
+	if current == "bat":
+		# Carried down by the leg; a swing brings it up over the shoulder and
+		# sweeps it across the body while the slash animation moves the hand.
+		var interval := float(definition().get("interval", 0.75))
+		var t := clampf(1.0 - cooldown / interval, 0.0, 1.0) if cooldown > 0.0 else 1.0
+		var sweep := smoothstep(0.2, 0.5, t) * (1.0 - smoothstep(0.75, 1.0, t))
+		var windup := (1.0 - smoothstep(0.0, 0.2, t)) if cooldown > 0.0 else 0.0
+		var pitch := lerpf(deg_to_rad(-70.0), deg_to_rad(5.0), sweep) + windup * deg_to_rad(110.0)
+		var yaw := lerpf(0.0, deg_to_rad(-70.0), sweep) + windup * deg_to_rad(40.0)
+		basis = body * Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch)
 	if raised or long:
 		var target := shoulder + basis * (Vector3(-0.035, -0.11 if raised else -0.25, -0.18) if long else Vector3(0.025, -0.16, -0.39))
 		player.human.place_hand("R", target, shoulder + body * Vector3(0.32, -0.45, 0.03))

@@ -136,7 +136,7 @@ func _start_mugging() -> bool:
 	var best: Pedestrian = null
 	for node in get_tree().get_nodes_in_group("pedestrians"):
 		var person := node as Pedestrian
-		if person == null or person is PoliceOfficer or person.dead or person.mission_contact or person.enemy:
+		if person == null or person is PoliceOfficer or person.dead or person.mission_contact or person.enemy or not person.is_visible_in_tree():
 			continue
 		if person.state != Pedestrian.State.WANDER or person.activity in ["work", "dance", "swim", "bathe"]:
 			continue

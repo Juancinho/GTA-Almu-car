@@ -1,0 +1,185 @@
+{
+  "id": "mar_de_fondo",
+  "title": "Mar de fondo",
+  "reward": 4000,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Rocío: Cifuentes no zarpará sin su maletín. Todavía hay tiempo: vuelve a por él.",
+  "setting": "Capítulo 2, misión 3 (cierre del primer acto). Plaza Marruecos -> persecución del todoterreno del sargento Robles -> playa de San Cristóbal -> persecución en lancha de Cifuentes frente al Peñón -> vuelta a la playa.",
+  "spawns": [
+    {
+      "id": "alba_sports",
+      "kind": "vehicle",
+      "variant": "sports_orange",
+      "at": [
+        0.0,
+        -300.0
+      ],
+      "when": "start"
+    },
+    {
+      "id": "robles_suv",
+      "kind": "vehicle",
+      "variant": "suv_sand",
+      "at": [
+        60.0,
+        -360.0
+      ],
+      "traffic": true,
+      "speed": 13.5,
+      "occupant": "male_shirt",
+      "health": 1600,
+      "when": "objective"
+    },
+    {
+      "id": "paco_rib",
+      "kind": "vehicle",
+      "variant": "rib",
+      "at": [
+        -288.0,
+        258.0
+      ],
+      "on_road": false,
+      "yaw": 160,
+      "when": "start"
+    },
+    {
+      "id": "cifuentes_rib",
+      "kind": "vehicle",
+      "variant": "rib",
+      "at": [
+        -270.0,
+        300.0
+      ],
+      "on_road": false,
+      "yaw": 150,
+      "occupant": "male_suit",
+      "health": 900,
+      "route": [
+        [
+          -270.0,
+          300.0
+        ],
+        [
+          -200.0,
+          400.0
+        ],
+        [
+          -80.0,
+          430.0
+        ],
+        [
+          -40.0,
+          340.0
+        ],
+        [
+          -140.0,
+          290.0
+        ],
+        [
+          -230.0,
+          280.0
+        ]
+      ],
+      "speed": 14.0,
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Rocio",
+      "text": "Habla con Rocío en la Plaza Marruecos",
+      "dialogue": [
+        "Rocío: Cifuentes se larga esta noche. El sargento Robles le lleva en su todoterreno hasta la playa de San Cristóbal, y allí le espera una lancha.",
+        "Rocío: En el maletín va todo: los contratos de las fincas, los amarres de la marina, la lista de sobres. Si sale por mar, no lo volvemos a ver.",
+        "Rocío: Alba te ha dejado su deportivo naranja en la esquina, y Paco su lancha frente a la playa. 'Para que no digas que no te queremos', dice."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "alba_sports",
+      "text": "Sube al deportivo naranja de Alba",
+      "wrecked_text": "El deportivo de Alba ha quedado destrozado."
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "robles_suv",
+      "health_below": 500,
+      "escape_distance": 400,
+      "spawn": [
+        "robles_suv"
+      ],
+      "give_weapon": {
+        "weapon": "smg",
+        "ammo": 150
+      },
+      "set_wanted": 2,
+      "text": "Intercepta el todoterreno del sargento Robles: embístelo o dispara al motor",
+      "escape_text": "Robles ha llegado a la playa con Cifuentes. Demasiado tarde.",
+      "dialogue": [
+        "El todoterreno echa humo. Robles sale a rastras, pistola en mano y la radio gritando.",
+        "Rocío (teléfono): ¡Cifuentes ya no iba con él! ¡Ha salido antes hacia la playa! ¡Corre!"
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -302.0,
+        240.0
+      ],
+      "radius": 18,
+      "time_limit": 90,
+      "text": "Llega a la playa de San Cristóbal antes de que la lancha de Cifuentes zarpe",
+      "timeout_text": "La lancha de Cifuentes se ha perdido en el horizonte.",
+      "dialogue": "Ahí está: la lancha blanca de Cifuentes arrancando. La de Paco está a unos metros de la orilla."
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "paco_rib",
+      "spawn": [
+        "cifuentes_rib"
+      ],
+      "text": "Nada hasta la lancha de Paco y súbete (E)",
+      "wrecked_text": "La lancha de Paco se ha hundido."
+    },
+    {
+      "type": "destroy_vehicle",
+      "target_spawn": "cifuentes_rib",
+      "health_below": 250,
+      "escape_distance": 450,
+      "text": "Alcanza la lancha de Cifuentes y detenla: embístela o dispárale",
+      "escape_text": "Cifuentes se ha escapado mar adentro.",
+      "dialogue": [
+        "El motor revienta. Cifuentes salta al agua abrazado a un chaleco salvavidas.",
+        "Cifuentes: ¡Esto no se queda así! ¡En Málaga tengo amigos que no salen en los periódicos!"
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker_target": "cifuentes_rib",
+      "radius": 9,
+      "text": "Abórdala y coge el maletín",
+      "dialogue": "Contratos, sobres numerados y un pendrive con 'ALTAMAR' escrito a rotulador. Cifuentes nada hacia el Peñón."
+    },
+    {
+      "type": "escape_police",
+      "text": "Pierde a la policía",
+      "dialogue": "Nadie te sigue. Solo las gaviotas."
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -302.0,
+        240.0
+      ],
+      "radius": 20,
+      "requires_no_wanted": true,
+      "text": "Vuelve a la playa de San Cristóbal: Rocío te espera",
+      "dialogue": [
+        "Rocío: El maletín... Mañana a primera hora, en la redacción y en el juzgado. Las dos cosas.",
+        "Rocío: Cifuentes caerá, pero Robles no estaba solo. En su cuartel hay más sobres que guardias.",
+        "Alba (teléfono): Me cuentan que has montado un buen lío en San Cristóbal. Vuelvo de Marina del Este. Esta vez vamos a por todos."
+      ]
+    }
+  ]
+}

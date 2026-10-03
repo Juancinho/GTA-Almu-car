@@ -1,5 +1,7 @@
 extends Node3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 const WorldScript = preload("res://scripts/sector_world.gd")
 const PlayerScript = preload("res://scripts/player.gd")
 const HudScript = preload("res://scripts/hud.gd")
@@ -44,6 +46,7 @@ var weapon_wheel: Node  # TAB radial selector
 var street_events: Node  # random muggings, car thefts, cash vans
 var phone: Node  # ↑ contacts, quick save, stats
 var weather: Node  # clouds, rain, wet roads
+var miradores: Node  # viewpoints with a panorama camera
 var stash_ready_at := 0
 var discoveries: Dictionary = {}
 var _warm_resources: Array = []  # scenes loaded up front: no hitch when police or weapons first appear
@@ -179,6 +182,15 @@ func _ready() -> void:
 	phone.name = "Phone"
 	add_child(phone)
 	phone.call("configure", self, player)
+	# After the player and the phone: its input handlers run first (E at a viewpoint,
+	# every key swallowed while the panorama plays).
+	miradores = (load("res://scripts/miradores.gd") as GDScript).new()
+	miradores.name = "Miradores"
+	miradores.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(miradores)
+	miradores.call("configure", player, self, world)
+	hud.minimap.miradores = miradores
+	hud.world_map.miradores = miradores
 	weather = (load("res://scripts/weather.gd") as GDScript).new()
 	weather.name = "Weather"
 	weather.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -217,7 +229,7 @@ func _configure_audio() -> void:
 	ambience.name = "SeaWindAmbience"
 	ambience.bus = "Ambience"
 	ambience.volume_db = -11.0
-	ambience.stream = load("res://assets/audio/sea_wind_loop.wav") as AudioStream
+	ambience.stream = AudioUtil.stream("res://assets/audio/sea_wind_loop.wav")
 	if ambience.stream is AudioStreamWAV:
 		(ambience.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	ambience.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -228,7 +240,7 @@ func _configure_audio() -> void:
 	ui_audio.name = "UiFeedback"
 	ui_audio.bus = "UI"
 	ui_audio.volume_db = -8.0
-	ui_audio.stream = load("res://assets/audio/ui_click.wav") as AudioStream
+	ui_audio.stream = AudioUtil.stream("res://assets/audio/ui_click.wav")
 	add_child(ui_audio)
 
 
@@ -796,6 +808,8 @@ func _save_game() -> void:
 		"throwables": throwables.call("to_save") if throwables != null else {},
 		"street_events": street_events.call("to_save") if street_events != null else {},
 		"weather": weather.call("to_save") if weather != null else {},
+		"miradores": miradores.call("to_save") if miradores != null else {},
+		"phone": phone.call("to_save") if phone != null else {},
 		"amphorae": collectibles.call("to_save") if collectibles != null else [],
 		"discoveries": discoveries,
 		"weapons": weapons.to_save(),
@@ -867,6 +881,8 @@ func _load_game() -> void:
 		weather.call("from_save", data.get("weather", {}))
 	if collectibles != null:
 		collectibles.call("from_save", data.get("amphorae", []))
+	if miradores != null:
+		miradores.call("from_save", data.get("miradores", {}))
 	discoveries = data.get("discoveries", {}) if data.get("discoveries", {}) is Dictionary else {}
 	for venue in world.venues.values():
 		(venue as VenueInterior).restore_discoveries(discoveries)
@@ -891,6 +907,8 @@ func _load_game() -> void:
 			car.global_position = Vector3(float(car_point[0]), float(car_point[1]), float(car_point[2]))
 			car.rotation.y = float(data.get("vehicle_yaw", 0.0))
 			player.board_vehicle(car)
+	if phone != null:  # after the missions: offers already open are not announced again
+		phone.call("from_save", data.get("phone", {}))
 	mission._show_dialogue("Partida cargada.")
 
 

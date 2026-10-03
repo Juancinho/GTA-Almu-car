@@ -1,5 +1,7 @@
 extends Node
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 ## Car radio. Getting into a car switches the radio on at the last station; Q
 ## cycles stations (and "apagada"). Stations play "live": each runs on the game
 ## clock, so tuning in lands mid-song, as on a real radio. A small caption shows
@@ -27,7 +29,7 @@ func configure(target_player: PlayerController) -> void:
 	for s in stations:
 		var length := 0.0
 		for t in s["tracks"]:
-			var stream := load(str(t["file"])) as AudioStream
+			var stream := AudioUtil.stream(str(t["file"]))
 			t["stream"] = stream
 			t["length"] = stream.get_length() if stream != null else 60.0
 			length += float(t["length"])

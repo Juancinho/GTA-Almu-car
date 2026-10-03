@@ -1,5 +1,5 @@
 {
-  "description": "Mission registry in story order (chapter one: Alba, Paco and the war with Rubén 'el del Puerto' over the town's extortion and the planning-bribe money). A mission is offered by its contact once every 'requires' mission is complete. 'blip' is the letter on the map and over the contact; contacts not placed by the sector are spawned from 'contacts'. 'aliases' maps retired mission ids in old saves.",
+  "description": "Mission registry in story order (chapter one: Alba, Paco and the war with Rubén 'el del Puerto' over the town's extortion and the planning-bribe money). A mission is offered by its contact once every 'requires' mission is complete. 'blip' is the letter on the map and over the contact; contacts not placed by the sector are spawned from 'contacts'. 'aliases' maps retired mission ids in old saves. Chapter two (docs/CHAPTER_2.md): Rocío and Curro against the Málaga developer Álvaro Cifuentes and sergeant Robles, unlocked by 'poniente'.",
   "missions": [
     {
       "id": "el_recado",
@@ -117,6 +117,33 @@
       "requires": [
         "el_atico"
       ]
+    },
+    {
+      "id": "la_sombra",
+      "contact": "Rocio",
+      "blip": "R",
+      "color": "5ec8a0",
+      "requires": [
+        "poniente"
+      ]
+    },
+    {
+      "id": "la_finca",
+      "contact": "Curro",
+      "blip": "C",
+      "color": "9bc53d",
+      "requires": [
+        "la_sombra"
+      ]
+    },
+    {
+      "id": "mar_de_fondo",
+      "contact": "Rocio",
+      "blip": "R",
+      "color": "e0645a",
+      "requires": [
+        "la_finca"
+      ]
     }
   ],
   "contacts": {
@@ -146,6 +173,28 @@
       "venue": "casino",
       "yaw": 180,
       "idle": "Inés: Las cuentas siempre dejan rastro. Gracias por ayudarme a conservarlo."
+    },
+    "Rocio": {
+      "display": "Rocío · Periodista",
+      "where": "Rocío en la Plaza Marruecos",
+      "model": "female_casual",
+      "at": [
+        12.0,
+        -305.0
+      ],
+      "yaw": 90,
+      "idle": "Rocío: Una periodista nunca revela sus fuentes. Y tú eres la mejor que tengo."
+    },
+    "Curro": {
+      "display": "Curro · Agricultor",
+      "where": "Curro en la Calle Virgen del Carmen",
+      "model": "male_longsleeve",
+      "at": [
+        175.0,
+        -445.0
+      ],
+      "yaw": 60,
+      "idle": "Curro: Algún día vuelvo a subir a la finca. Con mi tractor y sin escopetas."
     }
   },
   "aliases": {

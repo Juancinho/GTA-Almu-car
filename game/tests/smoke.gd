@@ -22,8 +22,8 @@ func _run() -> void:
 	if world == null or player == null:
 		return _fail("world or player missing")
 	var cars := get_nodes_in_group("vehicles").filter(func(v: Node) -> bool: return not (v as DriveableVehicle).boat)
-	if cars.size() != 1 + SectorWorld.TRAFFIC_COUNT:
-		return _fail("expected mission car + %d traffic cars, found %d" % [SectorWorld.TRAFFIC_COUNT, cars.size()])
+	if cars.size() != 1 + SectorWorld.TRAFFIC_COUNT + SectorWorld.PARKED_BIKES.size():
+		return _fail("expected mission car + %d traffic + %d parked bikes, found %d" % [SectorWorld.TRAFFIC_COUNT, SectorWorld.PARKED_BIKES.size(), cars.size()])
 	if get_nodes_in_group("pedestrians").size() < 30:
 		return _fail("pedestrian population missing")
 	if int(world.build_stats.get("buildings", 0)) < 1000 or int(world.build_stats.get("details", 0)) < 20000:

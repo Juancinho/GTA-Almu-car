@@ -8,13 +8,23 @@ extends CanvasLayer
 ##    600 € a star (the town's corruption is the story's theme).
 ##  · Guardar partida: quick save, only with no stars and between mission steps.
 ##  · Estadísticas: progress (missions, amphorae, jumps, street events, money).
+##  · Mensajes: texts left by contacts whose call you missed; reading one marks
+##    the contact on the GPS.
+## Incoming calls: when a mission becomes available that was not on offer before
+## (never for the offers open at the start or after loading), the phone rings for
+## RING_SECONDS once you are free (no mission step under way, no stars). ↑ answers:
+## the contact explains in two or three lines and their position goes on the GPS.
+## A missed call becomes a text in Mensajes. Saved as "phone" in the save file.
 
 const BRIBE_PER_STAR := 600
 const BRIBE_MAX_STARS := 3
+const AudioUtil = preload("res://scripts/audio_util.gd")
+const RING_SECONDS := 8.0
+const POLL_SECONDS := 0.5
 var main: Node
 var player: PlayerController
 var open := false
-var screen := "home"  # home | contacts | stats
+var screen := "home"  # home | contacts | messages | stats
 var items: Array = []  # {label, action, data}
 var cursor := 0
 var root: PanelContainer
@@ -23,6 +33,16 @@ var list: VBoxContainer
 var footer: Label
 var message := ""
 var message_timer := 0.0
+var announced := {}  # mission id -> true: offers the player already knows about
+var pending: Array[String] = []  # new offers waiting for a moment to ring
+var ring_offer := {}  # the offer whose call is ringing now ({} when quiet)
+var ring_timer := 0.0
+var ring_delay := 4.0  # seconds between an offer appearing and the call
+var messages: Array = []  # {id, contact, from, title, where, text, read}
+var ring_audio: AudioStreamPlayer
+var _poll := 0.0
+var _wait := 0.0
+var _primed := false
 
 
 func configure(target_main: Node, target_player: PlayerController) -> void:
@@ -67,12 +87,22 @@ func configure(target_main: Node, target_player: PlayerController) -> void:
 	footer.add_theme_color_override("font_color", Color("6c7a89"))
 	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(footer)
+	ring_audio = AudioStreamPlayer.new()
+	ring_audio.name = "Ringtone"
+	ring_audio.bus = "UI"
+	ring_audio.volume_db = -4.0
+	ring_audio.stream = AudioUtil.stream("res://assets/audio/phone_ring.wav")
+	add_child(ring_audio)
 
 
 func _input(event: InputEvent) -> void:
 	if player == null or not event is InputEventKey or not event.pressed or event.echo:
 		return
 	var key := (event as InputEventKey).keycode
+	if is_ringing() and event.is_action_pressed("phone") and not get_tree().paused:
+		answer()
+		get_viewport().set_input_as_handled()
+		return
 	if not open:
 		if event.is_action_pressed("phone") and not player.dead and not get_tree().paused:
 			show_phone()
@@ -126,6 +156,10 @@ func select() -> void:
 			_contacts()
 		"stats":
 			_stats()
+		"messages":
+			_messages()
+		"read":
+			read_message(int(item["data"]))
 		"save":
 			quick_save()
 		"call":
@@ -138,6 +172,7 @@ func _home() -> void:
 	screen = "home"
 	items = [
 		{"label": "Contactos", "action": "contacts", "data": null},
+		{"label": "Mensajes" + ((" (%d nuevo)" if unread_count() == 1 else " (%d nuevos)") % unread_count() if unread_count() > 0 else ""), "action": "messages", "data": null},
 		{"label": "Guardar partida", "action": "save", "data": null},
 		{"label": "Estadísticas", "action": "stats", "data": null},
 		{"label": "Guardar el móvil", "action": "close", "data": null},
@@ -170,6 +205,8 @@ func _stats() -> void:
 		lines.append("Saltos únicos: %d/%d" % [(main.stunt_jumps.get("done") as Dictionary).size(), (main.stunt_jumps.get("ramps") as Array).size()])
 	if main.get("street_events") != null:
 		lines.append("Sucesos resueltos: %d" % int(main.street_events.get("done_count")))
+	if main.get("miradores") != null:
+		lines.append("Miradores: %d/%d" % [(main.miradores.get("found") as Dictionary).size(), (main.miradores.get("spots") as Array).size()])
 	lines.append("Dinero: %d € · Banco: %d €" % [int(main.get("money")), int(main.get("bank_balance"))])
 	items = []
 	for line in lines:
@@ -250,6 +287,7 @@ func _flash(text: String) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_calls(delta)
 	if message_timer > 0.0:
 		message_timer -= delta
 		if message_timer <= 0.0:
@@ -267,7 +305,7 @@ func _render() -> void:
 	var day_night: Node = main.get("day_night")
 	if day_night != null and day_night.has_method("clock_text"):
 		clock = str(day_night.call("clock_text"))
-	header.text = "%s   %s" % [clock, {"home": "Brisa Móvil", "contacts": "Contactos", "stats": "Estadísticas"}.get(screen, "")]
+	header.text = "%s   %s" % [clock, {"home": "Brisa Móvil", "contacts": "Contactos", "messages": "Mensajes", "stats": "Estadísticas"}.get(screen, "")]
 	for child in list.get_children():
 		child.queue_free()
 	for i in range(items.size()):
@@ -287,3 +325,224 @@ func _render() -> void:
 			row.add_theme_stylebox_override("normal", style)
 		list.add_child(row)
 	footer.text = message if message != "" else "↑↓ elegir · Intro · Retroceso atrás"
+
+
+# --- Incoming calls and texts ----------------------------------------------------
+
+func is_ringing() -> bool:
+	return not ring_offer.is_empty()
+
+
+func unread_count() -> int:
+	var count := 0
+	for m in messages:
+		if not bool(m.get("read", false)):
+			count += 1
+	return count
+
+
+func _offers() -> Array:
+	var mission: Node = main.get("mission") if main != null else null
+	return mission.call("offers") if mission != null else []
+
+
+## Watch the mission offers: anything new is queued and rings when the player is
+## free. The first look (game start, after loading) only records what is there.
+func _update_calls(delta: float) -> void:
+	if main == null or player == null or get_tree().paused:
+		return
+	_wait -= delta
+	if is_ringing():
+		ring_timer -= delta
+		if ring_timer <= 0.0:
+			_missed()
+		elif not ring_audio.playing and DisplayServer.get_name() != "headless":
+			ring_audio.play()
+		return
+	_poll -= delta
+	if _poll > 0.0:
+		return
+	_poll = POLL_SECONDS
+	var current := _offers()
+	if not _primed:
+		_primed = true
+		for offer in current:
+			announced[str(offer["id"])] = true
+		return
+	for offer in current:
+		var id := str(offer["id"])
+		if not announced.has(id):
+			announced[id] = true
+			pending.append(id)
+			_wait = ring_delay
+	if pending.is_empty() or _wait > 0.0 or not can_ring():
+		return
+	while not pending.is_empty():
+		var id: String = pending.pop_front()
+		for offer in current:
+			if str(offer["id"]) == id:
+				_ring(offer)
+				return
+
+
+## Calls wait while a mission step is under way, with stars, with the phone
+## out, on the pause screen or during a viewpoint panorama.
+func can_ring() -> bool:
+	if open or player.dead or get_tree().paused:
+		return false
+	var wanted: Node = main.get("wanted")
+	if wanted != null and int(wanted.get("level")) > 0:
+		return false
+	var mission: Node = main.get("mission")
+	if mission != null and bool(mission.call("mission_busy")):
+		return false
+	var miradores: Node = main.get("miradores")
+	if miradores != null and bool(miradores.get("cinematic")):
+		return false
+	return true
+
+
+func _display(contact_name: String) -> String:
+	var mission: Node = main.get("mission")
+	var spec: Dictionary = mission.get("contact_specs").get(contact_name, {}) if mission != null else {}
+	return str(spec.get("display", contact_name)).get_slice(" · ", 0)
+
+
+func _ring(offer: Dictionary) -> void:
+	ring_offer = offer
+	ring_timer = RING_SECONDS
+	if DisplayServer.get_name() != "headless":
+		ring_audio.play()
+	_notify("%sLlamada de %s — ↑ para contestar" % [_emoji("📱"), _display(str(offer["name"]))], RING_SECONDS, true)
+	var recorder: Node = main.get("playtest_log")
+	if recorder != null:
+		recorder.call("record", "phone_ring", {"id": str(offer["id"])})
+
+
+## ↑ while it rings: the contact explains the job and their position goes on the GPS.
+func answer() -> void:
+	if not is_ringing():
+		return
+	var offer := ring_offer
+	_stop_ring()
+	var who := _display(str(offer["name"]))
+	var mission: Node = main.get("mission")
+	var where := str(mission.call("_where", str(offer["name"]))) if mission != null else ""
+	var lines := [
+		"%s: ¡Eh, soy %s! Escucha, tengo algo para ti: «%s»." % [who, who, str(offer["title"])],
+		"%s: Por teléfono no, que nunca se sabe quién escucha. Ven a verme %s." % [who, _place(who, where)],
+		"%s: Te mando la ubicación al GPS. No tardes." % who,
+	]
+	if mission != null:
+		mission.call("_show_lines", lines)
+	_waypoint_to(str(offer["name"]), offer.get("position", Vector3.INF))
+	_notify("Llamada de %s · ruta marcada en el GPS" % who, 3.0)
+
+
+## "Paco en el Chiringuito Arenas" → "en el Chiringuito Arenas" (the caller speaks).
+func _place(who: String, where: String) -> String:
+	if where.begins_with(who + " "):
+		return where.substr(who.length() + 1)
+	if not where.contains(" "):  # no "where" in the index: just the contact's name
+		return "donde siempre"
+	return "aquí: " + where
+
+
+func _missed() -> void:
+	var offer := ring_offer
+	_stop_ring()
+	var who := _display(str(offer["name"]))
+	var mission: Node = main.get("mission")
+	var where := str(mission.call("_where", str(offer["name"]))) if mission != null else ""
+	var p: Vector3 = offer.get("position", Vector3.INF)
+	messages.append({
+		"id": str(offer["id"]), "contact": str(offer["name"]), "from": who, "title": str(offer["title"]), "where": where,
+		"text": "%s: Te he llamado y no lo coges. Tengo un trabajo para ti, «%s». Estoy %s." % [who, str(offer["title"]), _place(who, where)],
+		"position": [p.x, p.y, p.z] if p != Vector3.INF else [], "read": false,
+	})
+	_notify("%sLlamada perdida de %s · nuevo mensaje (↑ Mensajes)" % [_emoji("✉"), who], 5.0)
+	if open and screen == "home":
+		_home()
+
+
+func _stop_ring() -> void:
+	ring_offer = {}
+	ring_timer = 0.0
+	ring_audio.stop()
+	var hud: Node = main.get("hud")
+	if hud != null and hud.has_method("hide_notification"):
+		hud.call("hide_notification")
+
+
+func _messages() -> void:
+	screen = "messages"
+	items = []
+	for i in range(messages.size() - 1, -1, -1):
+		var m: Dictionary = messages[i]
+		items.append({"label": "%s%s · %s" % ["● " if not bool(m.get("read", false)) else "", str(m["from"]), str(m["title"])], "action": "read", "data": i})
+	if items.is_empty():
+		items.append({"label": "No tienes mensajes.", "action": "none", "data": null})
+	cursor = 0
+	_render()
+
+
+## Show a text and mark its sender on the GPS.
+func read_message(index: int) -> void:
+	if index < 0 or index >= messages.size():
+		return
+	var m: Dictionary = messages[index]
+	m["read"] = true
+	var mission: Node = main.get("mission")
+	if mission != null:
+		mission.call("_show_dialogue", str(m["text"]))
+	var p: Array = m.get("position", [])
+	_waypoint_to(str(m["contact"]), Vector3(float(p[0]), float(p[1]), float(p[2])) if p.size() == 3 else Vector3.INF)
+	if screen == "messages":
+		var keep := cursor
+		_messages()
+		cursor = mini(keep, items.size() - 1)
+		_render()
+	_flash("Mensaje leído · ruta marcada")
+
+
+func _waypoint_to(contact_name: String, fallback: Vector3) -> void:
+	var at := fallback
+	var world: Node = main.get("world")
+	var person := world.get_node_or_null(contact_name) as Node3D if world != null else null
+	if person != null:
+		at = person.global_position
+	var hud: Node = main.get("hud")
+	if at != Vector3.INF and hud != null and hud.get("minimap") != null:
+		hud.minimap.set_waypoint(at)
+
+
+func _notify(text: String, seconds: float, ringing: bool = false) -> void:
+	var hud: Node = main.get("hud")
+	if hud != null and hud.has_method("show_notification"):
+		hud.call("show_notification", text, seconds, ringing)
+
+
+## The emoji and a space when the UI font can draw it (the HUD also draws its own handset).
+func _emoji(glyph: String) -> String:
+	return glyph + " " if ThemeDB.fallback_font != null and ThemeDB.fallback_font.has_char(glyph.unicode_at(0)) else ""
+
+
+func to_save() -> Dictionary:
+	return {"announced": announced.keys(), "messages": messages.duplicate(true)}
+
+
+## Loading restores the texts; the offers open in the loaded game count as known.
+func from_save(value: Variant) -> void:
+	if is_ringing():
+		_stop_ring()
+	pending.clear()
+	announced.clear()
+	messages.clear()
+	if value is Dictionary:
+		for id in (value as Dictionary).get("announced", []):
+			announced[str(id)] = true
+		for m in (value as Dictionary).get("messages", []):
+			if m is Dictionary and (m as Dictionary).has("contact"):
+				messages.append(m)
+	_primed = false
+	_poll = 0.0

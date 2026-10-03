@@ -23,6 +23,7 @@ var lamp_timer := 0.0
 var lamp_material: StandardMaterial3D
 var night := 0.0  # 0 day … 1 full night
 var overcast := 0.0  # 0 clear … 1 storm clouds (set by WeatherSystem)
+var flash := 0.0  # lightning: 0 … 1 for a split second (set by WeatherSystem)
 var _base_fog := -1.0
 
 
@@ -105,11 +106,14 @@ func apply() -> void:
 		sun.light_energy *= 1.0 - 0.7 * overcast
 		if overcast > 0.5:
 			sun.shadow_enabled = false
+	if flash > 0.0:
+		top = top.lerp(Color("c9d2ff"), flash * 0.8)
+		horizon = horizon.lerp(Color("eef0ff"), flash * 0.8)
 	sky.sky_top_color = top
 	sky.sky_horizon_color = horizon
 	sky.ground_horizon_color = horizon.darkened(0.1)
 	sky.ground_bottom_color = Color("56707a").lerp(Color("0b1018"), night)
-	env.ambient_light_energy = lerpf(0.75, 0.22, night) * (1.0 - 0.2 * overcast)
+	env.ambient_light_energy = lerpf(0.75, 0.22, night) * (1.0 - 0.2 * overcast) + flash * 1.6
 	if _base_fog < 0.0:
 		_base_fog = env.fog_density
 	env.fog_density = _base_fog + 0.0016 * overcast

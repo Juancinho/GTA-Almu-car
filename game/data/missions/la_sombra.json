@@ -1,0 +1,171 @@
+{
+  "id": "la_sombra",
+  "title": "La sombra",
+  "reward": 1800,
+  "fail_checkpoint": 1,
+  "fail_dialogue": "Rocío: Lledó vuelve a salir de la notaría mañana a la misma hora. Lo intentamos otra vez.",
+  "setting": "Capítulo 2, misión 1. Plaza Marruecos -> persecución discreta del contable por el centro -> Plaza San Cristóbal y las escaleras del Peñón (reunión de Cifuentes con el sargento Robles).",
+  "spawns": [
+    {
+      "id": "rocio_car",
+      "kind": "vehicle",
+      "variant": "compact_generated",
+      "at": [
+        30.0,
+        -300.0
+      ],
+      "when": "start"
+    },
+    {
+      "id": "lledo_car",
+      "kind": "vehicle",
+      "variant": "sedan_teal",
+      "at": [
+        150.0,
+        -330.0
+      ],
+      "traffic": true,
+      "speed": 10.0,
+      "occupant": "male_suit",
+      "health": 1400,
+      "when": "objective"
+    },
+    {
+      "id": "meet_suv",
+      "kind": "vehicle",
+      "variant": "suv_sand",
+      "at": [
+        -352.0,
+        250.0
+      ],
+      "on_road": false,
+      "yaw": 100,
+      "when": "objective"
+    },
+    {
+      "id": "meet_sports",
+      "kind": "vehicle",
+      "variant": "sports_white",
+      "at": [
+        -344.0,
+        255.0
+      ],
+      "on_road": false,
+      "yaw": 280,
+      "when": "objective"
+    }
+  ],
+  "objectives": [
+    {
+      "type": "talk_to",
+      "target": "Rocio",
+      "text": "Habla con Rocío en la Plaza Marruecos",
+      "dialogue": [
+        "Rocío: Así que tú eres el del banco. Tranquilo, no escribo de atracadores: escribo de quien se queda con lo que dejasteis.",
+        "Rocío: Álvaro Cifuentes, promotor de Málaga. Ha comprado Construcciones Mar Azul, media marina y las fincas de aguacate de la vega. Con dinero que no sale de ningún banco.",
+        "Rocío: Su contable, Óscar Lledó, acaba de salir de la notaría en un turismo verde. Síguelo con mi coche... y que no te vea."
+      ]
+    },
+    {
+      "type": "enter_vehicle",
+      "vehicle": "rocio_car",
+      "text": "Sube al utilitario de Rocío",
+      "wrecked_text": "El coche de Rocío ha quedado destrozado."
+    },
+    {
+      "type": "reach_area",
+      "marker_target": "lledo_car",
+      "radius": 40,
+      "requires_vehicle": true,
+      "time_limit": 120,
+      "spawn": [
+        "lledo_car"
+      ],
+      "text": "Alcanza el turismo verde de Lledó antes de que se pierda en el tráfico",
+      "timeout_text": "Lledó se ha perdido entre el tráfico.",
+      "dialogue": [
+        "Rocío (teléfono): Ese es. Ni se te ocurra embestirlo: tiene que llegar entero a donde vaya.",
+        "Rocío: Necesito la matrícula. Pégate un momento y luego déjale aire."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker_target": "lledo_car",
+      "radius": 12,
+      "requires_vehicle": true,
+      "time_limit": 60,
+      "text": "Pégate a menos de 12 m para leer la matrícula (sin chocar)",
+      "timeout_text": "Has tardado demasiado: Lledó se ha dado cuenta y ha acelerado.",
+      "dialogue": [
+        "Matrícula de Málaga. Rocío (teléfono): ...a nombre de Inversiones Altamar. Bingo.",
+        "Rocío: Y acaba de llamar a alguien. 'A las ocho en San Cristóbal, que venga el sargento'. Deja que siga dando vueltas.",
+        "Rocío: Adelántate tú a la cita. Sin sirenas detrás, o no aparecerá nadie."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -330.0,
+        236.0
+      ],
+      "radius": 25,
+      "requires_no_wanted": true,
+      "time_limit": 180,
+      "spawn": [
+        "meet_suv",
+        "meet_sports"
+      ],
+      "text": "Adelántate a la cita en la Plaza San Cristóbal sin llamar la atención (sin policía)",
+      "timeout_text": "Has llegado tarde: la reunión ha terminado.",
+      "dialogue": [
+        "Rocío (teléfono): Aparca lejos y sigue a pie.",
+        "Rocío: Desde las escaleras del Peñón se ve todo el aparcamiento. Escóndete allí."
+      ]
+    },
+    {
+      "type": "reach_area",
+      "marker": [
+        -357.0,
+        270.0
+      ],
+      "radius": 4,
+      "requires_on_foot": true,
+      "text": "Sube a pie a las escaleras del Peñón y escóndete",
+      "dialogue": [
+        "Cifuentes: Sargento, el camión de la finca sale el jueves. Que no lo pare nadie en la N-340.",
+        "Sargento Robles: Con mis chicos de guardia no lo para ni Dios. Lo de siempre, en el sobre de siempre.",
+        "Cifuentes: Y búsqueme al que vació Caja Poniente. Ese dinero de Ferrer ahora era mío."
+      ]
+    },
+    {
+      "type": "wait",
+      "seconds": 10,
+      "marker": [
+        -352.0,
+        250.0
+      ],
+      "text": "Fotografía la reunión: no te muevas de las escaleras",
+      "set_wanted": 2,
+      "dialogue": [
+        "Clic. Clic. Cifuentes entregando un sobre al sargento, con la matrícula de fondo.",
+        "Sargento Robles: ¡Eh! ¡Tú, el de las escaleras! ¡Guardia Civil, alto!"
+      ]
+    },
+    {
+      "type": "escape_police",
+      "text": "El sargento te ha visto: pierde a la Guardia Civil",
+      "dialogue": "Rocío (teléfono): ¿Los has despistado? ¿Y las fotos? ¡Tráemelas ya!"
+    },
+    {
+      "type": "reach_area",
+      "marker_contact": "Rocio",
+      "radius": 6,
+      "requires_no_wanted": true,
+      "text": "Lleva las fotos a Rocío en la Plaza Marruecos",
+      "dialogue": [
+        "Rocío: Un promotor de Málaga pagando a un sargento de la Guardia Civil a plena luz. Esto es portada.",
+        "Rocío: Pero sin pruebas del dinero, sus abogados me comen viva. Ese 'camión de la finca'... habla con Curro, el de los aguacates de la vega. Cifuentes le quitó las tierras."
+      ]
+    }
+  ]
+}

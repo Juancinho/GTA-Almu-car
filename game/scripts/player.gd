@@ -1,6 +1,8 @@
 class_name PlayerController
 extends CharacterBody3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 signal contact_interacted(contact: Pedestrian)
 signal civilian_interacted(civilian: Pedestrian)
 signal vehicle_entered(vehicle: DriveableVehicle)
@@ -53,6 +55,7 @@ var interior_camera := false
 var interior_probe_timer := 0.0
 var swim_phase := 0.0
 var underwater_view: UnderwaterView
+var knocked_timer := 0.0  # thrown off a motorbike: down on the ground, no control
 
 
 func _ready() -> void:
@@ -63,7 +66,7 @@ func _ready() -> void:
 	underwater_view.player = self
 	add_child(underwater_view)
 	step_audio = AudioStreamPlayer3D.new()
-	step_audio.stream = load("res://assets/audio/footstep.wav") as AudioStream
+	step_audio.stream = AudioUtil.stream("res://assets/audio/footstep.wav")
 	step_audio.bus = "SFX"
 	step_audio.max_distance = 32.0
 	step_audio.position.y = 0.3
@@ -119,7 +122,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera_pitch = clampf(camera_pitch - event.relative.y * 0.003, -1.1, 0.55)
 		look_idle_time = 0.0
 		_update_camera_orientation()
-	if event.is_action_pressed("interact") and not dead:
+	if event.is_action_pressed("interact") and not dead and knocked_timer <= 0.0:
 		_interact()
 	elif event.is_action_pressed("attack") and InputMap.has_action("attack") and (weapons == null or str(weapons.get("current")) == "fists"):
 		punch()
@@ -149,7 +152,8 @@ func _process(delta: float) -> void:
 		look_idle_time = 0.0
 	else:
 		look_idle_time += delta
-	var target_length := DRIVE_CAMERA_DISTANCE if driving_vehicle != null else (2.1 if aiming else 2.4 if interior_camera else FOOT_CAMERA_DISTANCE)
+	var drive_distance := (5.2 if driving_vehicle != null and driving_vehicle.bike else DRIVE_CAMERA_DISTANCE)
+	var target_length := drive_distance if driving_vehicle != null else (2.1 if aiming else 2.4 if interior_camera else FOOT_CAMERA_DISTANCE)
 	if diving:
 		target_length = 2.4
 	camera_height = move_toward(camera_height, 0.6 if diving else 1.55, 4.0 * delta)
@@ -180,6 +184,13 @@ func _physics_process(delta: float) -> void:
 		return
 	if driving_vehicle != null:
 		global_position = driving_vehicle.global_position + Vector3(0, 0.3, 0)
+		return
+	if knocked_timer > 0.0:
+		knocked_timer -= delta
+		velocity.x = move_toward(velocity.x, 0.0, 6.0 * delta)
+		velocity.z = move_toward(velocity.z, 0.0, 6.0 * delta)
+		velocity.y = velocity.y - GRAVITY * delta if not is_on_floor() else 0.0
+		move_and_slide()
 		return
 	var water_depth := -sector_data.height_at(global_position.x, global_position.z) if sector_data != null and sector_data.surface_at(global_position.x, global_position.z) == "sea" else 0.0
 	if water_depth > 0.7 and global_position.y < 0.35:
@@ -270,16 +281,7 @@ func reset_swimming() -> void:
 
 func _interact() -> void:
 	if driving_vehicle != null:
-		var car := driving_vehicle
-		driving_vehicle = null
-		car.driver = null
-		car.set_occupant("")
-		camera_arm.clear_excluded_objects()
-		camera_arm.add_excluded_object(get_rid())
-		global_position = _safe_exit_position(car)
-		velocity = Vector3.ZERO
-		visual.visible = true
-		collider.set_deferred("disabled", false)
+		leave_vehicle()
 		return
 	for interior in get_tree().get_nodes_in_group("interiors"):
 		if interior.has_method("try_interact") and bool(interior.call("try_interact", self)):
@@ -316,9 +318,38 @@ func _interact() -> void:
 		civilian_interacted.emit(civilian)
 
 
+## Step out of the current vehicle onto a free spot beside it.
+func leave_vehicle() -> void:
+	var car := driving_vehicle
+	if car == null:
+		return
+	driving_vehicle = null
+	car.driver = null
+	car.set_occupant("")
+	camera_arm.clear_excluded_objects()
+	camera_arm.add_excluded_object(get_rid())
+	global_position = _safe_exit_position(car)
+	velocity = Vector3.ZERO
+	visual.visible = true
+	collider.set_deferred("disabled", false)
+
+
+## Thrown off a motorbike in a crash: out beside it, hurt and briefly knocked down.
+func fall_off_bike(bike: DriveableVehicle, impact_speed: float) -> void:
+	if driving_vehicle != bike:
+		return
+	var heading := -bike.global_transform.basis.z
+	leave_vehicle()
+	velocity = Vector3(heading.x, 0.0, heading.z) * minf(impact_speed * 0.15, 3.0) + Vector3.UP * 2.5
+	knocked_timer = 1.6
+	human.play_action("death", knocked_timer)
+	take_damage(clampf((impact_speed - 6.0) * 1.8, 8.0, 55.0), "vehicle")
+
+
 ## Put the player in the driver seat (used by interaction and save loading).
 func board_vehicle(car: DriveableVehicle) -> void:
 	reset_swimming()
+	knocked_timer = 0.0
 	if car.traffic or car.occupant_name != "":
 		var ejected := car.eject_occupant()
 		vehicle_jacked.emit(car, ejected)
@@ -354,6 +385,7 @@ func take_damage(amount: float, source: String = "") -> void:
 
 func heal_full() -> void:
 	reset_swimming()
+	knocked_timer = 0.0
 	health = MAX_HEALTH
 	dead = false
 	human.action_timer = 0.0
@@ -439,7 +471,9 @@ func _safe_exit_position(car: DriveableVehicle) -> Vector3:
 					return Vector3(spot.x, maxf(sector_data.height_at(spot.x, spot.z), 0.0) + 0.3, spot.z)
 		return car.global_position + car.global_transform.basis.x * 2.6 + Vector3(0, 0.2, 0)
 	var car_basis := car.global_transform.basis
-	var candidates: Array[Vector3] = [car_basis.x * 2.4, -car_basis.x * 2.4, car_basis.z * 3.4, -car_basis.z * 3.4]
+	var side := 1.3 if car.bike else 2.4
+	var ends := 2.2 if car.bike else 3.4
+	var candidates: Array[Vector3] = [car_basis.x * side, -car_basis.x * side, car_basis.z * ends, -car_basis.z * ends]
 	var shape := CapsuleShape3D.new()
 	shape.radius = 0.35
 	shape.height = 1.75

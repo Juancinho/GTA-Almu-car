@@ -1,11 +1,14 @@
 class_name DriveableVehicle
 extends CharacterBody3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 signal tyres_burst_signal
 signal ran_over(victim: Pedestrian)
 signal destroyed_vehicle
 
 const CarScene = preload("res://assets/procedural/compact_car.glb")
+const BikeModel = preload("res://scripts/bike_model.gd")
 const MODELS_PATH := "res://data/vehicles/models.json"
 static var model_catalog: Dictionary = {}
 ## Paint materials are shared by colour and live for the whole session, so freeing a
@@ -99,6 +102,21 @@ const BURST_MAX_SPEED := 9.0
 var suspension_y := 0.0
 var _last_body_y := INF
 var _last_rise := 0.0
+## Handling (models.json "max_speed" / "acceleration" / "turn_rate"; cars use the consts).
+var max_forward_speed := MAX_FORWARD_SPEED
+var acceleration := ACCELERATION
+var turn_rate := TURN_RATE
+## Motorbikes and scooters (variant "bike": "moto" | "scooter"): single-track
+## collision, the visible bike leans into turns, the wheels spin and a hard hit
+## throws the rider off. The body itself always stays upright (stable physics).
+var bike := false
+var bike_kind := ""
+var lean := 0.0  # radians, positive = leaning right
+var fallen := false  # dropped on its side after a crash until someone rides it again
+var _last_yaw := INF
+const BIKE_CRASH_SPEED := 10.0  # head-on speed into a wall/car that throws the rider
+const BIKE_KNOCK_SPEED := 8.0  # a car hitting a bike at this speed unseats its rider
+const BIKE_MAX_LEAN := 0.75
 
 
 func _ready() -> void:
@@ -114,13 +132,15 @@ func _ready() -> void:
 	_build_visuals()
 	engine_audio = AudioStreamPlayer3D.new()
 	engine_audio.name = "EngineAudio"
-	engine_audio.stream = load("res://assets/audio/engine_loop.wav") as AudioStream
+	engine_audio.stream = AudioUtil.stream("res://assets/audio/engine_loop.wav")
 	if engine_audio.stream is AudioStreamWAV:
 		(engine_audio.stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 	engine_audio.bus = "SFX"
 	damage_fx = VehicleDamageFx.new()
 	damage_fx.name = "DamageFx"
 	add_child(damage_fx)
+	if bike:
+		damage_fx.position = Vector3(0, 0.6, -0.1)  # the engine sits under the rider
 	engine_audio.max_distance = 65.0
 	engine_audio.volume_db = -22.0
 	add_child(engine_audio)
@@ -132,13 +152,33 @@ func _build_visuals() -> void:
 	var spec := variant_spec(variant)
 	boat = bool(spec.get("boat", false))
 	boat_max_speed = float(spec.get("max_speed", 12.0))
+	bike_kind = str(spec.get("bike", ""))
+	bike = bike_kind != ""
+	if not boat:
+		max_forward_speed = float(spec.get("max_speed", MAX_FORWARD_SPEED))
+		acceleration = float(spec.get("acceleration", ACCELERATION))
+		turn_rate = float(spec.get("turn_rate", TURN_RATE))
 	var collider := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(2.0, 1.1, 4.8) if boat else Vector3(1.9, 0.88, 4.1)
 	collider.shape = shape
 	collider.position.y = 0.65 if boat else 0.76
+	if bike:
+		# Single track: a slim frame box above two in-line tyre spheres.
+		shape.size = Vector3(0.5, 0.6, 1.5)
+		collider.position.y = 0.78
 	add_child(collider)
-	if not boat:
+	if bike:
+		var info := BikeModel.geometry(bike_kind)
+		var bike_tyre := SphereShape3D.new()
+		bike_tyre.radius = 0.3
+		for z: float in [float(info["front_z"]), float(info["rear_z"])]:
+			var wheel := CollisionShape3D.new()
+			wheel.name = "TyreSupport"
+			wheel.shape = bike_tyre
+			wheel.position = Vector3(0.0, 0.3, z)
+			add_child(wheel)
+	elif not boat:
 		# Rounded tyre support rolls over small road lips; the chassis retains its
 		# own solid volume above the tyres rather than scraping along the asphalt.
 		var tyre := SphereShape3D.new()
@@ -156,12 +196,12 @@ func _build_visuals() -> void:
 func _build_model() -> void:
 	var spec := variant_spec(variant)
 	var scene: PackedScene = CarScene
-	if spec.has("scene"):
+	if spec.has("scene") and not bike:
 		scene = load(str(spec["scene"])) as PackedScene
 	if scene == null:
 		push_error("Vehicle %s: model for variant '%s' failed to load" % [name, variant])
 		scene = CarScene
-	var model := scene.instantiate() as Node3D
+	var model := BikeModel.build(bike_kind) if bike else scene.instantiate() as Node3D
 	model.name = "CarVisual"
 	model_yaw = deg_to_rad(float(spec.get("yaw_degrees", 0.0)))
 	model.rotation.y = model_yaw
@@ -177,7 +217,7 @@ func _build_model() -> void:
 		if is_finite(bottom):
 			model.position.y -= bottom
 		model_base_y = model.position.y
-	if scene != CarScene:
+	if scene != CarScene and not bike:
 		_merge_model(model)
 	var lamp_kinds := {"Headlights": "head", "M_lamp": "head", "TailLights": "tail", "M_rear_lamp": "tail", "BlueLights": "blue", "RedLights": "red", "WhiteLights": "white"}
 	var front := 0.0
@@ -195,6 +235,14 @@ func _build_model() -> void:
 	for node in model.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance := node as MeshInstance3D
 		mesh_instance.visibility_range_end = 220.0
+		if bike:
+			if node.name.ends_with("Wheel"):
+				mesh_instance.visibility_range_end = 110.0  # a few pixels beyond this
+			for surface in range(mesh_instance.mesh.get_surface_count()):
+				var source := mesh_instance.mesh.surface_get_material(surface)
+				if source != null and source.resource_name == "Paint":
+					mesh_instance.set_surface_override_material(surface, _material(body_color, 0.3))
+			continue
 		if scene == CarScene:
 			if node.name.begins_with("Body") or node.name.begins_with("Roof"):
 				mesh_instance.material_override = _material(body_color)
@@ -267,6 +315,18 @@ static func traffic_variants() -> Array:
 	return model_catalog.get("traffic", [])
 
 
+## Motorbikes and scooters that join the traffic mix at a low share.
+static func traffic_bike_variants() -> Array:
+	variant_spec("")
+	return model_catalog.get("traffic_bikes", [])
+
+
+## A colour from the variant's "colors" palette (bikes), picked by seed.
+static func palette_color(key: String, seed_value: int) -> Color:
+	var colors: Array = variant_spec(key).get("colors", [])
+	return Color(str(colors[absi(seed_value) % colors.size()])) if not colors.is_empty() else Color("c3614c")
+
+
 ## Seated driver model (NPC or player) visible through the windows; "" hides it.
 func set_occupant(model_name: String) -> void:
 	occupant_name = model_name
@@ -285,6 +345,84 @@ func set_occupant(model_name: String) -> void:
 		add_child(occupant)
 	occupant.visible = true
 	occupant.hold_pose("sitting", 0.8)
+	if bike:
+		fallen = false
+		_place_rider()
+		if is_inside_tree():
+			_pose_rider()
+		else:
+			_pose_rider.call_deferred()
+
+
+## Rider astride the bike: the seated clip pitched forward about the hips (onto
+## the tank on a moto, upright on a scooter), thighs spread round the tank or
+## dropped to the floorboard, hands on the grips. Bone overrides persist while
+## the paused clip holds the pose.
+func _pose_rider() -> void:
+	if occupant == null or not is_inside_tree() or occupant.player == null:
+		return
+	var rigs := occupant.find_children("*", "Skeleton3D", true, false)
+	if rigs.is_empty():
+		return
+	var rig := rigs[0] as Skeleton3D
+	rig.clear_bones_global_pose_override()
+	occupant.grip_skeleton = rig
+	var info := BikeModel.geometry(bike_kind)
+	_place_rider()
+	var to_human := (occupant.global_transform.affine_inverse() * rig.global_transform).basis.orthonormalized()
+	var to_rig := to_human.inverse()
+	var shin := to_rig * Basis(Vector3.RIGHT, float(info["shin_swing"])) * to_human
+	for side in ["L", "R"]:
+		var outward := -1.0 if side == "L" else 1.0
+		var turn := Basis(Vector3.UP, -outward * float(info["spread"])) * Basis(Vector3.RIGHT, -float(info["thigh_drop"]))
+		var swing := to_rig * turn * to_human
+		var hip_bone := rig.find_bone("UpperLeg." + side)
+		var knee_bone := rig.find_bone("LowerLeg." + side)
+		if hip_bone < 0 or knee_bone < 0:
+			continue
+		var hip := rig.get_bone_global_pose(hip_bone).origin
+		var knee := hip + swing * (rig.get_bone_global_pose(knee_bone).origin - hip)
+		# Thigh (and everything below it) about the hip, then the shin about the knee.
+		for bone_name in ["UpperLeg.%s", "LowerLeg.%s", "LowerLeg.%s_end", "Foot.%s", "Foot.%s_end"]:
+			var bone := rig.find_bone(bone_name % side)
+			if bone < 0:
+				continue
+			var pose := rig.get_bone_global_pose(bone)
+			var placed := Transform3D(swing * pose.basis, hip + swing * (pose.origin - hip))
+			if bone != hip_bone:
+				placed = Transform3D(shin * placed.basis, knee + shin * (placed.origin - knee))
+			rig.set_bone_global_pose_override(bone, placed, 1.0, true)
+	var lean_space := _lean_transform()
+	for side in ["L", "R"]:
+		var outward := -1.0 if side == "L" else 1.0
+		var grip: Vector3 = info["grip"]
+		grip.x *= outward
+		occupant.place_hand(side, lean_space * grip, lean_space * (grip + Vector3(0.28 * outward, -0.3, 0.3)))
+
+
+## World transform of the leaning part of the bike (where seat and bars are).
+func _lean_transform() -> Transform3D:
+	var model := get_node_or_null("CarVisual") as Node3D
+	var lean_node := model.get_node_or_null("Lean") as Node3D if model != null else null
+	if lean_node == null:
+		return global_transform
+	return global_transform * model.transform * lean_node.transform
+
+
+## The rider follows the lean: hip joint on the seat, body pitched about the hips.
+func _place_rider() -> void:
+	if occupant == null:
+		return
+	var model := get_node_or_null("CarVisual") as Node3D
+	var lean_node := model.get_node_or_null("Lean") as Node3D if model != null else null
+	if lean_node == null:
+		return
+	var info := BikeModel.geometry(bike_kind)
+	var scale_value := float((variant_spec(variant).get("driver", {}) as Dictionary).get("scale", 0.95))
+	var pitch := Basis(Vector3.RIGHT, float(info["pitch"]))
+	var hips := Vector3(0.0, 0.418, 0.195) * scale_value  # hip joint of the seated clip
+	var seat := Transform3D(pitch.scaled_local(Vector3.ONE * scale_value), (info["hip"] as Vector3) - pitch * hips)
+	occupant.transform = model.transform * lean_node.transform * seat
 
 
 ## Carjacking: the NPC driver gets out on the far side and runs away.
@@ -297,7 +435,7 @@ func eject_occupant() -> Pedestrian:
 	person.name = "Conductor_%s" % name
 	person.model_name = occupant_name
 	get_parent().add_child(person)
-	person.global_position = global_position - global_transform.basis.x * 2.4 + Vector3(0, 0.1, 0)
+	person.global_position = global_position - global_transform.basis.x * (1.3 if bike else 2.4) + Vector3(0, 0.1, 0)
 	person.flee_from(global_position)
 	set_occupant("")
 	return person
@@ -370,13 +508,13 @@ func _advance_lane() -> void:
 	lane_next = _choose_next(lane_from, lane_to)
 
 
-func _material(color: Color) -> StandardMaterial3D:
-	var key := color.to_html()
+func _material(color: Color, roughness := 0.7) -> StandardMaterial3D:
+	var key := color.to_html() + ("" if roughness == 0.7 else ":%.2f" % roughness)
 	if paint_materials.has(key):
 		return paint_materials[key]
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
-	mat.roughness = 0.7
+	mat.roughness = roughness
 	paint_materials[key] = mat
 	return mat
 
@@ -457,9 +595,13 @@ func _physics_process(delta: float) -> void:
 	_slide_off_cars()
 	_tilt_to_ground(delta)
 	_update_siren(delta)
-	var engine_load := clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0)
-	engine_audio.pitch_scale = 0.8 + engine_load * 0.75
+	var engine_load := clampf(absf(speed) / max_forward_speed, 0.0, 1.0)
+	engine_audio.pitch_scale = 0.8 + engine_load * 0.75 + (0.3 if bike else 0.0)
 	engine_audio.volume_db = -22.0 + engine_load * 9.0
+	if bike:
+		if not destroyed and (driver != null or occupant_name != ""):
+			_check_bike_crash(forward, speed_before)
+		_update_bike_visual(delta)
 	if is_on_wall():
 		# Head-on impacts stop the car; glancing contacts keep most speed and slide.
 		var impact := absf(forward.dot(get_wall_normal()))
@@ -534,7 +676,7 @@ func set_headlights(on: bool) -> void:
 		headlight.spot_range = 38.0
 		headlight.spot_angle = 32.0
 		headlight.spot_attenuation = 0.8
-		headlight.position = Vector3(0, 0.75, car_front_z + 0.15)
+		headlight.position = Vector3(0, 1.0 if bike else 0.75, car_front_z + 0.15)
 		headlight.rotation_degrees = Vector3(-6.0, 0.0, 0.0)
 		add_child(headlight)
 	if headlight != null:
@@ -642,6 +784,69 @@ func _tilt_to_ground(delta: float) -> void:
 	model.position.y = model_base_y + suspension_y - (0.1 if tyres_burst else 0.0)
 
 
+## Hitting a wall, a car or a façade hard (head-on component above
+## BIKE_CRASH_SPEED) throws the rider off. Low contacts (kerb lips) never count.
+func _check_bike_crash(forward: Vector3, speed_before: float) -> void:
+	if speed_before < BIKE_CRASH_SPEED:
+		return
+	for i in range(get_slide_collision_count()):
+		var hit := get_slide_collision(i)
+		var normal := hit.get_normal()
+		if normal.y > 0.5 or hit.get_collider() is Pedestrian or hit.get_position().y - global_position.y < 0.22:
+			continue
+		var flat := Vector3(normal.x, 0.0, normal.z).normalized()
+		if speed_before * absf(forward.dot(flat)) > BIKE_CRASH_SPEED:
+			throw_rider(speed_before)
+			return
+
+
+## The rider comes off: the player lands beside the bike, hurt and briefly down;
+## an NPC rider is knocked down next to it. The bike drops on its side.
+func throw_rider(impact_speed: float) -> void:
+	if not bike or destroyed:
+		return
+	fallen = true
+	if driver != null:
+		var rider := driver
+		rider.fall_off_bike(self, impact_speed)
+	elif occupant_name != "":
+		var person := eject_occupant()
+		if person != null:
+			person.knock_down(global_position - global_transform.basis.x, impact_speed)
+	speed = 0.0
+	pursuing = false
+	auto_drive = false
+
+
+## Lean into turns (from the real yaw rate: tan(lean) = v·ω / g), spin the
+## wheels, keep the rider on the seat; a dropped bike lies on its side.
+func _update_bike_visual(delta: float) -> void:
+	var model := get_node_or_null("CarVisual") as Node3D
+	var lean_node := model.get_node_or_null("Lean") as Node3D if model != null else null
+	if lean_node == null:
+		return
+	var yaw_rate := 0.0
+	if _last_yaw != INF and delta > 0.0:
+		yaw_rate = wrapf(rotation.y - _last_yaw, -PI, PI) / delta
+	_last_yaw = rotation.y
+	var target := 0.0
+	if fallen and driver == null and occupant_name == "":
+		target = 1.2
+	elif is_on_floor() or airborne_time < 0.3:
+		target = clampf(atan(-yaw_rate * speed / 9.8), -BIKE_MAX_LEAN, BIKE_MAX_LEAN)
+	lean = lerpf(lean, target, 1.0 - exp(-(4.0 if fallen else 7.0) * delta))
+	lean_node.rotation = Vector3(0.0, 0.0, -lean)
+	lean_node.position.y = maxf(0.0, absf(lean) - 0.9) * 0.25  # the bars keep a fallen bike off the ground
+	var info := BikeModel.geometry(bike_kind)
+	var spin := -speed / float(info["radius"]) * delta
+	for wheel_name in ["FrontWheel", "RearWheel"]:
+		var wheel := lean_node.get_node_or_null(wheel_name) as Node3D
+		if wheel != null:
+			wheel.rotation.x = wrapf(wheel.rotation.x + spin, -PI, PI)
+	if occupant != null and occupant.visible:
+		_place_rider()
+
+
 func _deep_water(at: Vector3) -> bool:
 	return sector_data != null and sector_data.surface_at(at.x, at.z) == "sea" and sector_data.height_at(at.x, at.z) < -0.7
 
@@ -663,6 +868,11 @@ func _resolve_contacts(speed_before: float) -> void:
 				get_tree().call_group("wanted_system", "report_crime", "atropello", global_position)
 		elif other is PlayerController and (other as PlayerController).driving_vehicle == null:
 			(other as PlayerController).take_damage(speed_before * 2.5, "vehicle")
+		elif other is DriveableVehicle and (other as DriveableVehicle).bike and speed_before > BIKE_KNOCK_SPEED:
+			(other as DriveableVehicle).throw_rider(speed_before)  # ploughing into a bike unseats its rider
+			if driver != null and ram_cooldown <= 0.0:
+				ram_cooldown = 0.35
+				(other as DriveableVehicle).apply_damage(maxf(0.0, speed_before - 4.0) ** 2 * 3.0)
 		elif other is DriveableVehicle and driver != null and ram_cooldown <= 0.0:
 			# Ramming: the player's car dents whatever it hits (chases, wrecking targets).
 			ram_cooldown = 0.35
@@ -755,19 +965,20 @@ func repair() -> void:
 func _drive_from_input(delta: float) -> void:
 	var throttle := Input.get_axis("move_back", "move_forward")
 	var handbrake := Input.is_action_pressed("brake")
-	var target_speed := throttle * (MAX_FORWARD_SPEED if throttle >= 0.0 else MAX_REVERSE_SPEED)
+	var target_speed := throttle * (max_forward_speed if throttle >= 0.0 else MAX_REVERSE_SPEED * (0.4 if bike else 1.0))
 	var rate := DRAG
 	if absf(throttle) > 0.05:
 		# Pressing against the direction of travel brakes harder before reversing.
-		rate = BRAKE_DECELERATION * wet_grip if throttle * speed < -0.1 else ACCELERATION
+		rate = BRAKE_DECELERATION * wet_grip if throttle * speed < -0.1 else acceleration
 	speed = move_toward(speed, target_speed, rate * delta)
 	if handbrake:
 		speed = move_toward(speed, 0.0, HANDBRAKE_DECELERATION * wet_grip * delta)
-	steer_input = move_toward(steer_input, Input.get_axis("move_left", "move_right"), STEER_RESPONSE * delta)
-	var speed_factor := clampf(absf(speed) / 5.0, 0.0, 1.0)
-	var high_speed_scale := lerpf(1.0, 0.62, clampf(absf(speed) / MAX_FORWARD_SPEED, 0.0, 1.0))
+	steer_input = move_toward(steer_input, Input.get_axis("move_left", "move_right"), STEER_RESPONSE * (1.5 if bike else 1.0) * delta)
+	var speed_factor := clampf(absf(speed) / (3.0 if bike else 5.0), 0.0, 1.0)
+	# Bikes keep more of their agility at speed, but their top speed is higher.
+	var high_speed_scale := lerpf(1.0, 0.5 if bike else 0.62, clampf(absf(speed) / max_forward_speed, 0.0, 1.0))
 	var handbrake_scale := (1.45 + 0.4 * (1.0 - wet_grip)) if handbrake and absf(speed) > 6.0 else 1.0  # wet: the tail steps out more
-	rotation.y -= steer_input * TURN_RATE * speed_factor * high_speed_scale * handbrake_scale * signf(speed) * delta
+	rotation.y -= steer_input * turn_rate * speed_factor * high_speed_scale * handbrake_scale * signf(speed) * delta
 
 
 func _follow_route(delta: float) -> void:

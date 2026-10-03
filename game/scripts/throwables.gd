@@ -1,5 +1,7 @@
 extends Node3D
 
+const AudioUtil = preload("res://scripts/audio_util.gd")
+
 const SoftParticle = preload("res://scripts/soft_particle.gd")
 
 ## Grenades and Molotov cocktails. G throws the selected one along the camera
@@ -30,9 +32,9 @@ var whoosh_stream: AudioStream
 func configure(target_player: PlayerController, target_wanted: Node) -> void:
 	player = target_player
 	wanted = target_wanted
-	boom_stream = load("res://assets/audio/explosion.wav") as AudioStream
-	smash_stream = load("res://assets/audio/molotov_smash.wav") as AudioStream
-	whoosh_stream = load("res://assets/audio/throw_whoosh.wav") as AudioStream
+	boom_stream = AudioUtil.stream("res://assets/audio/explosion.wav")
+	smash_stream = AudioUtil.stream("res://assets/audio/molotov_smash.wav")
+	whoosh_stream = AudioUtil.stream("res://assets/audio/throw_whoosh.wav")
 	add_to_group("throwables")
 
 

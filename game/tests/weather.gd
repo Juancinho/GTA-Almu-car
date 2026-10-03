@@ -57,7 +57,27 @@ func _run() -> void:
 	await _frames(3)
 	if DriveableVehicle.wet_grip < 0.99 or asphalt.roughness < dry_roughness - 0.01:
 		return _fail("dry state not restored")
-	print("WEATHER PASS: rain covers the sky, sun %.2f -> dimmed, rain particles, wet asphalt + grip 0.7, saved, slow drying, dry restored" % sun_clear)
+	# Storm: lightning strikes and flashes; bathers and most strollers go home.
+	weather.call("set_weather", "storm", true)
+	var peds_before := get_nodes_in_group("pedestrians").filter(func(p: Node) -> bool: return (p as Node3D).visible).size()
+	var flashed := false
+	for i in range(60 * 20):
+		await physics_frame
+		flashed = flashed or (weather.get("lightning") as DirectionalLight3D).visible
+	if int(weather.get("strikes")) < 1 or not flashed:
+		return _fail("no lightning in a storm (%d strikes)" % int(weather.get("strikes")))
+	var sheltered := int(weather.call("shelter_count"))
+	if sheltered < peds_before / 4:
+		return _fail("pedestrians stayed out in the storm (%d of %d sheltered)" % [sheltered, peds_before])
+	if float(weather.get("wind")) < 0.4:
+		return _fail("storm without wind")
+	weather.call("set_weather", "clear", true)
+	weather.set("wet", 0.0)
+	for i in range(60 * 3):
+		await physics_frame
+	if int(weather.call("shelter_count")) > sheltered / 2:
+		return _fail("pedestrians did not come back after the rain (%d still away)" % int(weather.call("shelter_count")))
+	print("WEATHER PASS: storm %d strikes, %d/%d pedestrians sheltered and back; rain covers the sky, sun %.2f -> dimmed, rain particles, wet asphalt + grip 0.7, saved, slow drying, dry restored" % [int(weather.get("strikes")), sheltered, peds_before, sun_clear])
 	root.queue_free()
 	await process_frame
 	quit(0)

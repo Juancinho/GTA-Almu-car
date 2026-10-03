@@ -47,8 +47,15 @@ func _run() -> void:
 	var cig := smoking.get("cigarette") as Node3D
 	if not cig.visible or cig.global_position.distance_to(player.global_position) > 1.6:
 		return _fail("cigarette not shown in the hand")
+	var closest_to_mouth := INF
+	var exhaled := false
 	for i in range(60 * 13):
 		await physics_frame
+		if bool(smoking.get("smoking")):
+			closest_to_mouth = minf(closest_to_mouth, cig.global_position.distance_to(smoking.call("_bone", "Head")))
+			exhaled = exhaled or (smoking.get("exhale") as CPUParticles3D).emitting
+	if closest_to_mouth > 0.25 or not exhaled or int(smoking.get("drags")) < 2:
+		return _fail("no drag gesture / mouth smoke (closest %.2f m, exhaled %s, drags %d)" % [closest_to_mouth, exhaled, int(smoking.get("drags"))])
 	if bool(smoking.get("smoking")) or player.health <= 80.0:
 		return _fail("the cigarette did not finish and calm the player")
 	root.set("save_path", "user://test_tobacco_save.json")
@@ -57,7 +64,7 @@ func _run() -> void:
 	root.call("_load_game")
 	if int(root.get("cigarettes")) != 219:
 		return _fail("tobacco not saved")
-	print("TOBACCO PASS: two estancos, buy pack, steal carton (1 star), exit, smoke with hand cigarette and heal, saved")
+	print("TOBACCO PASS: two estancos, buy pack, steal carton (1 star), exit, smoke with hand cigarette, drags to the lips and mouth smoke, heal, saved")
 	root.queue_free()
 	await process_frame
 	quit(0)
